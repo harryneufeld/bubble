@@ -10,6 +10,23 @@ public partial class OnboardingPage : ContentPage
     {
         InitializeComponent();
         _account = account;
+        ServerEntry.Text = AccountService.DefaultRelayUrl;
+    }
+
+    async Task<bool> ApplyServerAsync()
+    {
+        if (!AccountService.TryNormalizeRelayUrl(ServerEntry.Text, out var url))
+        {
+            await DisplayAlertAsync("Ungültige Server-Adresse", "Beispiel: 192.168.1.20:5080", "OK");
+            return false;
+        }
+        if (!await AccountService.IsReachableAsync(url))
+        {
+            await DisplayAlertAsync("Server nicht erreichbar", $"Unter {url} antwortet kein Bubble-Relay. Bitte prüfe die Adresse unten im Feld „Server“.", "OK");
+            return false;
+        }
+        AccountService.DefaultRelayUrl = url;
+        return true;
     }
 
     // Ohne Account gibt es kein Zurück.
@@ -22,6 +39,7 @@ public partial class OnboardingPage : ContentPage
             await DisplayAlertAsync("Name fehlt", "Bitte gib einen Namen ein.", "OK");
             return;
         }
+        if (!await ApplyServerAsync()) return;
         await RunBusy(async () =>
         {
             await _account.CreateAsync(NameEntry.Text);
@@ -31,6 +49,7 @@ public partial class OnboardingPage : ContentPage
 
     async void OnRestore(object? sender, EventArgs e)
     {
+        if (!await ApplyServerAsync()) return;
         await RunBusy(async () =>
         {
             try
@@ -46,7 +65,7 @@ public partial class OnboardingPage : ContentPage
             }
             catch (HttpRequestException)
             {
-                await DisplayAlertAsync("Keine Verbindung", "Der Server ist gerade nicht erreichbar.", "OK");
+                await DisplayAlertAsync("Keine Verbindung", $"{AccountService.DefaultRelayUrl} ist gerade nicht erreichbar.", "OK");
             }
         });
     }

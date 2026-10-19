@@ -1,0 +1,15 @@
+# Relay starten:  docker compose up -d --build
+services:
+  relay:
+    build:
+      context: .
+      dockerfile: src/Bubble.Relay/Dockerfile
+    image: bubble-relay
+    ports:
+      - "5080:5080"
+    volumes:
+      - relay-data:/data
+    restart: unless-stopped
+
+volumes:
+  relay-data:

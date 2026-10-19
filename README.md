@@ -1,6 +1,6 @@
 # 🫧 Bubble
 
-Ein tägliches Highlight (Top oder Flop) mit privaten Gruppen teilen, Ende-zu-Ende-verschlüsselt. Ziel und Roadmap stehen in [PLAN.md](PLAN.md).
+Ein tägliches Highlight (Top oder Flop) mit privaten Gruppen teilen, Ende-zu-Ende-verschlüsselt. Ziel und Roadmap stehen in [PLAN.md](PLAN.md), die Gestaltungsregeln in [DESIGN.md](DESIGN.md).
 
 ## Projekte
 
@@ -22,6 +22,20 @@ dotnet run --project src/Bubble.Relay
 ```
 
 Der Relay läuft danach auf `http://localhost:5080`. Die App startest du aus Visual Studio, z. B. als Windows-App oder im Android-Emulator; der Emulator erreicht den Relay über `10.0.2.2:5080`. Für ein echtes Handy startest du den Relay mit `--urls http://0.0.0.0:5080` und trägst in `AccountService.DefaultRelayUrl` die IP-Adresse deines PCs ein.
+
+### Relay per Docker
+
+```bash
+docker compose up -d --build
+```
+
+Das Image baut für amd64 und arm64, und die Datenbank liegt im Volume `relay-data`. In der App trägst du beim Onboarding oder später unter „Server“ die Adresse ein, z. B. `192.168.1.20:5080`.
+
+Gegen einen laufenden Relay lassen sich die Live-Tests ausführen:
+
+```bash
+BUBBLE_RELAY_URL=http://<server>:5080/ dotnet test --filter LiveRelayTests
+```
 
 ## So funktioniert die Verschlüsselung
 

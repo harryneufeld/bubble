@@ -14,9 +14,32 @@ public sealed class AccountService
 
     public Vault? Vault { get; private set; }
 
+    const string RelayUrlKey = "bubble.relay-url";
+
     /// <summary>Lokaler Entwicklungs-Relay. Der Android-Emulator erreicht den PC über 10.0.2.2.</summary>
-    public static string DefaultRelayUrl =>
+    static string FallbackRelayUrl =>
         DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:5080/" : "http://localhost:5080/";
+
+    /// <summary>
+    /// Relay für neue Bubbles und das Backup. Beigetretene Bubbles nutzen den Relay aus ihrer Einladung.
+    /// </summary>
+    public static string DefaultRelayUrl
+    {
+        get => Preferences.Default.Get(RelayUrlKey, FallbackRelayUrl);
+        set => Preferences.Default.Set(RelayUrlKey, value);
+    }
+
+    /// <summary>Normalisiert eine eingegebene Server-Adresse, z. B. „192.168.1.20:5080“ → „http://192.168.1.20:5080/“.</summary>
+    public static bool TryNormalizeRelayUrl(string? input, out string url)
+    {
+        url = "";
+        var text = input?.Trim() ?? "";
+        if (text.Length == 0) return false;
+        if (!text.Contains("://")) text = "http://" + text;
+        if (!Uri.TryCreate(text, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https")) return false;
+        url = uri.GetLeftPart(UriPartial.Authority) + "/";
+        return true;
+    }
 
     public BubbleClient Client => new(Vault ?? throw new InvalidOperationException("Kein Account."), RelayFor);
 
@@ -75,6 +98,21 @@ public sealed class AccountService
         Vault = await Task.Run(() => Backup.Open(secrets, blob));
         await SaveAsync();
         return true;
+    }
+
+    /// <summary>Prüft, ob unter der Adresse ein Relay antwortet.</summary>
+    public static async Task<bool> IsReachableAsync(string url)
+    {
+        try
+        {
+            using var http = new HttpClient { BaseAddress = new Uri(url), Timeout = TimeSpan.FromSeconds(5) };
+            using var response = await http.GetAsync("");
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            return false;
+        }
     }
 
     public RelayClient RelayFor(string url)

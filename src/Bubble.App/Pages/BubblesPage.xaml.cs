@@ -3,7 +3,7 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-public sealed record BubbleItem(string MailboxId, string Name, string Lifetime);
+public sealed record BubbleItem(string MailboxId, string Name, string Lifetime, string Server);
 
 public partial class BubblesPage : ContentPage
 {
@@ -27,7 +27,7 @@ public partial class BubblesPage : ContentPage
     }
 
     void Refresh() => List.ItemsSource = _account.Vault!.Bubbles
-        .Select(b => new BubbleItem(b.MailboxId, b.Name, Labels.Lifetime(b.Lifetime)))
+        .Select(b => new BubbleItem(b.MailboxId, b.Name, Labels.Lifetime(b.Lifetime), new Uri(b.RelayUrl).Authority))
         .ToList();
 
     async void OnSelected(object? sender, SelectionChangedEventArgs e)
@@ -75,6 +75,26 @@ public partial class BubblesPage : ContentPage
     }
 
     async void OnBackup(object? sender, EventArgs e) => await Shell.Current.GoToAsync(nameof(BackupPage));
+
+    async void OnServer(object? sender, EventArgs e)
+    {
+        var input = await DisplayPromptAsync("Server",
+            "Gilt für neue Bubbles und dein Backup. Bestehende Bubbles bleiben auf ihrem Server.",
+            "Speichern", "Abbrechen", "192.168.1.20:5080", initialValue: AccountService.DefaultRelayUrl, keyboard: Keyboard.Url);
+        if (input is null) return;
+        if (!AccountService.TryNormalizeRelayUrl(input, out var url))
+        {
+            await DisplayAlertAsync("Ungültige Server-Adresse", "Beispiel: 192.168.1.20:5080", "OK");
+            return;
+        }
+        if (!await AccountService.IsReachableAsync(url))
+        {
+            await DisplayAlertAsync("Server nicht erreichbar", $"Unter {url} antwortet kein Bubble-Relay.", "OK");
+            return;
+        }
+        AccountService.DefaultRelayUrl = url;
+        await SaveAndRefresh(); // lädt ein eingerichtetes Backup auf den neuen Server
+    }
 
     async Task SaveAndRefresh()
     {

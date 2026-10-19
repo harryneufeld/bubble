@@ -8,6 +8,7 @@
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Beitreten" Clicked="OnJoin" />
         <ToolbarItem Text="Backup" Clicked="OnBackup" />
+        <ToolbarItem Text="Server" Clicked="OnServer" />
     </ContentPage.ToolbarItems>
 
     <Grid RowDefinitions="*,Auto" Padding="16">
@@ -25,9 +26,10 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="pages:BubbleItem">
                     <Border Padding="16" StrokeShape="RoundRectangle 16" Stroke="{StaticResource Gray200}">
-                        <Grid ColumnDefinitions="*,Auto">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
                             <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" VerticalOptions="Center" />
                             <Label Grid.Column="1" Text="{Binding Lifetime}" FontSize="13" VerticalOptions="Center" />
+                            <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Server}" FontSize="12" TextColor="{StaticResource Gray500}" />
                         </Grid>
                     </Border>
                 </DataTemplate>

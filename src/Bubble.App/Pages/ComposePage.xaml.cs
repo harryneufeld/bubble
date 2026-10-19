@@ -85,9 +85,9 @@ public partial class ComposePage : ContentPage
         {
             await DisplayAlertAsync("Schon geteilt", ex.Message, "OK");
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Keine Verbindung", "Dein Highlight konnte nicht geteilt werden. Versuch es gleich noch mal.", "OK");
+            await DisplayAlertAsync("Nicht geteilt", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
         finally
         {

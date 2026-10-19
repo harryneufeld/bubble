@@ -59,9 +59,9 @@ public partial class FeedPage : ContentPage
             ComposeButton.IsEnabled = !postedToday;
             ComposeButton.Text = postedToday ? "✅ Heute schon geteilt" : "✨ Mein Highlight teilen";
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Keine Verbindung", "Der Server ist gerade nicht erreichbar.", "OK");
+            await DisplayAlertAsync("Feed nicht geladen", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
         finally
         {
@@ -105,9 +105,9 @@ public partial class FeedPage : ContentPage
             await _account.SaveAsync();
             await LoadAsync();
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Keine Verbindung", "Die Einstellung konnte nicht geändert werden.", "OK");
+            await DisplayAlertAsync("Nicht geändert", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
     }
 }

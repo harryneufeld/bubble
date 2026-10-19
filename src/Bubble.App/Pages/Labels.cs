@@ -25,6 +25,11 @@ static class Labels
         _ => "",
     };
 
+    /// <summary>Unterscheidet „Server nicht erreichbar“ von „Server hat abgelehnt“.</summary>
+    public static string ConnectionError(string relayUrl, HttpRequestException ex) => ex.StatusCode is { } status
+        ? $"Der Server {relayUrl} hat die Anfrage abgelehnt (HTTP {(int)status})."
+        : $"Der Server {relayUrl} ist nicht erreichbar.";
+
     public static string Time(DateTimeOffset createdAt)
     {
         var local = createdAt.ToLocalTime();
