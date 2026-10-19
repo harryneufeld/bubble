@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:pages="clr-namespace:Bubble.App.Pages"
+             x:Class="Bubble.App.Pages.BubblesPage"
+             x:DataType="pages:BubblesPage"
+             Title="Meine Bubbles">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Beitreten" Clicked="OnJoin" />
+        <ToolbarItem Text="Backup" Clicked="OnBackup" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="*,Auto" Padding="16">
+        <CollectionView x:Name="List" SelectionMode="Single" SelectionChanged="OnSelected">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="24" Spacing="8" VerticalOptions="Center">
+                    <Label Text="Noch keine Bubble" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                    <Label Text="Gründe eine Bubble und lade deine Leute ein, oder tritt über einen Einladungslink bei."
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="pages:BubbleItem">
+                    <Border Padding="16" StrokeShape="RoundRectangle 16" Stroke="{StaticResource Gray200}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="{Binding Lifetime}" FontSize="13" VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Button Grid.Row="1" Text="+ Neue Bubble" Clicked="OnCreate" Margin="0,12,0,0" />
+    </Grid>
+</ContentPage>

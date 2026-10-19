@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bubble.App.Pages.ComposePage"
+             Title="Highlight teilen">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="14">
+            <Label Text="Wie war dein Tag?" FontAttributes="Bold" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button x:Name="TopButton" Text="👍 Top" Clicked="OnTop" />
+                <Button x:Name="FlopButton" Grid.Column="1" Text="👎 Flop" Clicked="OnFlop" />
+            </Grid>
+
+            <Editor x:Name="TextEditor" Placeholder="Was war heute besonders?" AutoSize="TextChanges" MaxLength="1000" MinimumHeightRequest="100" />
+
+            <Image x:Name="Preview" IsVisible="False" Aspect="AspectFit" MaximumHeightRequest="360" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <Button x:Name="PhotoButton" Text="📷 Foto wählen" Clicked="OnPickPhoto" Style="{StaticResource SecondaryButton}" />
+                <Button x:Name="RemovePhotoButton" Grid.Column="1" Text="✕" Clicked="OnRemovePhoto" IsVisible="False" Style="{StaticResource SecondaryButton}" />
+            </Grid>
+            <Label Text="Standort- und Kameradaten werden vor dem Teilen aus dem Foto entfernt." FontSize="12" TextColor="{StaticResource Gray500}" />
+
+            <Border Padding="12,8" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Secondary}" StrokeThickness="0">
+                <Label x:Name="LifetimeLabel" TextColor="{StaticResource Tertiary}" />
+            </Border>
+
+            <Button x:Name="ShareButton" Text="Teilen" Clicked="OnShare" FontAttributes="Bold" />
+            <ActivityIndicator x:Name="Busy" IsRunning="False" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

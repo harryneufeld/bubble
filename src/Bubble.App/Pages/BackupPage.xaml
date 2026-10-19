@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bubble.App.Pages.BackupPage"
+             Title="Backup">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="14">
+            <Label Text="Account auf neuem Gerät nutzen" FontSize="20" FontAttributes="Bold" />
+            <Label Text="Deine Schlüssel liegen nur auf diesem Gerät. Mit einem Backup-Code kannst du sie auf einem neuen Gerät wiederherstellen. Der Server speichert das Backup nur verschlüsselt und kann es ohne deinen Code nicht öffnen." />
+
+            <Label x:Name="StatusLabel" FontAttributes="Bold" />
+
+            <Border x:Name="CodeBox" IsVisible="False" Padding="16" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Secondary}" StrokeThickness="0">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Dein Backup-Code" FontAttributes="Bold" TextColor="{StaticResource Tertiary}" />
+                    <Label x:Name="CodeLabel" FontFamily="Courier New" FontSize="20" FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" TextColor="{StaticResource Tertiary}" />
+                    <Button Text="📋 Kopieren" Clicked="OnCopy" />
+                    <Label FontSize="13" TextColor="{StaticResource Tertiary}"
+                           Text="🔐 Speichere den Code jetzt in deinem Passwortmanager, z. B. Bitwarden, 1Password, Apple Passwörter oder Google Passwortmanager. Er wird nur dieses eine Mal angezeigt. Ohne den Code kann niemand dein Backup öffnen, auch du nicht." />
+                </VerticalStackLayout>
+            </Border>
+
+            <Button x:Name="CreateButton" Clicked="OnCreate" />
+            <ActivityIndicator x:Name="Busy" IsRunning="False" />
+
+            <Label Text="Passkey (bald)" FontAttributes="Bold" Margin="0,16,0,0" />
+            <Label FontSize="13" TextColor="{StaticResource Gray500}"
+                   Text="Später kannst du das Backup auch mit einem Passkey entsperren, also per Face ID oder Fingerabdruck und synchronisiert über deinen Passwortmanager. Der Backup-Code bleibt als Alternative." />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,58 @@
+using SkiaSharp;
+
+namespace Bubble.App.Services;
+
+/// <summary>
+/// Bereitet Fotos vor dem Verschlüsseln auf: richtig drehen, verkleinern und neu als JPEG
+/// kodieren. Durch das Neukodieren fallen alle Metadaten (EXIF, GPS, Kameramodell) weg.
+/// </summary>
+public static class ImageSanitizer
+{
+    const int MaxEdge = 1600;
+    const int JpegQuality = 80;
+
+    public static async Task<byte[]> SanitizeAsync(Stream input)
+    {
+        using var buffer = new MemoryStream();
+        await input.CopyToAsync(buffer);
+        buffer.Position = 0;
+        return await Task.Run(() => Sanitize(buffer));
+    }
+
+    static byte[] Sanitize(Stream input)
+    {
+        using var codec = SKCodec.Create(input) ?? throw new InvalidDataException("Bildformat wird nicht unterstützt.");
+        using var decoded = SKBitmap.Decode(codec);
+        using var oriented = ApplyOrigin(decoded, codec.EncodedOrigin);
+
+        var scale = Math.Min(1f, (float)MaxEdge / Math.Max(oriented.Width, oriented.Height));
+        var info = new SKImageInfo((int)(oriented.Width * scale), (int)(oriented.Height * scale));
+        using var resized = scale < 1f
+            ? oriented.Resize(info, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear))
+            : oriented.Copy();
+
+        using var image = SKImage.FromBitmap(resized);
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, JpegQuality);
+        return data.ToArray();
+    }
+
+    static SKBitmap ApplyOrigin(SKBitmap source, SKEncodedOrigin origin)
+    {
+        var (degrees, swap) = origin switch
+        {
+            SKEncodedOrigin.RightTop => (90, true),
+            SKEncodedOrigin.BottomRight => (180, false),
+            SKEncodedOrigin.LeftBottom => (270, true),
+            _ => (0, false),
+        };
+        if (degrees == 0) return source.Copy();
+
+        var result = new SKBitmap(swap ? source.Height : source.Width, swap ? source.Width : source.Height);
+        using var canvas = new SKCanvas(result);
+        canvas.Translate(result.Width / 2f, result.Height / 2f);
+        canvas.RotateDegrees(degrees);
+        canvas.Translate(-source.Width / 2f, -source.Height / 2f);
+        canvas.DrawBitmap(source, 0, 0);
+        return result;
+    }
+}

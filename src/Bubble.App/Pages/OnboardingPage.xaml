@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bubble.App.Pages.OnboardingPage"
+             Shell.PresentationMode="ModalNotAnimated"
+             Title="Willkommen">
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16">
+            <Label Text="🫧 Bubble" FontSize="32" FontAttributes="Bold" />
+            <Label Text="Teile jeden Tag ein Highlight mit deinen Leuten. Alles ist Ende-zu-Ende-verschlüsselt. Du brauchst weder E-Mail noch Telefonnummer." />
+
+            <Label Text="Wie sollen dich deine Bubbles nennen?" FontAttributes="Bold" Margin="0,16,0,0" />
+            <Entry x:Name="NameEntry" Placeholder="Dein Name" ReturnType="Done" />
+            <Button x:Name="StartButton" Text="Los geht's" Clicked="OnStart" />
+
+            <BoxView HeightRequest="1" Color="{StaticResource Gray300}" Margin="0,24" />
+
+            <Label Text="Du hast schon einen Account?" FontAttributes="Bold" />
+            <Label Text="Gib deinen Backup-Code ein. Du findest ihn zum Beispiel in deinem Passwortmanager." FontSize="13" />
+            <Entry x:Name="CodeEntry" Placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" FontFamily="Courier New" />
+            <Button x:Name="RestoreButton" Text="Wiederherstellen" Clicked="OnRestore" Style="{StaticResource SecondaryButton}" />
+            <ActivityIndicator x:Name="Busy" IsRunning="False" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
