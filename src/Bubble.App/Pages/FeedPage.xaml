@@ -60,7 +60,11 @@
                 </CollectionView.Header>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="pages:PostItem">
-                        <controls:PostCard Margin="12,0" />
+                        <controls:PostCard Margin="12,0">
+                            <controls:PostCard.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPostTapped" CommandParameter="{Binding .}" />
+                            </controls:PostCard.GestureRecognizers>
+                        </controls:PostCard>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
                 <CollectionView.EmptyView>

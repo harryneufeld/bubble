@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Post-Karte: Kopf mit Avatar, Foto randlos (oder Text auf Verlauf), Lebensdauer als Glas-Pille -->
+<!-- Post-Karte: Kopf mit Avatar und Gefühl, Foto randlos (oder Text auf Verlauf), Herz-Blase, Herzen und Kommentare -->
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:Bubble.App.Controls"
@@ -12,34 +12,61 @@
                 <controls:AvatarView Size="40" Image="{Binding AuthorAvatar}" Name="{Binding AuthorName}" />
                 <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="1">
                     <Label Text="{Binding Author}" Style="{StaticResource HeadingText}" FontSize="15" />
-                    <Label Text="{Binding Meta}" Style="{StaticResource CaptionText}" />
+                    <Label Text="{Binding Meta}" Style="{StaticResource CaptionText}" LineBreakMode="TailTruncation" />
                 </VerticalStackLayout>
-                <Border Grid.Column="2" Style="{StaticResource ChipTop}" IsVisible="{Binding IsTop}">
-                    <Label Text="{Binding Mood}" Style="{StaticResource ChipTopText}" />
-                </Border>
-                <Border Grid.Column="2" Style="{StaticResource ChipFlop}" IsVisible="{Binding IsFlop}">
-                    <Label Text="{Binding Mood}" Style="{StaticResource ChipFlopText}" />
+                <Border Grid.Column="2" Style="{StaticResource SoftPill}" IsVisible="{Binding HasFeeling}"
+                        SemanticProperties.Description="{Binding Feeling, StringFormat='Fühlt sich: {0}'}">
+                    <Label Text="{Binding Feeling}" Style="{StaticResource FeelingText}" />
                 </Border>
             </Grid>
 
-            <!-- Foto -->
-            <Grid IsVisible="{Binding HasImage}" HeightRequest="460">
-                <Image Source="{Binding Image}" Aspect="AspectFill" SemanticProperties.Description="{Binding ImageDescription}" />
-                <Border Style="{StaticResource GlassPill}" HorizontalOptions="End" VerticalOptions="Start" Margin="12">
-                    <Label Text="{Binding Remaining}" Style="{StaticResource PillText}" TextColor="White" />
-                </Border>
+            <Grid x:Name="Media">
+                <!-- Foto -->
+                <Grid x:Name="PhotoArea" IsVisible="{Binding HasImage}" HeightRequest="460">
+                    <Image Source="{Binding Image}" Aspect="AspectFill" SemanticProperties.Description="{Binding ImageDescription}" />
+                    <Border Style="{StaticResource GlassPill}" HorizontalOptions="End" VerticalOptions="Start" Margin="12">
+                        <Label Text="{Binding Remaining}" Style="{StaticResource PillText}" TextColor="White" />
+                    </Border>
+                </Grid>
+
+                <!-- Nur Text: groß auf leuchtendem Verlauf -->
+                <Grid x:Name="TextArea" IsVisible="{Binding IsTextOnly}" MinimumHeightRequest="260" Background="{Binding TextBackground}">
+                    <Label Text="{Binding Text}" FontFamily="BodyBold" FontSize="26" LineHeight="1.15" TextColor="White"
+                           HorizontalTextAlignment="Center" VerticalOptions="Center" Margin="28,56" />
+                    <Border Style="{StaticResource GlassPill}" HorizontalOptions="End" VerticalOptions="Start" Margin="12">
+                        <Label Text="{Binding Remaining}" Style="{StaticResource PillText}" TextColor="White" />
+                    </Border>
+                </Grid>
+
+                <!-- Herz-Blase, die beim Doppeltippen kurz aufpoppt -->
+                <Image x:Name="BigHeart" Source="ic_heart_bubble_on.png" WidthRequest="110" HeightRequest="110" Opacity="0"
+                       HorizontalOptions="Center" VerticalOptions="Center" InputTransparent="True" />
             </Grid>
 
-            <!-- Nur Text: groß auf leuchtendem Verlauf -->
-            <Grid IsVisible="{Binding IsTextOnly}" MinimumHeightRequest="260" Background="{Binding TextBackground}">
-                <Label Text="{Binding Text}" FontFamily="BodyBold" FontSize="26" LineHeight="1.15" TextColor="White"
-                       HorizontalTextAlignment="Center" VerticalOptions="Center" Margin="28,56" />
-                <Border Style="{StaticResource GlassPill}" HorizontalOptions="End" VerticalOptions="Start" Margin="12">
-                    <Label Text="{Binding Remaining}" Style="{StaticResource PillText}" TextColor="White" />
-                </Border>
-            </Grid>
+            <Label Text="{Binding Text}" IsVisible="{Binding HasCaption}" Padding="16,12,16,0" LineHeight="1.3" />
 
-            <Label Text="{Binding Text}" IsVisible="{Binding HasCaption}" Padding="16,12,16,16" LineHeight="1.3" />
+            <!-- Herz, Wer hat Herzen gegeben, Kommentare -->
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" Padding="8,8,16,10">
+                <ImageButton x:Name="LikeButton" Source="{Binding LikeIcon}" WidthRequest="48" HeightRequest="48" Padding="10"
+                             BackgroundColor="Transparent" Clicked="OnLikeClicked"
+                             SemanticProperties.Description="{Binding LikeDescription}" ToolTipProperties.Text="{Binding LikeDescription}" />
+                <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center" IsVisible="{Binding HasLikers}">
+                    <HorizontalStackLayout Spacing="-8" BindableLayout.ItemsSource="{Binding Likers}" VerticalOptions="Center">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="pages:Face">
+                                <Border StrokeShape="Ellipse" Stroke="{StaticResource Surface}" StrokeThickness="2">
+                                    <controls:AvatarView Size="26" Image="{Binding Image}" Name="{Binding Name}" />
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </HorizontalStackLayout>
+                    <Label Text="{Binding LikersText}" Style="{StaticResource CaptionText}" VerticalOptions="Center" LineBreakMode="TailTruncation" />
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Grid.Column="2" Spacing="6" VerticalOptions="Center">
+                    <Image Source="ic_comment.png" WidthRequest="18" HeightRequest="18" />
+                    <Label Text="{Binding CommentsText}" Style="{StaticResource CaptionText}" TextColor="{StaticResource InkSoft}" />
+                </HorizontalStackLayout>
+            </Grid>
         </VerticalStackLayout>
     </Border>
 </ContentView>

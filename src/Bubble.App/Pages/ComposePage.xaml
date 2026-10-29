@@ -7,23 +7,11 @@
     <Grid Style="{StaticResource Column}" RowDefinitions="*,Auto" Padding="16,8,16,16">
         <ScrollView>
             <VerticalStackLayout Spacing="14" Padding="0,0,0,12">
-                <Label Text="Wie war dein Tag?" Style="{StaticResource TitleText}" />
+                <Label Text="Wie fühlst du dich?" Style="{StaticResource TitleText}" />
+                <Label x:Name="FeelingHint" Style="{StaticResource CaptionText}" Text="Tippe ein Emoji, das zu deinem Tag passt." />
 
-                <!-- Auswahl Top/Flop: Sonne oder Regenwolke, kein Wertungs-Rot/Grün -->
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                    <Border x:Name="TopChoice" StrokeShape="RoundRectangle 20" Padding="16,14" MinimumHeightRequest="60" SemanticProperties.Description="Top">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnTop" />
-                        </Border.GestureRecognizers>
-                        <Label x:Name="TopText" Text="👍 Top" FontFamily="BodySemibold" HorizontalTextAlignment="Center" VerticalOptions="Center" />
-                    </Border>
-                    <Border x:Name="FlopChoice" Grid.Column="1" StrokeShape="RoundRectangle 20" Padding="16,14" MinimumHeightRequest="60" SemanticProperties.Description="Flop">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnFlop" />
-                        </Border.GestureRecognizers>
-                        <Label x:Name="FlopText" Text="👎 Flop" FontFamily="BodySemibold" HorizontalTextAlignment="Center" VerticalOptions="Center" />
-                    </Border>
-                </Grid>
+                <!-- Gefühl: ein Emoji, optional -->
+                <FlexLayout x:Name="FeelingGrid" Wrap="Wrap" JustifyContent="Start" />
 
                 <Border Style="{StaticResource Field}" Padding="12,6">
                     <Editor x:Name="TextEditor" Placeholder="Was war heute besonders?" AutoSize="TextChanges" MaxLength="1000"

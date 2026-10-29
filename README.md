@@ -1,6 +1,6 @@
 # 🫧 Bubble
 
-Ein tägliches Highlight (Top oder Flop) mit privaten Gruppen teilen, Ende-zu-Ende-verschlüsselt. Ziel und Roadmap stehen in [PLAN.md](PLAN.md), die Gestaltungsregeln in [DESIGN.md](DESIGN.md).
+Highlights mit einem Gefühl (Emoji) in privaten Gruppen teilen, mit Herzen und Kommentaren, Ende-zu-Ende-verschlüsselt. Ziel und Roadmap stehen in [PLAN.md](PLAN.md), die Gestaltungsregeln in [DESIGN.md](DESIGN.md).
 
 ## Projekte
 
@@ -44,6 +44,7 @@ BUBBLE_RELAY_URL=http://<server>:5080/ dotnet test --filter LiveRelayTests
   - die **Mailbox-ID**, die der Relay sieht (zufällig aussehend, ohne Bezug zum Namen),
   - der **Inhaltsschlüssel** für ChaCha20-Poly1305.
 - **Einladung:** `bubble://join#…`. Der Schlüssel steht im Fragment. Die App zeigt ihn als **QR-Code** (wird lokal erzeugt und mit der Kamera gescannt) oder als **kurzen Code** wie `7KQ2M-9XH4T` (50 Bit, 24 h gültig): Aus dem Code leitet die App per Argon2id eine Mailbox-ID und einen Schlüssel ab, unter der die Einladung verschlüsselt als 24h-Nachricht auf dem Relay liegt. Der Relay sieht weder Code noch Bubble.
+- **Herzen und Kommentare:** eigene signierte, verschlüsselte Nachrichten (`Like`, `Comment`) mit der ID des Posts. Beim Herz zählt pro Person die neueste Nachricht. Beide laufen mit dem Post ab: Auf dem Relay stehen sie mit demselben Ablaufzeitpunkt wie der Post und werden mit ihm gelöscht.
 - **Profil:** Name, Profilbild (512 × 512, ohne Metadaten) und Bio gehen als signierte, verschlüsselte `Profile`-Nachricht an jede Bubble des Mitglieds. Der Relay weiß davon nichts.
 - **Nachricht:** JSON → signieren → verschlüsseln. Mailbox und Nachrichten-ID sind als Associated Data gebunden, sodass der Server Nachrichten weder verändern noch unter neuer ID wieder einspielen kann.
 - **Lebensdauer:** 24h-Posts bekommen ein `expiresAt`. Der Relay löscht sie endgültig, und der Client blendet sie zusätzlich selbst aus. Ändert jemand die Lebensdauer, wird eine signierte `LifetimeChanged`-Nachricht verschickt; sie gilt nur für neue Posts.
@@ -74,5 +75,5 @@ BUBBLE_RELAY_URL=http://<server>:5080/ dotnet test --filter LiveRelayTests
 - **Kein Rate-Limiting** und keine Speicherquoten auf dem Relay.
 - **Daten-Laden:** Der Feed wird bei jedem Öffnen komplett geladen, es gibt keinen lokalen Cache.
 - **Kurze Einladungscodes sind erratbar:** 50 Bit, aber nur 24 h gültig und per Argon2id gebremst. Bei Bedarf lieber den QR-Code oder Link nutzen.
-- **Noch nicht enthalten:** Push-Benachrichtigungen, Editor wie Canva, Passkey, Reaktionen.
+- **Noch nicht enthalten:** Push-Benachrichtigungen, Editor wie Canva, Passkey, Emoji-Reaktionen.
 - **Nur Entwicklung:** HTTP ist für den lokalen Relay erlaubt (Android `usesCleartextTraffic`, iOS `NSAllowsLocalNetworking`). Für Produktion braucht es HTTPS und einen Relay in der EU.

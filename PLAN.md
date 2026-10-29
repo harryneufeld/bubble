@@ -1,11 +1,12 @@
 # Bubble – Plan
 
 ## Ziel
-Eine App, in der man in privaten Gruppen („Bubbles“) ein tägliches Highlight teilt – Top oder Flop, als Text oder als selbst gestaltetes Bild. Datenschutz steht an erster Stelle: Ende-zu-Ende-verschlüsselt und datensparsam.
+Eine App, in der man in privaten Gruppen („Bubbles“) Highlights teilt – mit einem Emoji für das Gefühl, als Text oder als Bild. Datenschutz steht an erster Stelle: Ende-zu-Ende-verschlüsselt und datensparsam.
 
 ## Kernfunktionen
 - **Bubbles:** kleine private Gruppen, Beitritt per Einladungslink
-- **Highlights teilen**, so oft man mag, markiert als Top 👍 oder Flop 👎
+- **Highlights teilen**, so oft man mag, mit einem Gefühl als Emoji („Wie fühlst du dich?“)
+- **Herz-Blase und Kommentare** unter jedem Highlight; beide verschwinden mit dem Post
 - **Editor wie Canva:** Story-Leinwand (9:16) mit Fotos, Text, Stickern und Vorlagen; geteilt wird das fertige Bild
 - **Lebensdauer pro Bubble einstellbar:** ⏳ 24h (wie Stories) oder 📌 dauerhaft
   - jeder Post zeigt ein Badge mit seiner Lebensdauer
@@ -31,5 +32,5 @@ Fallback: Freunde laden einen erneut in die Bubble ein.
 ## Roadmap
 1. **MVP:** Bubbles, Text- und Foto-Posts, Ende-zu-Ende-Verschlüsselung, 24h/dauerhaft, Passkey- und Code-Backup
 2. **Editor:** Leinwand, Vorlagen, Sticker
-3. **Komfort:** Reaktionen, Push, Mehrgeräte-Support
+3. **Komfort:** Emoji-Reaktionen, Push, Mehrgeräte-Support
 4. **Härten:** MLS, Metadatenschutz, Option zum Self-Hosting

@@ -1,7 +1,7 @@
 ---
 version: 2
 name: Bubble
-description: Dunkle, lebendige Social-App für kleine private Kreise. Tiefes Schwarzviolett als Grund, Fotos und leuchtende Verläufe (Pink → Violett → Cyan, wie das Schillern einer Seifenblase) als Gestaltung. Stories-Leiste, Vollbild-Stories und Foto-Karten wie in sozialen Apps – aber ohne Likes-Zähler, Streaks oder endlosen Feed.
+description: Dunkle, lebendige Social-App für kleine private Kreise. Tiefes Schwarzviolett als Grund, Fotos und leuchtende Verläufe (Pink → Violett → Cyan, wie das Schillern einer Seifenblase) als Gestaltung. Stories-Leiste, Vollbild-Stories und Foto-Karten wie in sozialen Apps – aber ohne Streaks, Ranglisten oder endlosen Feed.
 
 colors:
   # Flächen (dunkel)
@@ -25,12 +25,6 @@ colors:
   cta-start: "#D9246F"
   cta-end: "#6D3CF5"
   on-cta: "#FFFFFF"
-
-  # Stimmung des Tages – freundlich, nicht wertend (kein Rot/Grün)
-  top: "#3A2D0E"
-  on-top: "#FFD27A"       # Sonne
-  flop: "#14283A"
-  on-flop: "#9CC7FF"      # Regenwolke
 
   # Semantik
   error: "#FF5A6E"
@@ -97,8 +91,9 @@ Bubble fühlt sich an wie **die Stories-Leiste einer sozialen App, nur für dein
 | Fließtext | `ink`, `ink-soft` | `muted` nur für Metadaten wie Zeit und Server. |
 | Links, Ghost-Aktionen | `accent` | Nicht für Fließtext. |
 | Schillern | `pink`, `violet`, `cyan` | Ringe, Cover, Deko (siehe oben). |
-| Top / Flop | `top`/`on-top`, `flop`/`on-flop` | Bewusst **nicht** Grün/Rot: Ein schlechter Tag ist kein Fehler. |
-| Fehler | `error` | Nur für echte Fehler, nie für „Flop“. |
+| Gefühl | `surface-raised` | Neutrale Pille mit Emoji und Wort („😍 Verliebt“). Keine Wertungsfarben: Ein schlechter Tag ist kein Fehler. |
+| Herz | `pink` | Nur das gesetzte Herz in der Herz-Blase. |
+| Fehler | `error` | Nur für echte Fehler, nie für ein Gefühl. |
 
 **Kontrast:** Text mindestens 4,5:1, große Schrift und Icons mindestens 3:1. Weißer Text auf Verläufen nutzt die dunkleren Stufen (`cta-*`, Avatar- und Post-Verläufe). Text auf Fotos steht immer auf einem Schatten-Verlauf (`PhotoShade`).
 
@@ -113,7 +108,7 @@ Bubble fühlt sich an wie **die Stories-Leiste einer sozialen App, nur für dein
 
 ## 4. Komponenten
 
-**Navigation.** Drei Tabs unten: **Heute**, **Bubbles**, **Profil**, mit Linien-Icons (2 px, `ic_*.svg`). Ausgewählt = `ink`, sonst `muted`. Detailseiten (Bubble, Einladen, Beitreten, Teilen, Backup) blenden die Tab-Leiste aus.
+**Navigation.** Zurück schließt Seiten der Reihe nach, von einem anderen Tab geht es zurück zu „Heute“. Auf „Heute“ beendet Zurück die App nicht. Drei Tabs unten: **Heute**, **Bubbles**, **Profil**, mit Linien-Icons (2 px, `ic_*.svg`). Ausgewählt = `ink`, sonst `muted`. Detailseiten (Bubble, Einladen, Beitreten, Teilen, Backup) blenden die Tab-Leiste aus.
 
 **Avatar.** Rund. Ohne Foto: Initialen auf stabilem Verlauf je Name. Optional mit Story-Ring (`new` = Verlauf, `seen` = dezent) und Plus-Badge („Du“ in der Story-Leiste).
 
@@ -124,13 +119,17 @@ Bubble fühlt sich an wie **die Stories-Leiste einer sozialen App, nur für dein
 **Post-Karte.**
 ```
 ┌──────────────────────────────────┐
-│ (Avatar) Anna          [👍 Top]  │  Kopf: Name, „Bubble · vor 2 h“, Stimmung
+│ (Avatar) Anna       [😍 Verliebt]│  Kopf: Name, „Bubble · vor 2 h“, Gefühl
 │ ┌──────────────────────────────┐ │
 │ │ Foto, randlos       [⏳ 14 h]│ │  Glas-Pille mit Lebensdauer
 │ └──────────────────────────────┘ │
 │ Sonnenaufgang am See             │
+│ (♡) (Mia)(Tom) Mia und Tom   💬 2 │  Herz-Blase, wer ein Herz gab, Kommentare
 └──────────────────────────────────┘
 ```
+Die **Herz-Blase** ist ein Herz in einer Seifenblase (Linie; gesetzt: rosa gefüllt) und poppt beim Tippen kurz auf. Auf der Post-Seite gibt auch Doppeltippen aufs Bild ein Herz.
+
+**Post-Seite.** Tippen auf eine Karte öffnet nur diesen Post, groß, mit den Kommentaren darunter und der Eingabe unten fixiert. Kommentare sind runde Sprechblasen mit Avatar, Name und Zeit; Herz und Kommentare verschwinden mit dem Post.
 Nur-Text-Posts: großer weißer Text mittig auf leuchtendem Verlauf, gleiche Höhe wie ein Foto-Post.
 
 **Bubble-Kachel (Bubbles).** Zwei Spalten. Cover = neuestes Foto oder Verlauf, unten Schatten, Gesichter der Mitglieder, Name, „n Leute · Lebensdauer“. Ein Punkt oben rechts zeigt Neues – **kein Zähler**.
@@ -168,14 +167,16 @@ Nur-Text-Posts: großer weißer Text mittig auf leuchtendem Verlauf, gleiche Hö
 - Server-Adressen und Fehlerursachen werden konkret benannt, z. B. „192.168.1.20:5080 ist nicht erreichbar“.
 
 **Keine Aufmerksamkeitsfallen**
-- Kein endloser Feed (nur Highlights der Bubbles, kein Nachladen ins Unendliche), keine Streaks, keine Like-Zähler, keine „X hat noch nicht gepostet“-Hinweise, keine Zähler für Ungelesenes.
-- Reaktionen (später) sind Emojis ohne öffentliche Zählung.
+- Kein endloser Feed (nur Highlights der Bubbles, kein Nachladen ins Unendliche), keine Streaks, keine Ranglisten, keine „X hat noch nicht gepostet“-Hinweise, keine Zähler für Ungelesenes.
+- Herzen zeigen **Gesichter und Namen** („Mia und Tom“), keine große Zahl. Ein Kommentar-Zähler („2 Kommentare“) ist erlaubt.
+- Emoji-Reaktionen (später) folgen derselben Regel.
 - Benachrichtigungen höchstens einmal täglich und inhaltsleer.
 
 **Sprache**
 - Wir duzen, sind warm und kurz. Wir sagen „Highlight“, „Bubble“ und „teilen“, nicht „Content“, „Gruppe“ oder „posten“.
 - Fehler sagen, was passiert ist und was man tun kann. Die Ausnahme ist die Server-Adresse.
-- Ein Flop-Tag wird nie kommentiert oder bewertet.
+- Ein schlechter Tag wird von der App nie kommentiert oder bewertet. „Wie fühlst du dich?“ meint die Person, nicht eine Note.
+- Posten: „Wie fühlst du dich?“ mit 16 Emojis und einem Wort; die Auswahl ist optional und lässt sich durch erneutes Tippen zurücknehmen.
 
 ## 8. Do's and Don'ts
 
@@ -189,9 +190,9 @@ Nur-Text-Posts: großer weißer Text mittig auf leuchtendem Verlauf, gleiche Hö
 
 ### Don't
 - Das Schillern nicht für Fließtext oder große Flächen hinter Text mit niedrigem Kontrast nutzen.
-- Top/Flop nicht in Grün/Rot einfärben.
+- Gefühle nicht mit Wertungsfarben (Grün/Rot) markieren.
 - Keine Schriften oder Bilder von externen Servern laden.
-- Keine Zähler, Streaks oder Gamification einbauen.
+- Keine Streaks, Ranglisten oder Gamification einbauen; Herzen nicht als Zahl zeigen.
 - Keine Rahmen um Karten und keine harten Schatten.
 
 ## 9. Responsive Verhalten
@@ -207,11 +208,11 @@ Die Leinwand hat das Format **9:16** (1080×1920), wird skaliert und nie beschni
 
 ## 11. Umsetzung in .NET MAUI
 
-- Farben und Verläufe: `Resources/Styles/Colors.xaml` (`Canvas`, `Surface`, `SurfaceRaised`, `Hairline`, `Ink`, `InkSoft`, `Muted`, `Pink`, `Violet`, `Cyan`, `Accent`, `CtaStart`, `CtaEnd`, `Top`/`OnTop`, `Flop`/`OnFlop`; Brushes `BubbleGradient`, `CtaGradient`, `PhotoShade`).
-- Komponenten: benannte Styles in `Resources/Styles/Styles.xaml` (`PrimaryButton`, `SecondaryButton`, `GhostButton`, `IconButton`, `Card`, `Field`, `InfoBar`, `SecretBox`, `GlassPill`, `ChipTop`, `ChipFlop`, `HeroText`, `TitleText`, `CaptionText`, `SectionText`, `CodeText`).
+- Farben und Verläufe: `Resources/Styles/Colors.xaml` (`Canvas`, `Surface`, `SurfaceRaised`, `Hairline`, `Ink`, `InkSoft`, `Muted`, `Pink`, `Violet`, `Cyan`, `Accent`, `CtaStart`, `CtaEnd`, Brushes `BubbleGradient`, `CtaGradient`, `PhotoShade`).
+- Komponenten: benannte Styles in `Resources/Styles/Styles.xaml` (`PrimaryButton`, `SecondaryButton`, `GhostButton`, `IconButton`, `Card`, `Field`, `InfoBar`, `SecretBox`, `GlassPill`, `SoftPill`, `FeelingText`, `HeroText`, `TitleText`, `CaptionText`, `SectionText`, `CodeText`).
 - Wiederverwendbare Controls: `Controls/AvatarView` (Avatar, Ring, Plus), `Controls/PostCard` (Post-Karte).
 - QR-Codes erzeugt `QRCoder` lokal, gescannt wird mit `ZXing.Net.Maui` (Kamera nur, solange der Scan-Tab offen ist).
 
 ## 12. Prompt-Hilfe für KI-Agenten
 
-> Baue die Oberfläche nach `DESIGN.md`: dunkler Grund (`canvas` #0B0A10), Karten in `surface` ohne Rahmen mit 24-pt-Radius, genau ein Pillen-Button im Pink-Violett-Verlauf pro Ansicht. Inter fett für Schlagzeilen, Fraunces nur für die Wortmarke. Fotos randlos und groß, Text-Posts auf leuchtendem Verlauf. Story-Ringe im Pink-Violett-Cyan-Verlauf. Jeder Post zeigt Top/Flop-Pille (Sonne/Regenwolke, nicht grün/rot) und Lebensdauer. Keine Zähler, keine Streaks, keine externen Ressourcen. Deutsch, Du-Form, warm und kurz.
+> Baue die Oberfläche nach `DESIGN.md`: dunkler Grund (`canvas` #0B0A10), Karten in `surface` ohne Rahmen mit 24-pt-Radius, genau ein Pillen-Button im Pink-Violett-Verlauf pro Ansicht. Inter fett für Schlagzeilen, Fraunces nur für die Wortmarke. Fotos randlos und groß, Text-Posts auf leuchtendem Verlauf. Story-Ringe im Pink-Violett-Cyan-Verlauf. Jeder Post zeigt das Gefühl als Emoji-Pille und die Lebensdauer, darunter die Herz-Blase. Keine Streaks, keine externen Ressourcen. Deutsch, Du-Form, warm und kurz.

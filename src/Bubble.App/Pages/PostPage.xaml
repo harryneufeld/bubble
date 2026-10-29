@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Ein Highlight im Ganzen: Karte oben, Kommentare darunter, Eingabe unten -->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Bubble.App.Controls"
+             xmlns:pages="clr-namespace:Bubble.App.Pages"
+             x:Class="Bubble.App.Pages.PostPage"
+             Shell.TabBarIsVisible="False"
+             Title="Highlight">
+    <Grid RowDefinitions="*,Auto">
+        <RefreshView x:Name="Refresher" Refreshing="OnRefreshing">
+            <CollectionView x:Name="CommentList" SelectionMode="None" MaximumWidthRequest="600">
+                <CollectionView.Header>
+                    <VerticalStackLayout Spacing="4">
+                        <controls:PostCard x:Name="Card" DoubleTapToLike="True" Margin="12,0,12,0" />
+                        <Label Text="Kommentare" Style="{StaticResource HeadingText}" Margin="16,4,16,8" />
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="pages:CommentItem">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="14,6">
+                            <controls:AvatarView Size="36" Image="{Binding Avatar}" Name="{Binding Name}" VerticalOptions="Start" />
+                            <Border Grid.Column="1" BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 18" Padding="14,10"
+                                    HorizontalOptions="Start">
+                                <VerticalStackLayout Spacing="2">
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="{Binding Name}" FontFamily="BodySemibold" FontSize="14" />
+                                        <Label Text="{Binding When}" Style="{StaticResource CaptionText}" FontSize="12" VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding Text}" FontSize="15" LineHeight="1.25" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24,24" Spacing="6">
+                        <Label Text="Noch keine Kommentare" Style="{StaticResource HeadingText}" HorizontalTextAlignment="Center" />
+                        <Label Text="Schreib den ersten." Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.Footer>
+                    <BoxView HeightRequest="12" Color="Transparent" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+
+        <!-- Kommentar schreiben -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10" Padding="12,8,12,12" MaximumWidthRequest="600">
+            <Border Style="{StaticResource Field}" MinimumHeightRequest="50">
+                <Entry x:Name="CommentEntry" Placeholder="Kommentar schreiben …" MaxLength="500" ReturnType="Send" Completed="OnSend"
+                       SemanticProperties.Description="Kommentar schreiben" />
+            </Border>
+            <ImageButton Grid.Column="1" x:Name="SendButton" Source="ic_send.png" Clicked="OnSend"
+                         Background="{StaticResource CtaGradient}" CornerRadius="25" WidthRequest="50" HeightRequest="50" Padding="14"
+                         SemanticProperties.Description="Kommentar senden" ToolTipProperties.Text="Kommentar senden" />
+        </Grid>
+    </Grid>
+</ContentPage>

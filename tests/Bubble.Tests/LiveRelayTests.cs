@@ -29,8 +29,8 @@ public class LiveRelayTests
         Assert.True(Invite.TryParse(Invite.For(bubble).ToLink(), out var invite));
         var bensBubble = invite!.ToMembership();
 
-        await new BubbleClient(anna, Relay).PostAsync(bubble, Mood.Top, "Hallo vom Live-Test", [0xFF, 0xD8, 0xFF]);
-        await new BubbleClient(ben, Relay).PostAsync(bensBubble, Mood.Flop, "Regen", null);
+        await new BubbleClient(anna, Relay).PostAsync(bubble, "😊", "Hallo vom Live-Test", [0xFF, 0xD8, 0xFF]);
+        await new BubbleClient(ben, Relay).PostAsync(bensBubble, "😕", "Regen", null);
 
         var annasFeed = await new BubbleClient(anna, Relay).LoadFeedAsync(bubble);
         Assert.Equal(["Regen", "Hallo vom Live-Test"], annasFeed.Select(p => p.Message.Text));
