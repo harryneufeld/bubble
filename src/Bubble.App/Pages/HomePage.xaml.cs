@@ -16,6 +16,7 @@ public partial class HomePage : ContentPage
     readonly AccountService _account;
     readonly FeedService _feed;
     bool _loading;
+    string _ringSig = "", _feedSig = "";
 
     public HomePage(AccountService account, FeedService feed)
     {
@@ -73,9 +74,22 @@ public partial class HomePage : ContentPage
                 return new StoryRing(x.Bubble.Name, x.Bubble.Name, cover, unseen ? AvatarRing.New : AvatarRing.Seen, false, x.Bubble);
             })
             .OrderByDescending(r => r.Ring == AvatarRing.New));
-        Stories.ItemsSource = rings;
 
-        Feed.ItemsSource = _feed.AllPosts().Select(p => new PostItem(p, _feed, showBubble: true)).ToList();
+        // Listen nur ersetzen, wenn sich etwas geändert hat: Beim Ersetzen laden alle Bilder neu und flackern.
+        var ringSig = string.Join('|', rings.Select(r => $"{r.Title}:{r.Ring}:{r.Image?.Length}:{r.ShowPlus}"));
+        if (ringSig != _ringSig)
+        {
+            _ringSig = ringSig;
+            Stories.ItemsSource = rings;
+        }
+
+        var posts = _feed.AllPosts();
+        var feedSig = string.Join('|', posts.Select(p => PostSig(p))) + $"#{DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 60}";
+        if (feedSig != _feedSig)
+        {
+            _feedSig = feedSig;
+            Feed.ItemsSource = posts.Select(p => new PostItem(p, _feed, showBubble: true)).ToList();
+        }
         FeedTitle.IsVisible = bubbles.Count > 0;
 
         if (bubbles.Count == 0)
@@ -101,6 +115,9 @@ public partial class HomePage : ContentPage
             var n => $"{n} Bubbles sind gerade nicht erreichbar.",
         };
     }
+
+    static string PostSig(HomePost p) =>
+        $"{p.Post.Id}:{p.Snapshot.LikersOf(p.Post.Id).Count}:{p.Snapshot.IsLikedByMe(p.Post.Id)}:{p.Snapshot.CommentsOf(p.Post.Id).Count}";
 
     async void OnStoryTapped(object? sender, TappedEventArgs e)
     {

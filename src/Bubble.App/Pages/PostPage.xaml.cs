@@ -13,6 +13,7 @@ public partial class PostPage : ContentPage
     readonly FeedService _feed;
     BubbleMembership? _bubble;
     PostItem? _item;
+    string _sig = "";
 
     public string MailboxId { get; set; } = "";
     public string PostId { get; set; } = "";
@@ -73,12 +74,20 @@ public partial class PostPage : ContentPage
     bool Render()
     {
         if (_feed.FindPost(_bubble!, PostId) is not { } post) return false;
+        // Nichts Neues: Karte nicht neu aufbauen, sonst lädt das Foto neu und flackert
+        if (_item is not null && Sig(post) == _sig) return true;
+
         _item = new PostItem(post, _feed, showBubble: true);
+        _sig = Sig(post);
+        _item.PropertyChanged += (_, _) => _sig = Sig(_item.Source); // eigenes Herz oder Kommentar: Zustand ist schon angezeigt
         Card.BindingContext = _item;
         CommentList.ItemsSource = _item.Comments;
         Title = _item.Author == "Du" ? "Dein Highlight" : $"Highlight von {_item.AuthorName}";
         return true;
     }
+
+    static string Sig(HomePost p) =>
+        $"{p.Post.Id}:{p.Snapshot.LikersOf(p.Post.Id).Count}:{p.Snapshot.CommentsOf(p.Post.Id).Count}";
 
     async void OnSend(object? sender, EventArgs e)
     {

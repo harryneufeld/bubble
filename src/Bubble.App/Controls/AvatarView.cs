@@ -24,7 +24,7 @@ public sealed class AvatarView : ContentView
     public bool ShowPlus { get => (bool)GetValue(ShowPlusProperty); set => SetValue(ShowPlusProperty, value); }
 
     static BindableProperty Create(string name, Type type, object? defaultValue = null) =>
-        BindableProperty.Create(name, type, typeof(AvatarView), defaultValue, propertyChanged: (b, _, _) => ((AvatarView)b).Rebuild());
+        BindableProperty.Create(name, type, typeof(AvatarView), defaultValue, propertyChanged: (b, _, _) => ((AvatarView)b).Invalidate());
 
     // Verläufe für Initialen – alle mit weißem Text >= 4,5:1
     static readonly (string, string)[] Palettes =
@@ -33,7 +33,22 @@ public sealed class AvatarView : ContentView
         ("#0F766E", "#4338CA"), ("#7C2D92", "#BE185D"), ("#1D4ED8", "#6D28D9"),
     ];
 
+    bool _dirty;
+
     public AvatarView() => Rebuild();
+
+    /// <summary>Beim Binden werden bis zu fünf Eigenschaften nacheinander gesetzt; gebaut wird nur einmal danach.</summary>
+    void Invalidate()
+    {
+        if (_dirty) return;
+        _dirty = true;
+        (Dispatcher ?? Application.Current?.Dispatcher)?.Dispatch(() => { _dirty = false; Rebuild(); });
+    }
+
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], ImageSource> Sources = new();
+
+    static ImageSource SourceFor(byte[] bytes) =>
+        Sources.GetValue(bytes, b => ImageSource.FromStream(() => new MemoryStream(b)));
 
     void Rebuild()
     {
@@ -45,7 +60,7 @@ public sealed class AvatarView : ContentView
         View face;
         if (Image is { Length: > 0 } bytes)
         {
-            face = new Image { Source = ImageSource.FromStream(() => new MemoryStream(bytes)), Aspect = Aspect.AspectFill };
+            face = new Image { Source = SourceFor(bytes), Aspect = Aspect.AspectFill };
         }
         else
         {

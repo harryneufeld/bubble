@@ -29,7 +29,10 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble) :
     public bool HasImage => _m.Image is not null;
     public bool IsTextOnly => _m.Image is null;
     public bool HasCaption => HasImage && Text is not null;
-    public ImageSource? Image { get; } = item.Post.Message.Image is { } bytes ? ImageSource.FromStream(() => new MemoryStream(bytes)) : null;
+    public ImageSource? Image { get; } = item.Post.Message.Image is { } bytes
+        ? Sources.GetValue(bytes, b => ImageSource.FromStream(() => new MemoryStream(b)))
+        : null;
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], ImageSource> Sources = new();
     public string ImageDescription => $"Foto von {AuthorName}";
     public Brush TextBackground { get; } = Gradients.For(item.Post.Id);
 

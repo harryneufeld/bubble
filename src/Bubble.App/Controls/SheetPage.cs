@@ -61,6 +61,9 @@ public sealed class SheetPage : ContentPage
         _root.Children.Add(_sheet);
         Content = _root;
 
+        // Von Anfang an unten außerhalb des Bildes: Setzt man das erst in OnAppearing, blitzt das Sheet für ein Bild an seinem Platz auf.
+        _sheet.TranslationY = 2000;
+
         // auf breiten Fenstern höchstens 560 breit
         SizeChanged += (_, _) => _sheet.WidthRequest = Math.Min(560, Width);
     }
@@ -180,7 +183,6 @@ public sealed class SheetPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        _sheet.TranslationY = 600;
         await Task.WhenAll(
             _scrim.FadeToAsync(1, 200),
             _sheet.TranslateToAsync(0, 0, 260, Easing.CubicOut));
