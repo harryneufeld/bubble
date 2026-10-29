@@ -26,6 +26,20 @@ public partial class ProfilePage : ContentPage
         StatsLabel.Text = vault.Bubbles.Count == 1 ? "In 1 Bubble" : $"In {vault.Bubbles.Count} Bubbles";
         BackupLabel.Text = vault.Backup is null ? "Noch nicht eingerichtet" : "Aktiv, wird automatisch aktualisiert";
         ServerLabel.Text = Labels.Host(AccountService.DefaultRelayUrl);
+        VersionLabel.Text = $"Version {AppInfo.Current.VersionString} ({AppInfo.Current.BuildString})";
+    }
+
+    async void OnGitHub(object? sender, TappedEventArgs e) => await OpenAsync("https://github.com/harryneufeld/bubble");
+
+    async void OnWebsite(object? sender, TappedEventArgs e) => await OpenAsync("https://harry-neufeld.de");
+
+    async Task OpenAsync(string url)
+    {
+        try { await Browser.Default.OpenAsync(new Uri(url), BrowserLaunchMode.External); }
+        catch (Exception ex) when (ex is FeatureNotSupportedException or InvalidOperationException)
+        {
+            await DisplayAlertAsync("Link nicht geöffnet", $"Öffne {url} bitte selbst im Browser.", "OK");
+        }
     }
 
     async void OnEdit(object? sender, EventArgs e) => await Shell.Current.GoToAsync(nameof(ProfileEditPage));
