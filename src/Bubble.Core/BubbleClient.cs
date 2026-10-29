@@ -13,7 +13,7 @@ public sealed record BubbleSnapshot(IReadOnlyList<FeedPost> Posts, IReadOnlyList
 }
 
 /// <summary>
-/// Fachlogik einer Bubble: Feed laden, posten (1 Highlight pro Tag), Lebensdauer ändern, Profil verteilen.
+/// Fachlogik einer Bubble: Feed laden, posten, Lebensdauer ändern, Profil verteilen.
 /// Plattformunabhängig, damit App und Tests denselben Code nutzen.
 /// </summary>
 public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor, TimeProvider? time = null)
@@ -62,22 +62,11 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
     public async Task<IReadOnlyList<FeedPost>> LoadFeedAsync(BubbleMembership bubble, CancellationToken ct = default) =>
         (await LoadAsync(bubble, ct)).Posts;
 
-    public bool HasPostedToday(IEnumerable<FeedPost> feed, TimeZoneInfo? zone = null)
-    {
-        zone ??= _time.LocalTimeZone;
-        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(_time.GetUtcNow(), zone).Date);
-        return feed.Any(p => p.IsMine && DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(p.Message.CreatedAt, zone).Date) == today);
-    }
-
-    /// <summary>Teilt das Highlight des Tages. Wirft, wenn heute schon gepostet wurde.</summary>
+    /// <summary>Teilt ein Highlight. Es gibt kein Tageslimit.</summary>
     public async Task PostAsync(BubbleMembership bubble, Mood mood, string? text, byte[]? image, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(text) && image is null)
             throw new ArgumentException("Ein Post braucht Text oder ein Bild.");
-
-        var feed = await LoadFeedAsync(bubble, ct);
-        if (HasPostedToday(feed))
-            throw new InvalidOperationException($"Du hast heute in „{bubble.Name}“ schon dein Highlight geteilt.");
 
         await SendAsync(bubble, new BubbleMessage
         {

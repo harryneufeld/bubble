@@ -11,6 +11,15 @@ static class Labels
         _ => "📌 Dauerhaft",
     };
 
+    /// <summary>Auswahlzeilen für die Lebensdauer; die aktuelle Einstellung ist markiert.</summary>
+    public static IReadOnlyList<Controls.SheetOption> LifetimeOptions(PostLifetime? current = null) =>
+    [
+        new("24 Stunden", "Highlights verschwinden nach einem Tag, wie Stories.", "⏳", current == PostLifetime.Story24h),
+        new("Dauerhaft", "Highlights bleiben, bis sie jemand löscht.", "📌", current == PostLifetime.Persistent),
+    ];
+
+    public static PostLifetime LifetimeAt(int index) => index == 0 ? PostLifetime.Story24h : PostLifetime.Persistent;
+
     public static string Remaining(BubbleMessage message)
     {
         if (message.ExpiresAt is not { } expires) return "📌 bleibt";

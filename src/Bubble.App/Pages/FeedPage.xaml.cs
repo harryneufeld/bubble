@@ -1,3 +1,4 @@
+using Bubble.App.Controls;
 using Bubble.App.Services;
 using Bubble.Core;
 
@@ -74,10 +75,6 @@ public partial class FeedPage : ContentPage
 
         Members.ItemsSource = (snapshot?.Members ?? []).Select(m => new MemberItem(m.Name, m.Avatar, m.IsMe)).ToList();
         Posts.ItemsSource = posts.Select(p => new PostItem(p, showBubble: false)).ToList();
-
-        var posted = _feed.HasPostedToday(bubble);
-        ComposeButton.IsEnabled = !posted;
-        ComposeButton.Text = posted ? "✓ Heute schon geteilt" : "Mein Highlight teilen";
     }
 
     async void OnCompose(object? sender, EventArgs e) =>
@@ -89,14 +86,12 @@ public partial class FeedPage : ContentPage
     async void OnChangeLifetime(object? sender, EventArgs e)
     {
         if (_bubble is null) return;
-        var story = Labels.Lifetime(PostLifetime.Story24h);
-        var persistent = Labels.Lifetime(PostLifetime.Persistent);
-        var choice = await DisplayActionSheetAsync(
+        var choice = await SheetPage.ChooseAsync(this, "Lebensdauer",
             "Gilt für neue Highlights. Bestehende behalten ihre Einstellung. Alle Mitglieder sehen die Änderung.",
-            "Abbrechen", null, story, persistent);
-        if (choice != story && choice != persistent) return;
+            Labels.LifetimeOptions(_bubble.Lifetime));
+        if (choice is not { } index) return;
 
-        var lifetime = choice == story ? PostLifetime.Story24h : PostLifetime.Persistent;
+        var lifetime = Labels.LifetimeAt(index);
         if (lifetime == _bubble.Lifetime) return;
         try
         {

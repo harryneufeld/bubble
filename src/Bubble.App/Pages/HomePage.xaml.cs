@@ -61,8 +61,7 @@ public partial class HomePage : ContentPage
 
         // Stories: zuerst „Du“, dann Bubbles mit ungesehenen Stories, dann gesehene
         var rings = new List<StoryRing>();
-        var postedEverywhere = bubbles.Count > 0 && bubbles.All(_feed.HasPostedToday);
-        rings.Add(new StoryRing("Du", vault.DisplayName, vault.Avatar, AvatarRing.None, !postedEverywhere, null));
+        rings.Add(new StoryRing("Du", vault.DisplayName, vault.Avatar, AvatarRing.None, true, null));
         rings.AddRange(bubbles
             .Select(b => (Bubble: b, Stories: _feed.StoriesOf(b)))
             .Where(x => x.Stories.Count > 0)

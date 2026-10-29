@@ -1,3 +1,4 @@
+using Bubble.App.Controls;
 using Bubble.App.Services;
 
 namespace Bubble.App.Pages;
@@ -59,8 +60,9 @@ public partial class OnboardingPage : ContentPage
 
     async void OnChangeServer(object? sender, EventArgs e)
     {
-        var input = await DisplayPromptAsync("Server", "Adresse des Relays, z. B. eines Rechners in deinem Netzwerk. Er speichert nur verschlüsselte Daten.",
-            "Speichern", "Abbrechen", "192.168.1.20:5080", initialValue: Labels.Host(AccountService.DefaultRelayUrl), keyboard: Keyboard.Url);
+        var input = await SheetPage.PromptAsync(this, "Server",
+            "Adresse des Relays, z. B. eines Rechners in deinem Netzwerk. Er speichert nur verschlüsselte Daten.",
+            "Speichern", "192.168.1.20:5080", Labels.Host(AccountService.DefaultRelayUrl), 100, Keyboard.Url);
         if (input is null) return;
         if (await CheckServerAsync(input)) ShowServer();
     }

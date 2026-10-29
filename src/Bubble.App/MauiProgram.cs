@@ -47,15 +47,6 @@ public static class MauiProgram
 #elif IOS || MACCATALYST
 		if (view is UIKit.UITextField field)
 			field.BorderStyle = UIKit.UITextBorderStyle.None;
-#elif WINDOWS
-		if (view is Microsoft.UI.Xaml.Controls.TextBox box)
-		{
-			var clear = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
-			box.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
-			box.Resources["TextControlBorderThemeThicknessFocused"] = new Microsoft.UI.Xaml.Thickness(0);
-			box.Resources["TextControlBackgroundPointerOver"] = clear;
-			box.Resources["TextControlBackgroundFocused"] = clear;
-		}
-#endif
+#endif // Windows: siehe Platforms/Windows/App.xaml
 	}
 }

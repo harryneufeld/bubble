@@ -69,18 +69,18 @@ public class RelayTests : IDisposable
     }
 
     [Fact]
-    public async Task OnlyOneHighlightPerDay()
+    public async Task MultiplePostsPerDay_AreAllowed()
     {
         var anna = Vault.Create("Anna");
         var bubble = BubbleMembership.Create("WG", "http://relay/", PostLifetime.Persistent);
         var client = _relay.ClientFor(anna);
 
         await client.PostAsync(bubble, Mood.Flop, "Bus verpasst", null);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => client.PostAsync(bubble, Mood.Top, "nochmal", null));
+        _relay.Time.Advance(TimeSpan.FromMinutes(5));
+        await client.PostAsync(bubble, Mood.Top, "Dafür Kaffee geschenkt bekommen", null);
 
-        _relay.Time.Advance(TimeSpan.FromDays(1));
-        await client.PostAsync(bubble, Mood.Top, "neuer Tag", null);
-        Assert.Equal(2, (await client.LoadFeedAsync(bubble)).Count);
+        var feed = await client.LoadFeedAsync(bubble);
+        Assert.Equal(["Dafür Kaffee geschenkt bekommen", "Bus verpasst"], feed.Select(p => p.Message.Text));
     }
 
     [Fact]
@@ -93,10 +93,13 @@ public class RelayTests : IDisposable
 
         await _relay.ClientFor(anna).PostAsync(bubble, Mood.Top, "verschwindet", null);
         await _relay.ClientFor(anna).SetLifetimeAsync(bubble, PostLifetime.Persistent);
+
+        // Die App lädt den Feed vor dem Teilen und übernimmt dabei die aktuelle Lebensdauer.
+        var feed = await _relay.ClientFor(ben).LoadFeedAsync(bensBubble);
+        Assert.Equal(PostLifetime.Persistent, bensBubble.Lifetime);
         await _relay.ClientFor(ben).PostAsync(bensBubble, Mood.Top, "bleibt", null);
 
-        Assert.Equal(PostLifetime.Persistent, bensBubble.Lifetime);
-        var feed = await _relay.ClientFor(ben).LoadFeedAsync(bensBubble);
+        feed = await _relay.ClientFor(ben).LoadFeedAsync(bensBubble);
         Assert.Equal(PostLifetime.Story24h, feed.Single(p => p.Message.Text == "verschwindet").Message.Lifetime);
 
         _relay.Time.Advance(TimeSpan.FromHours(25));

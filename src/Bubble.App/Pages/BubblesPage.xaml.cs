@@ -1,3 +1,4 @@
+using Bubble.App.Controls;
 using Bubble.App.Services;
 using Bubble.Core;
 
@@ -66,15 +67,14 @@ public partial class BubblesPage : ContentPage
     /// <summary>Name und Lebensdauer abfragen, Bubble gründen und direkt zum Einladen wechseln.</summary>
     public static async Task CreateBubbleFlowAsync(Page page, AccountService account)
     {
-        var name = await page.DisplayPromptAsync("Neue Bubble", "Wie soll die Bubble heißen?", "Weiter", "Abbrechen", "z. B. Familie, WG, Laufgruppe", maxLength: 40);
+        var name = await SheetPage.PromptAsync(page, "Neue Bubble", "Wie soll sie heißen?", "Weiter", "z. B. Familie, WG, Laufgruppe", maxLength: 40);
         if (string.IsNullOrWhiteSpace(name)) return;
 
-        var story = Labels.Lifetime(PostLifetime.Story24h);
-        var persistent = Labels.Lifetime(PostLifetime.Persistent);
-        var choice = await page.DisplayActionSheetAsync("Wie lange sollen Highlights sichtbar sein?", "Abbrechen", null, story, persistent);
-        if (choice != story && choice != persistent) return;
+        var choice = await SheetPage.ChooseAsync(page, "Wie lange sollen Highlights sichtbar sein?",
+            "Das gilt für neue Highlights und lässt sich später ändern.", Labels.LifetimeOptions(PostLifetime.Story24h));
+        if (choice is not { } index) return;
 
-        var bubble = await account.CreateBubbleAsync(name, choice == story ? PostLifetime.Story24h : PostLifetime.Persistent);
+        var bubble = await account.CreateBubbleAsync(name, Labels.LifetimeAt(index));
         await Shell.Current.GoToAsync($"{nameof(InvitePage)}?id={Uri.EscapeDataString(bubble.MailboxId)}");
     }
 }

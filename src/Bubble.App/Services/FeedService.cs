@@ -65,9 +65,6 @@ public sealed class FeedService(AccountService account)
         return PostsOf(bubble).Where(p => p.Post.Message.CreatedAt > since).OrderBy(p => p.Post.Message.CreatedAt).ToList();
     }
 
-    public bool HasPostedToday(BubbleMembership bubble) =>
-        SnapshotFor(bubble) is { } s && account.Client.HasPostedToday(s.Posts);
-
     public bool IsSeen(string postId) => Seen.Contains(postId);
 
     public void MarkSeen(string postId)

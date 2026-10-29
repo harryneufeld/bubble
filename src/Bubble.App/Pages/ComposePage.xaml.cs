@@ -3,7 +3,7 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-/// <summary>Ein Highlight pro Tag und Bubble – hier lässt sich in mehrere Bubbles gleichzeitig teilen.</summary>
+/// <summary>Highlight teilen – auch in mehrere Bubbles gleichzeitig.</summary>
 [QueryProperty(nameof(MailboxId), "id")]
 public partial class ComposePage : ContentPage
 {
@@ -31,9 +31,9 @@ public partial class ComposePage : ContentPage
         if (_initialized) return;
         _initialized = true;
 
-        var open = _account.Vault!.Bubbles.Where(b => !_feed.HasPostedToday(b)).ToList();
-        if (_account.FindBubble(MailboxId) is { } preset && open.Contains(preset)) _selected.Add(preset.MailboxId);
-        else if (open.Count == 1) _selected.Add(open[0].MailboxId);
+        var bubbles = _account.Vault!.Bubbles;
+        if (_account.FindBubble(MailboxId) is { } preset) _selected.Add(preset.MailboxId);
+        else if (bubbles.Count == 1) _selected.Add(bubbles[0].MailboxId);
         BuildChips();
     }
 
@@ -42,34 +42,29 @@ public partial class ComposePage : ContentPage
         BubbleChips.Children.Clear();
         foreach (var bubble in _account.Vault!.Bubbles)
         {
-            var done = _feed.HasPostedToday(bubble);
             var on = _selected.Contains(bubble.MailboxId);
             var chip = new Border
             {
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 999 },
                 Padding = new Thickness(14, 9), Margin = new Thickness(0, 0, 8, 8),
                 Background = on ? (Brush)Application.Current!.Resources["CtaGradient"] : new SolidColorBrush((Color)Application.Current!.Resources["SurfaceRaised"]),
-                Opacity = done ? 0.45 : 1,
                 Content = new Label
                 {
-                    Text = done ? $"✓ {bubble.Name}" : bubble.Name, FontFamily = "BodySemibold", FontSize = 14,
+                    Text = bubble.Name, FontFamily = "BodySemibold", FontSize = 14,
                     TextColor = on ? Colors.White : (Color)Application.Current.Resources["InkSoft"],
                 },
             };
-            SemanticProperties.SetDescription(chip, done ? $"{bubble.Name}, heute schon geteilt" : bubble.Name);
+            SemanticProperties.SetDescription(chip, bubble.Name);
             SemanticProperties.SetHint(chip, on ? "ausgewählt" : "");
-            if (!done)
+            var id = bubble.MailboxId;
+            chip.GestureRecognizers.Add(new TapGestureRecognizer
             {
-                var id = bubble.MailboxId;
-                chip.GestureRecognizers.Add(new TapGestureRecognizer
+                Command = new Command(() =>
                 {
-                    Command = new Command(() =>
-                    {
-                        if (!_selected.Add(id)) _selected.Remove(id);
-                        BuildChips();
-                    }),
-                });
-            }
+                    if (!_selected.Add(id)) _selected.Remove(id);
+                    BuildChips();
+                }),
+            });
             BubbleChips.Children.Add(chip);
         }
         UpdateHints();
@@ -80,9 +75,7 @@ public partial class ComposePage : ContentPage
         var chosen = _account.Vault!.Bubbles.Where(b => _selected.Contains(b.MailboxId)).ToList();
         LifetimeLabel.Text = chosen.Count switch
         {
-            0 => _account.Vault.Bubbles.All(_feed.HasPostedToday)
-                ? "Du hast heute in allen Bubbles geteilt. Morgen wieder!"
-                : "Wähle, wo du dein Highlight teilen möchtest.",
+            0 => "Wähle, wo du dein Highlight teilen möchtest.",
             1 => chosen[0].Lifetime == PostLifetime.Story24h
                 ? $"⏳ Dein Highlight verschwindet nach 24 Stunden aus „{chosen[0].Name}“."
                 : $"📌 Dein Highlight bleibt dauerhaft in „{chosen[0].Name}“.",
@@ -155,7 +148,6 @@ public partial class ComposePage : ContentPage
             foreach (var bubble in _account.Vault!.Bubbles.Where(b => _selected.Contains(b.MailboxId)))
             {
                 try { await _account.Client.PostAsync(bubble, _mood, TextEditor.Text, _image); }
-                catch (InvalidOperationException) { failed.Add($"„{bubble.Name}“: heute schon geteilt"); }
                 catch (HttpRequestException ex) { failed.Add($"„{bubble.Name}“: {Labels.ConnectionError(bubble.RelayUrl, ex)}"); }
             }
             if (failed.Count > 0)

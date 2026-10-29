@@ -184,7 +184,7 @@ Nur-Text-Posts: großer weißer Text mittig auf leuchtendem Verlauf, gleiche Hö
 - Genau einen Hauptbutton im Verlauf pro Ansicht setzen.
 - Fotos groß und randlos zeigen; Text auf Fotos nur über Schatten.
 - Lebensdauer an jedem Post anzeigen.
-- Erklären, warum etwas deaktiviert ist („✓ Heute schon geteilt“).
+- Erklären, warum etwas deaktiviert ist (z. B. „Wähle eine Bubble“ am Teilen-Button).
 - Linien-Icons aus `Resources/Images` verwenden (keine Emojis als Navigation).
 
 ### Don't

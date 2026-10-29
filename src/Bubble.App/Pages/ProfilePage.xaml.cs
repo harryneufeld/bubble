@@ -1,3 +1,4 @@
+using Bubble.App.Controls;
 using Bubble.App.Services;
 
 namespace Bubble.App.Pages;
@@ -33,9 +34,9 @@ public partial class ProfilePage : ContentPage
 
     async void OnServer(object? sender, TappedEventArgs e)
     {
-        var input = await DisplayPromptAsync("Server",
+        var input = await SheetPage.PromptAsync(this, "Server",
             "Gilt für neue Bubbles und dein Backup. Bestehende Bubbles bleiben auf ihrem Server.",
-            "Speichern", "Abbrechen", "192.168.1.20:5080", initialValue: Labels.Host(AccountService.DefaultRelayUrl), keyboard: Keyboard.Url);
+            "Speichern", "192.168.1.20:5080", Labels.Host(AccountService.DefaultRelayUrl), 100, Keyboard.Url);
         if (input is null) return;
         if (!AccountService.TryNormalizeRelayUrl(input, out var url))
         {
