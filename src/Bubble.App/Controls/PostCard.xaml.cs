@@ -10,7 +10,37 @@ public partial class PostCard : ContentView
 
     public bool DoubleTapToLike { get => (bool)GetValue(DoubleTapToLikeProperty); set => SetValue(DoubleTapToLikeProperty, value); }
 
-    public PostCard() => InitializeComponent();
+    public PostCard()
+    {
+        InitializeComponent();
+        PhotoImage.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Image.IsLoading) && !PhotoImage.IsLoading) ShowPhoto();
+        };
+    }
+
+    ImageSource? _shown;
+
+    // Das Bild wird erst nach dem Aufbau der Seite dekodiert. Ohne Einblenden sieht man erst einen leeren Rahmen und dann
+    // ein Aufpoppen (Flackern); so blendet es weich ein. Zeigt die Karte schon dasselbe Bild, bleibt es stehen.
+    protected override void OnBindingContextChanged()
+    {
+        base.OnBindingContextChanged();
+        var source = PhotoImage.Source;
+        if (ReferenceEquals(source, _shown)) return;
+
+        _shown = source;
+        PhotoImage.CancelAnimations();
+        PhotoImage.Opacity = source is null ? 1 : 0;
+        // Notbremse, falls IsLoading nie wechselt (z. B. Bild schon im Speicher)
+        if (source is not null) Dispatcher.DispatchDelayed(TimeSpan.FromSeconds(1.5), ShowPhoto);
+    }
+
+    void ShowPhoto()
+    {
+        if (PhotoImage.Opacity >= 1) return;
+        _ = PhotoImage.FadeToAsync(1, 220, Easing.CubicOut);
+    }
 
     void EnableDoubleTap(bool on)
     {

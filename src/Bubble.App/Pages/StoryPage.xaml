@@ -25,7 +25,7 @@
                 </LinearGradientBrush>
             </BoxView.Background>
         </BoxView>
-        <BoxView x:Name="BottomShade" HeightRequest="220" VerticalOptions="End" InputTransparent="True" Background="{StaticResource PhotoShade}" />
+        <BoxView x:Name="BottomShade" HeightRequest="280" VerticalOptions="End" InputTransparent="True" Background="{StaticResource PhotoShade}" />
 
         <!-- Tippzonen -->
         <Grid ColumnDefinitions="*,2*">
@@ -55,12 +55,23 @@
             </Grid>
         </VerticalStackLayout>
 
-        <!-- Fuß: Stimmung und Bildunterschrift -->
-        <VerticalStackLayout VerticalOptions="End" Padding="20,0,20,40" Spacing="10" InputTransparent="True">
-            <Border x:Name="MoodChip" Style="{StaticResource GlassPill}">
+        <!-- Fuß: Gefühl, Bildunterschrift, Herz-Blase und Weg zu den Kommentaren -->
+        <VerticalStackLayout VerticalOptions="End" Padding="20,0,20,28" Spacing="10">
+            <Border x:Name="MoodChip" Style="{StaticResource GlassPill}" InputTransparent="True">
                 <Label x:Name="MoodLabel" Style="{StaticResource PillText}" TextColor="White" />
             </Border>
-            <Label x:Name="Caption" FontSize="17" TextColor="White" LineHeight="1.3" />
+            <Label x:Name="Caption" FontSize="17" TextColor="White" LineHeight="1.3" InputTransparent="True" />
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,6,0,0">
+                <ImageButton x:Name="LikeButton" Source="ic_heart_bubble.png" Clicked="OnLike"
+                             WidthRequest="52" HeightRequest="52" CornerRadius="26" Padding="12" BackgroundColor="#33FFFFFF"
+                             SemanticProperties.Description="Herz geben" />
+                <Label x:Name="LikersLabel" Grid.Column="1" FontSize="13" FontFamily="BodyMedium" TextColor="#E6FFFFFF"
+                       VerticalOptions="Center" LineBreakMode="TailTruncation" InputTransparent="True" />
+                <Button x:Name="CommentButton" Grid.Column="2" ImageSource="ic_comment_white.png" ContentLayout="Left,8" Clicked="OnComments"
+                        Background="#33FFFFFF" TextColor="White" FontFamily="BodySemibold" FontSize="14"
+                        CornerRadius="26" HeightRequest="52" Padding="18,0" BorderWidth="0"
+                        SemanticProperties.Hint="Öffnet das Highlight mit den Kommentaren" />
+            </Grid>
         </VerticalStackLayout>
     </Grid>
 </ContentPage>

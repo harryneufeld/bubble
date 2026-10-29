@@ -26,6 +26,7 @@ public partial class BubblesPage : ContentPage
 {
     readonly AccountService _account;
     readonly FeedService _feed;
+    string _sig = "";
 
     public BubblesPage(AccountService account, FeedService feed)
     {
@@ -50,9 +51,17 @@ public partial class BubblesPage : ContentPage
         Refresher.IsRefreshing = false;
     }
 
-    void Render() => List.ItemsSource = _account.Vault!.Bubbles
-        .Select(b => new BubbleTile(b, _feed.SnapshotFor(b), _feed.StoriesOf(b).Any(s => !s.Post.IsMine && !_feed.IsSeen(s.Post.Id))))
-        .ToList();
+    void Render()
+    {
+        var tiles = _account.Vault!.Bubbles
+            .Select(b => new BubbleTile(b, _feed.SnapshotFor(b), _feed.StoriesOf(b).Any(s => !s.Post.IsMine && !_feed.IsSeen(s.Post.Id))))
+            .ToList();
+        // nur ersetzen, wenn sich etwas geändert hat (sonst laden alle Cover-Bilder neu und flackern)
+        var sig = string.Join('|', tiles.Select(t => $"{t.MailboxId}:{t.Name}:{t.Meta}:{t.HasNew}:{t.Faces.Count}:{t.HasCover}"));
+        if (sig == _sig) return;
+        _sig = sig;
+        List.ItemsSource = tiles;
+    }
 
     async void OnTapped(object? sender, TappedEventArgs e)
     {

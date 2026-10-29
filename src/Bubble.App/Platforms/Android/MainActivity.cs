@@ -11,6 +11,8 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
+        // Hinter den Seiten liegt sonst der helle Standard-Fensterhintergrund und blitzt beim Seitenwechsel auf.
+        Window?.SetBackgroundDrawable(new Android.Graphics.Drawables.ColorDrawable(Android.Graphics.Color.ParseColor("#0B0A10")));
         // Zuletzt registriert, zuerst gefragt: Seiten schließen, Tabs zu „Heute“, auf „Heute“ zweimal Zurück zum Beenden.
         OnBackPressedDispatcher.AddCallback(this, new BackCallback(this));
     }

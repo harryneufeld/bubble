@@ -58,11 +58,19 @@ public sealed class FeedService(AccountService account)
         ? s.Posts.Select(p => new HomePost(bubble, p, s.MemberFor(p.Message.AuthorKey), s)).ToList()
         : [];
 
-    /// <summary>Posts der letzten 24 Stunden – die „Stories“ einer Bubble, älteste zuerst.</summary>
-    public IReadOnlyList<HomePost> StoriesOf(BubbleMembership bubble)
+    /// <summary>Was andere geteilt haben, neueste zuerst. Eigene Posts stehen nur im „Du“-Kreis, nicht in der Timeline.</summary>
+    public IReadOnlyList<HomePost> TimelinePosts() => AllPosts().Where(p => !p.Post.IsMine).ToList();
+
+    /// <summary>Stories anderer aus einer Bubble (Posts der letzten 24 Stunden), älteste zuerst.</summary>
+    public IReadOnlyList<HomePost> StoriesOf(BubbleMembership bubble) => LastDay(PostsOf(bubble).Where(p => !p.Post.IsMine));
+
+    /// <summary>Meine eigenen Stories aus allen Bubbles, älteste zuerst.</summary>
+    public IReadOnlyList<HomePost> MyStories() => LastDay(AllPosts().Where(p => p.Post.IsMine));
+
+    static IReadOnlyList<HomePost> LastDay(IEnumerable<HomePost> posts)
     {
         var since = DateTimeOffset.UtcNow.AddHours(-24);
-        return PostsOf(bubble).Where(p => p.Post.Message.CreatedAt > since).OrderBy(p => p.Post.Message.CreatedAt).ToList();
+        return posts.Where(p => p.Post.Message.CreatedAt > since).OrderBy(p => p.Post.Message.CreatedAt).ToList();
     }
 
     public HomePost? FindPost(BubbleMembership bubble, string postId) =>

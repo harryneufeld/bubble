@@ -7,7 +7,7 @@ namespace Bubble.App.Pages;
 public sealed record CommentItem(string Name, byte[]? Avatar, string Text, string When, bool IsMine);
 
 /// <summary>Anzeigedaten einer Post-Karte (Home, Bubble-Seite und Post-Seite). Herzen und Kommentare ändern sich live.</summary>
-public sealed class PostItem(HomePost item, FeedService feed, bool showBubble) : INotifyPropertyChanged
+public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, bool showFaces = false) : INotifyPropertyChanged
 {
     readonly BubbleMessage _m = item.Post.Message;
 
@@ -29,7 +29,10 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble) :
     public bool HasImage => _m.Image is not null;
     public bool IsTextOnly => _m.Image is null;
     public bool HasCaption => HasImage && Text is not null;
-    public ImageSource? Image { get; } = item.Post.Message.Image is { } bytes ? ImageSource.FromStream(() => new MemoryStream(bytes)) : null;
+    public ImageSource? Image { get; } = item.Post.Message.Image is { } bytes
+        ? Sources.GetValue(bytes, b => ImageSource.FromStream(() => new MemoryStream(b)))
+        : null;
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], ImageSource> Sources = new();
     public string ImageDescription => $"Foto von {AuthorName}";
     public Brush TextBackground { get; } = Gradients.For(item.Post.Id);
 
@@ -39,7 +42,8 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble) :
     public string LikeIcon => IsLiked ? "ic_heart_bubble_on.png" : "ic_heart_bubble.png";
     public string LikeDescription => IsLiked ? "Herz zurücknehmen" : "Herz geben";
 
-    public IReadOnlyList<Face> Likers => item.Snapshot.LikersOf(Id).Take(3).Select(m => new Face(m.Name, m.Avatar)).ToList();
+    /// <summary>Gesichter der Herz-Geber. Nur auf der Post-Seite: im Feed kostet jeder Avatar pro Karte Scroll-Leistung, dort steht nur der Text.</summary>
+    public IReadOnlyList<Face> Likers => showFaces ? item.Snapshot.LikersOf(Id).Take(3).Select(m => new Face(m.Name, m.Avatar)).ToList() : [];
     public bool HasLikers => item.Snapshot.LikersOf(Id).Count > 0;
 
     /// <summary>„Mia“, „Mia und Tom“, „Mia, Tom und 2 weitere“. Eigenes Herz heißt „Du“.</summary>
