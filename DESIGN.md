@@ -1,249 +1,217 @@
 ---
-version: 1
+version: 2
 name: Bubble
-description: Warmes, ruhiges Tagebuch-Gefühl für kleine private Kreise. Papierfarbener Grund, ruhige Erdtöne und eine einzige violette Aktionsfarbe (wie das Schillern einer Seifenblase). Fotos tragen die Gestaltung, die Schrift bleibt zurückhaltend. Im Story-Editor darf es bunt und verspielt werden, überall sonst ist es ruhig. Inspiriert von Oura (Basis), Airbnb (Foto-Karten) und Clay (Editor-Farben), siehe docs/design/references.
+description: Dunkle, lebendige Social-App für kleine private Kreise. Tiefes Schwarzviolett als Grund, Fotos und leuchtende Verläufe (Pink → Violett → Cyan, wie das Schillern einer Seifenblase) als Gestaltung. Stories-Leiste, Vollbild-Stories und Foto-Karten wie in sozialen Apps – aber ohne Likes-Zähler, Streaks oder endlosen Feed.
 
 colors:
-  # Aktion – genau eine pro Ansicht
-  primary: "#5B47E0"
-  primary-pressed: "#4935C4"
-  primary-disabled: "#CFC8F5"
-  on-primary: "#FFFFFF"
-
-  # Flächen
-  canvas: "#F7F1E8"        # warmes Papier – Standard-Hintergrund, nie reines Weiß
-  surface: "#FFFFFF"       # Karten, Eingabefelder, Sheets
-  surface-sunk: "#EFE7DA"  # Info-Leisten, gedrückte Flächen
-  hairline: "#E1DACE"
+  # Flächen (dunkel)
+  canvas: "#0B0A10"
+  surface: "#17151F"
+  surface-raised: "#221F2C"
+  hairline: "#2E2A3A"
 
   # Text
-  ink: "#1C1B1A"
-  ink-soft: "#4A4741"
-  muted: "#6B655C"         # >= 4.5:1 auf canvas
+  ink: "#F5F3FA"
+  ink-soft: "#C9C4D6"     # >= 4.5:1 auf canvas und surface
+  muted: "#8F89A0"        # nur Metadaten, >= 4.5:1 auf canvas
+
+  # Schillern – Akzentverlauf für Ringe, Cover, Deko
+  pink: "#FF4F9A"
+  violet: "#8B5CF6"
+  cyan: "#22D3EE"
+  accent: "#B9A2FF"       # Text-Links und Ghost-Buttons
+
+  # Hauptaktion: Verlauf cta-start → cta-end, weißer Text (>= 4.5:1)
+  cta-start: "#D9246F"
+  cta-end: "#6D3CF5"
+  on-cta: "#FFFFFF"
 
   # Stimmung des Tages – freundlich, nicht wertend (kein Rot/Grün)
-  top: "#F3DFAE"           # Sonne
-  on-top: "#6B4A0B"
-  flop: "#DCE3EA"          # Regenwolke
-  on-flop: "#3C4F63"
-
-  # Lebensdauer
-  story: "#F1E3CF"         # ⏳ 24 Stunden – Sand
-  on-story: "#6B4A1E"
-  persistent: "#DDE3D3"    # 📌 dauerhaft – Salbei
-  on-persistent: "#3F5235"
+  top: "#3A2D0E"
+  on-top: "#FFD27A"       # Sonne
+  flop: "#14283A"
+  on-flop: "#9CC7FF"      # Regenwolke
 
   # Semantik
-  error: "#C2412D"
-  on-error: "#FFFFFF"
-  success: "#3F6B45"
-
-  # Story-Editor (nur auf der Leinwand, nie in der App-Oberfläche)
-  editor-pink: "#FF6FA3"
-  editor-teal: "#2BB3A3"
-  editor-lavender: "#B7A6FF"
-  editor-peach: "#FFB38A"
-  editor-ochre: "#E3A82B"
-  editor-sky: "#7CC4FF"
-  editor-cream: "#FFF8EC"
-  editor-ink: "#141312"
-
-  # Dunkelmodus
-  dark-canvas: "#1A1816"
-  dark-surface: "#24211E"
-  dark-hairline: "#3A3632"
-  dark-ink: "#F2ECE3"
-  dark-muted: "#ABA399"
-  dark-primary: "#9C8FFF"
-  dark-on-primary: "#14112B"
+  error: "#FF5A6E"
+  success: "#4ADE80"
 
 typography:
-  # Display: Fraunces (variabel, SIL OFL) · UI: Inter (SIL OFL)
-  # Beide als TTF in der App mitliefern – niemals zur Laufzeit von einem CDN laden.
-  display:   { fontFamily: Fraunces, fontSize: 34, fontWeight: 400, lineHeight: 1.1 }
-  title:     { fontFamily: Fraunces, fontSize: 24, fontWeight: 500, lineHeight: 1.2 }
-  heading:   { fontFamily: Inter, fontSize: 18, fontWeight: 600, lineHeight: 1.3 }
-  body:      { fontFamily: Inter, fontSize: 16, fontWeight: 400, lineHeight: 1.5 }
-  body-sm:   { fontFamily: Inter, fontSize: 14, fontWeight: 400, lineHeight: 1.45 }
-  button:    { fontFamily: Inter, fontSize: 16, fontWeight: 600, lineHeight: 1 }
-  caption:   { fontFamily: Inter, fontSize: 12, fontWeight: 500, lineHeight: 1.3 }
-  code:      { fontFamily: "JetBrains Mono, Courier New", fontSize: 18, fontWeight: 600, letterSpacing: 1 }
+  # Display: Fraunces (nur Wortmarke) · UI: Inter (SIL OFL). Beide liegen als TTF in der App.
+  wordmark: { fontFamily: Fraunces, fontSize: 30, fontWeight: 400 }
+  hero:     { fontFamily: Inter, fontSize: 36, fontWeight: 700, lineHeight: 1.05, letterSpacing: -1 }
+  title:    { fontFamily: Inter, fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }
+  heading:  { fontFamily: Inter, fontSize: 17, fontWeight: 600 }
+  body:     { fontFamily: Inter, fontSize: 16, fontWeight: 400, lineHeight: 1.3 }
+  caption:  { fontFamily: Inter, fontSize: 13, fontWeight: 500 }
+  section:  { fontFamily: Inter, fontSize: 13, fontWeight: 600, letterSpacing: 1, textTransform: uppercase }
+  code:     { fontFamily: monospace, fontSize: 26, fontWeight: 700, letterSpacing: 3 }
 
 rounded:
-  sm: 8
-  md: 12
-  lg: 20     # Karten, Sheets
-  xl: 28     # große Fotos, Editor-Leinwand
-  full: 9999 # Buttons, Chips, Badges
+  field: 16
+  card: 24
+  photo: 28
+  full: 9999
 
 spacing:
   xxs: 4
   xs: 8
   sm: 12
-  md: 16     # Standard-Seitenrand auf dem Handy
+  md: 16     # Seitenrand
   lg: 24
   xl: 32
-  xxl: 48
 
 components:
-  button-primary:   { backgroundColor: "{colors.primary}", textColor: "{colors.on-primary}", typography: "{typography.button}", rounded: "{rounded.full}", height: 52 }
-  button-secondary: { backgroundColor: "{colors.surface-sunk}", textColor: "{colors.ink}", typography: "{typography.button}", rounded: "{rounded.full}", height: 48 }
-  button-ghost:     { backgroundColor: transparent, textColor: "{colors.ink-soft}", typography: "{typography.button}", rounded: "{rounded.full}" }
-  card:             { backgroundColor: "{colors.surface}", borderColor: "{colors.hairline}", rounded: "{rounded.lg}", padding: "{spacing.md}" }
-  chip-top:         { backgroundColor: "{colors.top}", textColor: "{colors.on-top}", typography: "{typography.caption}", rounded: "{rounded.full}" }
-  chip-flop:        { backgroundColor: "{colors.flop}", textColor: "{colors.on-flop}", typography: "{typography.caption}", rounded: "{rounded.full}" }
-  badge-story:      { backgroundColor: "{colors.story}", textColor: "{colors.on-story}", typography: "{typography.caption}", rounded: "{rounded.full}" }
-  badge-persistent: { backgroundColor: "{colors.persistent}", textColor: "{colors.on-persistent}", typography: "{typography.caption}", rounded: "{rounded.full}" }
-  info-bar:         { backgroundColor: "{colors.surface-sunk}", textColor: "{colors.ink-soft}", typography: "{typography.body-sm}", rounded: "{rounded.md}" }
-  text-input:       { backgroundColor: "{colors.surface}", borderColor: "{colors.hairline}", textColor: "{colors.ink}", typography: "{typography.body}", rounded: "{rounded.md}", height: 48 }
-  secret-box:       { backgroundColor: "{colors.surface}", borderColor: "{colors.primary}", typography: "{typography.code}", rounded: "{rounded.lg}" }
+  button-primary:   { background: "gradient(cta-start → cta-end)", textColor: "{colors.on-cta}", rounded: "{rounded.full}", height: 56 }
+  button-secondary: { backgroundColor: "{colors.surface-raised}", textColor: "{colors.ink}", rounded: "{rounded.full}", height: 48 }
+  button-ghost:     { backgroundColor: transparent, textColor: "{colors.accent}", rounded: "{rounded.full}" }
+  icon-button:      { backgroundColor: "{colors.surface-raised}", rounded: "{rounded.full}", size: 44 }
+  card:             { backgroundColor: "{colors.surface}", rounded: "{rounded.card}", padding: 0 }
+  text-input:       { backgroundColor: "{colors.surface}", borderColor: "{colors.hairline}", rounded: "{rounded.field}", height: 54 }
+  secret-box:       { backgroundColor: "{colors.surface}", border: "2px gradient(pink → violet → cyan)", rounded: "{rounded.card}" }
+  avatar:           { shape: circle, fallback: "Initialen auf Verlauf, stabil je Name" }
+  story-ring:       { new: "gradient(pink → violet → cyan)", seen: "#3A3548" }
 ---
 
 # Bubble – Design-Guidelines
 
 Diese Datei ist verbindlich für jede Oberfläche von Bubble. Menschen und KI-Agenten bauen danach. Die Vorlagen in [docs/design/references](docs/design/references/README.md) sind nur Inspiration.
 
-## 1. Visuelle Stimmung
+## 1. Stimmung
 
-Bubble fühlt sich an wie **ein Tagebuch, das man mit seinen Liebsten teilt**: warm, ruhig und persönlich. Es ist kein Social-Media-Feed, der um Aufmerksamkeit buhlt.
+Bubble fühlt sich an wie **die Stories-Leiste einer sozialen App, nur für deine engsten Leute**: dunkel, lebendig, fotolastig. Die Oberfläche tritt zurück, Fotos und leuchtende Verläufe tragen die Gestaltung.
 
-- **Warmes Papier statt Weiß.** Jede Seite steht auf `canvas`. Reines Weiß (`surface`) ist für Karten und Eingabefelder reserviert, die sich davon abheben.
-- **Fotos tragen die Gestaltung.** Die Oberfläche tritt zurück, wenn ein Bild da ist.
-- **Ruhe in der App, Spiel im Editor.** Die gesättigten Editor-Farben gibt es nur auf der Story-Leinwand. Die App-Oberfläche bleibt in Papier- und Erdtönen.
-- **Vertrauen durch Klarheit.** Datenschutz zeigt sich durch klare, ruhige Hinweise, nicht durch Schlösser-Icons überall.
+- **Dunkler Grund.** Die App ist immer dunkel (`UserAppTheme = Dark`). Kein reines Schwarz, sondern `canvas` mit leichtem Violett.
+- **Schillern statt Flächenfarbe.** Pink → Violett → Cyan erscheint an wenigen Stellen: Story-Ringe, Cover, Hauptbutton, Deko. Nie als Text- oder Hintergrundfarbe für Fließtext.
+- **Fotos zuerst.** Karten laufen randlos bis an den Rand. Text-Posts bekommen einen leuchtenden Verlauf, damit sie sich wie Fotos anfühlen.
+- **Sozial, aber ruhig.** Siehe Abschnitt 7: keine Zähler, keine Streaks, kein Sog.
 
 ## 2. Farben und ihre Rollen
 
 | Rolle | Token | Regel |
 |---|---|---|
-| Hauptaktion | `primary` | **Genau eine** pro Ansicht: „Teilen“, „Los geht's“, „Backup-Code erstellen“. Nie für Links, Icons oder Deko. |
-| Hintergrund | `canvas` | Immer. Nie Weiß als Seitenhintergrund. |
-| Karten, Felder | `surface` + `hairline` | Rahmen 1 px, keine harten Schatten. |
-| Fließtext | `ink`, `ink-soft` | `muted` nur für Metadaten wie Zeit, Server oder Hinweise. |
-| Top / Flop | `top` / `flop` | Bewusst **nicht** Grün/Rot: Ein schlechter Tag ist kein Fehler. |
-| Lebensdauer | `story` / `persistent` | Badges an jedem Post und in der Bubble-Kopfzeile. |
+| Hauptaktion | `cta-start → cta-end` | **Genau eine** pro Ansicht („Teilen“, „Los geht's“, „Beitreten“). Dazu darf in Kopfzeilen ein runder `+`-Icon-Button im selben Verlauf stehen. |
+| Grund | `canvas` | Seitenhintergrund. |
+| Karten, Felder | `surface` (+ `hairline` bei Feldern) | Keine Rahmen um Karten, nur Fläche auf Grund. |
+| Hervorgehoben | `surface-raised` | Sekundärbuttons, Chips, Icon-Buttons. |
+| Fließtext | `ink`, `ink-soft` | `muted` nur für Metadaten wie Zeit und Server. |
+| Links, Ghost-Aktionen | `accent` | Nicht für Fließtext. |
+| Schillern | `pink`, `violet`, `cyan` | Ringe, Cover, Deko (siehe oben). |
+| Top / Flop | `top`/`on-top`, `flop`/`on-flop` | Bewusst **nicht** Grün/Rot: Ein schlechter Tag ist kein Fehler. |
 | Fehler | `error` | Nur für echte Fehler, nie für „Flop“. |
 
-**Kontrast:** Text erreicht mindestens 4,5:1, große Schrift und Icons mindestens 3:1. Alle Text-Token oben erfüllen das auf `canvas` und `surface`.
-
-**Dunkelmodus:** `dark-*`-Token, warm statt blaugrau. `dark-primary` ist heller und trägt dunklen Text (`dark-on-primary`). Fotos werden nicht abgedunkelt.
+**Kontrast:** Text mindestens 4,5:1, große Schrift und Icons mindestens 3:1. Weißer Text auf Verläufen nutzt die dunkleren Stufen (`cta-*`, Avatar- und Post-Verläufe). Text auf Fotos steht immer auf einem Schatten-Verlauf (`PhotoShade`).
 
 ## 3. Typografie
 
-- **Fraunces** (Serif) nur für Display und Titel: Begrüßung, Bubble-Name und Leerzustände. Sie gibt den „Tagebuch“-Charakter.
-- **Inter** für alles andere. Die Gewichte bleiben moderat (400/500/600), nie 800+.
-- **Backup-Codes** werden in Monospace angezeigt, groß und mit Abstand zwischen den Fünfergruppen.
-- Systemschriftgrößen bzw. Dynamic Type werden respektiert. Layouts müssen bei 200 % funktionieren.
-- **Schriften liegen in der App.** Kein Laden von Google Fonts oder anderen CDNs, denn das würde die IP der Nutzer an Dritte senden.
+- **Inter** für alles, Gewichte 400/500/600/700. Schlagzeilen sind fett und eng gesetzt (`hero`, `title`).
+- **Fraunces** (Serif) nur für die Wortmarke „bubble“. Sie bleibt als Wiedererkennung.
+- **Backup- und Einladungscodes** in Monospace, groß, mit Zeichenabstand.
+- Dynamic Type bzw. Systemschriftgrößen werden respektiert; Layouts müssen bei 200 % funktionieren.
+- **Schriften liegen in der App** (`Resources/Fonts`, Lizenzen in `docs/licenses`). Nie von einem CDN laden – das würde die IP der Nutzer an Dritte senden.
+- Statische TTFs, weil MAUI keine Achsen variabler Schriften ansteuert. Aliase: `Display`, `Body`, `BodyMedium`, `BodySemibold`, `BodyBold`.
 
 ## 4. Komponenten
 
-**Buttons.** Sie sind pillenförmig (`rounded.full`) und mindestens 48 pt hoch. `button-primary` gibt es einmal pro Ansicht, Nebenaktionen nutzen `button-secondary` oder `button-ghost`. Deaktivierte Buttons erklären, warum sie deaktiviert sind, z. B. „✅ Heute schon geteilt“ statt eines grauen „Teilen“.
+**Navigation.** Drei Tabs unten: **Heute**, **Bubbles**, **Profil**, mit Linien-Icons (2 px, `ic_*.svg`). Ausgewählt = `ink`, sonst `muted`. Detailseiten (Bubble, Einladen, Beitreten, Teilen, Backup) blenden die Tab-Leiste aus.
 
-**Post-Karte (Feed).**
+**Avatar.** Rund. Ohne Foto: Initialen auf stabilem Verlauf je Name. Optional mit Story-Ring (`new` = Verlauf, `seen` = dezent) und Plus-Badge („Du“ in der Story-Leiste).
+
+**Story-Leiste (Heute).** Horizontale Reihe: zuerst „Du“ (teilen), dann eine Bubble pro Kreis mit Highlights der letzten 24 h. Ungesehene zuerst mit Verlaufsring, gesehene dezent. Antippen öffnet die Vollbild-Ansicht.
+
+**Story-Ansicht.** Vollbild auf Schwarz: Fortschrittsbalken oben (6 s pro Story), Absender und Schließen-Button, Stimmungs-Pille und Bildunterschrift unten auf Schatten. Tippen rechts = weiter, links = zurück. Beginnt bei der ersten ungesehenen Story.
+
+**Post-Karte.**
 ```
 ┌──────────────────────────────────┐
-│ Anna                   [👍 Top]  │  heading + chip-top/flop
+│ (Avatar) Anna          [👍 Top]  │  Kopf: Name, „Bubble · vor 2 h“, Stimmung
 │ ┌──────────────────────────────┐ │
-│ │            Foto              │ │  rounded.xl, volle Kartenbreite
+│ │ Foto, randlos       [⏳ 14 h]│ │  Glas-Pille mit Lebensdauer
 │ └──────────────────────────────┘ │
-│ Sonnenaufgang am See             │  body
-│ heute, 07:12      [⏳ noch 14 h] │  caption muted + badge
+│ Sonnenaufgang am See             │
 └──────────────────────────────────┘
 ```
-Das Foto steht vor dem Text. Der eigene Post ist mit „(du)“ markiert, nicht farbig hervorgehoben.
+Nur-Text-Posts: großer weißer Text mittig auf leuchtendem Verlauf, gleiche Höhe wie ein Foto-Post.
 
-**Bubble-Zeile (Übersicht).** Bubble-Name in `title`, darunter Lebensdauer-Badge und Server in `caption muted`. Später kommt ein Punkt dazu, wenn es Neues gibt, aber **keine Zähler** für Ungelesenes.
+**Bubble-Kachel (Bubbles).** Zwei Spalten. Cover = neuestes Foto oder Verlauf, unten Schatten, Gesichter der Mitglieder, Name, „n Leute · Lebensdauer“. Ein Punkt oben rechts zeigt Neues – **kein Zähler**.
 
-**Info-Leiste.** `info-bar` für Kontext wie „Neue Posts: ⏳ 24 Stunden · Ändern“. Sie hat höchstens eine Zeile Text und eine Ghost-Aktion.
+**Bubble-Seite.** Cover-Kopf mit Name, Lebensdauer- und Leute-Pille; Mitglieder-Reihe; „Leute einladen“ und „Lebensdauer“; darunter die Highlights. Teilen-Button unten.
 
-**Geheimnis-Box.** `secret-box` für Backup-Codes und, nach einer Warnung, Einladungslinks. Sie ist umrandet in `primary` und enthält immer: den Wert, eine Kopieren-Aktion und einen Satz, wo man ihn sicher aufbewahrt (Passwortmanager).
+**Geheimnis-Box.** Rahmen im Schillern-Verlauf, enthält immer: den Wert, eine Kopieren-Aktion und einen Satz, wo man ihn sicher aufbewahrt.
 
-**Leerzustände.** Ein Satz in Fraunces und ein Satz in Inter, darunter die eine passende Aktion. Kein Stock-Foto.
+**Leerzustände.** Deko aus drei Blasen im Verlauf, eine Titelzeile, ein Satz, die eine passende Aktion.
 
 ## 5. Layout
 
-- Der Seitenrand beträgt auf dem Handy 16 pt (`spacing.md`), der Abstand zwischen Karten 12 pt.
-- Eine Spalte auf dem Handy. Auf Tablet und Desktop ist der Feed höchstens 560 pt breit und zentriert, damit er nicht zur Zeitung wird.
-- Die Hauptaktion sitzt unten und ist mit dem Daumen erreichbar, nicht in der Toolbar versteckt.
-- Großzügig mit Luft umgehen: leerer Papiergrund ist Teil der Ruhe.
+- Seitenrand 16 pt, Kartenabstand 16 pt. Eine Spalte auf dem Handy.
+- Auf Tablet und Desktop ist die Inhaltsspalte höchstens 600 pt breit und zentriert.
+- Die Hauptaktion sitzt unten und ist mit dem Daumen erreichbar.
+- Touch-Ziele mindestens 44×44 pt.
 
-## 6. Tiefe und Ebenen
+## 6. Tiefe
 
-- Elevation entsteht über `surface` auf `canvas` plus `hairline`, nicht über Schatten.
-- Ein Schatten ist nur für schwebende Elemente erlaubt (Sheets, Editor-Werkzeugleiste): weich, warm und mit niedriger Deckkraft, z. B. `0 8 24 rgba(57,34,30,0.08)`.
-- Modale Dialoge sind die Ausnahme. Für Auswahl wie Lebensdauer oder Mood nutzen wir Bottom Sheets.
+- Tiefe entsteht über `surface` auf `canvas`, nicht über Schatten.
+- Auf Fotos liegen halbtransparente Glas-Pillen (`#8C0B0A10`) für Lebensdauer und Stimmung.
+- Gedrückte Buttons skalieren leicht (0,97). Seitenwechsel im Onboarding blenden ein und gleiten 24 pt hoch (250 ms). Animationen berücksichtigen „Bewegung reduzieren“.
 
 ## 7. Bubble-spezifische Regeln
 
+**Freunde hinzufügen = in eine Bubble einladen**
+- Einladen: QR-Code (enthält den vollständigen Link), kurzer Code (z. B. `7KQ2M-9XH4T`, 24 h gültig) oder geteilter Link. Der kurze Code liegt verschlüsselt als 24h-Nachricht auf dem Relay.
+- Beitreten: Kamera scannt den QR-Code, oder man gibt den Code ein bzw. fügt den Link ein. Vor dem Beitreten erscheint eine Vorschau mit Name, Lebensdauer und Server.
+- Vor jeder Einladung steht die Erklärung, dass QR-Code, Code und Link den Schlüssel enthalten.
+
 **Datenschutz sichtbar, aber leise**
-- Jeder Post zeigt seine Lebensdauer (⏳/📌). Vor dem Teilen steht im Compose-Screen, was mit dem Post passiert.
-- Beim Foto-Hinzufügen steht der Hinweis „Standort- und Kameradaten werden entfernt“, in `caption muted`.
-- Vor dem Teilen eines Einladungslinks kommt **immer** die Erklärung, dass der Link den Schlüssel enthält.
+- Jeder Post zeigt seine Lebensdauer (⏳/📌). Vor dem Teilen steht, was mit dem Post passiert.
+- Beim Foto-Hinzufügen steht „Standort- und Kameradaten werden entfernt“.
+- Das Profil (Name, Bild, Bio) geht nur verschlüsselt an die eigenen Bubbles.
 - Server-Adressen und Fehlerursachen werden konkret benannt, z. B. „192.168.1.20:5080 ist nicht erreichbar“.
 
 **Keine Aufmerksamkeitsfallen**
-- Kein endloser Feed, keine Streaks, keine Like-Zähler, keine „X hat noch nicht gepostet“-Erinnerungen.
+- Kein endloser Feed (nur Highlights der Bubbles, kein Nachladen ins Unendliche), keine Streaks, keine Like-Zähler, keine „X hat noch nicht gepostet“-Hinweise, keine Zähler für Ungelesenes.
 - Reaktionen (später) sind Emojis ohne öffentliche Zählung.
-- Benachrichtigungen kommen höchstens einmal täglich und sind inhaltsleer, z. B. „Neue Highlights in deinen Bubbles“.
+- Benachrichtigungen höchstens einmal täglich und inhaltsleer.
 
 **Sprache**
 - Wir duzen, sind warm und kurz. Wir sagen „Highlight“, „Bubble“ und „teilen“, nicht „Content“, „Gruppe“ oder „posten“.
-- Fehler sagen, was passiert ist und was man tun kann, ohne technische Begriffe. Die Ausnahme ist die Server-Adresse.
+- Fehler sagen, was passiert ist und was man tun kann. Die Ausnahme ist die Server-Adresse.
 - Ein Flop-Tag wird nie kommentiert oder bewertet.
 
 ## 8. Do's and Don'ts
 
 ### Do
-- `canvas` als Hintergrund jeder Seite verwenden.
-- Genau einen `primary`-Button pro Ansicht setzen.
-- Fotos groß zeigen, mit `rounded.xl`.
-- Lebensdauer-Badge an jedem Post anzeigen.
-- Erklären, warum etwas deaktiviert ist.
-- Touch-Ziele mindestens 44×44 pt groß machen.
-- Den Dunkelmodus mit den `dark-*`-Token umsetzen.
+- `canvas` als Hintergrund jeder Seite verwenden, Karten in `surface`.
+- Genau einen Hauptbutton im Verlauf pro Ansicht setzen.
+- Fotos groß und randlos zeigen; Text auf Fotos nur über Schatten.
+- Lebensdauer an jedem Post anzeigen.
+- Erklären, warum etwas deaktiviert ist („✓ Heute schon geteilt“).
+- Linien-Icons aus `Resources/Images` verwenden (keine Emojis als Navigation).
 
 ### Don't
-- Kein reines Weiß als Seitenhintergrund.
-- `primary` nicht für Links, Icons oder Dekoration verwenden.
+- Das Schillern nicht für Fließtext oder große Flächen hinter Text mit niedrigem Kontrast nutzen.
 - Top/Flop nicht in Grün/Rot einfärben.
-- Editor-Farben nicht in der App-Oberfläche einsetzen.
-- Keine schweren oder harten Schatten.
 - Keine Schriften oder Bilder von externen Servern laden.
 - Keine Zähler, Streaks oder Gamification einbauen.
+- Keine Rahmen um Karten und keine harten Schatten.
 
 ## 9. Responsive Verhalten
 
 | Breite | Verhalten |
 |---|---|
-| < 600 pt | eine Spalte, Hauptaktion unten fixiert |
-| 600–1024 pt | Feed zentriert (max. 560 pt), Bubble-Liste als Seitenleiste möglich |
-| > 1024 pt (Desktop) | Bubble-Liste links (320 pt), Feed rechts, Editor als großes Sheet |
+| < 600 pt | eine Spalte, Tab-Leiste unten, Hauptaktion unten fixiert |
+| ≥ 600 pt | Inhalt zentriert, höchstens 600 pt breit |
 
-Die Story-Leinwand hat immer das Format **9:16** und wird skaliert, nie beschnitten.
+## 10. Story-Editor (später)
 
-## 10. Story-Editor
-
-- Die Leinwand ist 1080×1920 (9:16) mit `rounded.xl` in der Vorschau. Der Export ist ein flaches JPEG.
-- Hintergründe nutzen `editor-*`-Farben oder Verläufe zwischen zwei benachbarten Editor-Farben.
-- Vorlagen wechseln die Farben ab (pink → teal → lavender → peach → ochre) und wiederholen keine Farbe direkt.
-- Text auf der Leinwand ist Fraunces oder Inter. Zusätzlich gibt es höchstens eine verspielte Handschrift, die in der App mitgeliefert wird.
-- Die Werkzeugleiste ist ruhige App-Oberfläche (`surface`, schwebend). Bunt ist nur, was auf der Leinwand liegt.
+Die Leinwand hat das Format **9:16** (1080×1920), wird skaliert und nie beschnitten; Export als flaches JPEG. Hintergründe nutzen Verläufe aus `pink`, `violet`, `cyan` und deren Nachbarn. Die Werkzeugleiste ist ruhige App-Oberfläche (`surface-raised`, schwebend).
 
 ## 11. Umsetzung in .NET MAUI
 
-| Token | MAUI-Ressource (`Resources/Styles/Colors.xaml`) |
-|---|---|
-| `primary` / `dark-primary` | `Primary` / `PrimaryDark` |
-| `canvas` / `dark-canvas` | `Canvas` / `CanvasDark` → `ContentPage.BackgroundColor` |
-| `surface`, `surface-sunk`, `hairline` | `Surface`, `SurfaceSunk`, `Hairline` |
-| `ink`, `ink-soft`, `muted` | `Ink`, `InkSoft`, `Muted` |
-| `top`/`on-top`, `flop`/`on-flop` | `Top`, `OnTop`, `Flop`, `OnFlop` |
-| `story`/`persistent` (+ `on-*`) | `Story`, `OnStory`, `Persistent`, `OnPersistent` |
-
-- Farben laufen über `AppThemeBinding` (hell/dunkel), Komponenten über benannte Styles in `Styles.xaml` (`PrimaryButton`, `SecondaryButton`, `Card`, `ChipTop`, `BadgeStory` …).
-- Schriften: statische TTFs in `Resources/Fonts` (`Fraunces-Regular.ttf` aus Fraunces 72pt, `Inter-Regular/Medium/SemiBold.ttf`), Aliase `Display`, `Body`, `BodyMedium`, `BodySemibold`. MAUI kann keine Achsen variabler Schriften ansteuern, daher statische Schnitte. Lizenzen: `docs/licenses`.
+- Farben und Verläufe: `Resources/Styles/Colors.xaml` (`Canvas`, `Surface`, `SurfaceRaised`, `Hairline`, `Ink`, `InkSoft`, `Muted`, `Pink`, `Violet`, `Cyan`, `Accent`, `CtaStart`, `CtaEnd`, `Top`/`OnTop`, `Flop`/`OnFlop`; Brushes `BubbleGradient`, `CtaGradient`, `PhotoShade`).
+- Komponenten: benannte Styles in `Resources/Styles/Styles.xaml` (`PrimaryButton`, `SecondaryButton`, `GhostButton`, `IconButton`, `Card`, `Field`, `InfoBar`, `SecretBox`, `GlassPill`, `ChipTop`, `ChipFlop`, `HeroText`, `TitleText`, `CaptionText`, `SectionText`, `CodeText`).
+- Wiederverwendbare Controls: `Controls/AvatarView` (Avatar, Ring, Plus), `Controls/PostCard` (Post-Karte).
+- QR-Codes erzeugt `QRCoder` lokal, gescannt wird mit `ZXing.Net.Maui` (Kamera nur, solange der Scan-Tab offen ist).
 
 ## 12. Prompt-Hilfe für KI-Agenten
 
-> Baue die Oberfläche nach `DESIGN.md`: warmer Papiergrund (`canvas` #F7F1E8), weiße Karten mit 1-px-Rahmen und 20-pt-Radius, genau ein violetter Pillen-Button (#5B47E0) pro Ansicht. Fraunces für Titel, Inter für Text. Fotos groß und abgerundet. Jeder Post zeigt Top/Flop-Chip (Sonne/Regenwolke, nicht grün/rot) und Lebensdauer-Badge (⏳ Sand / 📌 Salbei). Keine Zähler, keine Streaks, keine externen Ressourcen. Deutsch, Du-Form, warm und kurz.
+> Baue die Oberfläche nach `DESIGN.md`: dunkler Grund (`canvas` #0B0A10), Karten in `surface` ohne Rahmen mit 24-pt-Radius, genau ein Pillen-Button im Pink-Violett-Verlauf pro Ansicht. Inter fett für Schlagzeilen, Fraunces nur für die Wortmarke. Fotos randlos und groß, Text-Posts auf leuchtendem Verlauf. Story-Ringe im Pink-Violett-Cyan-Verlauf. Jeder Post zeigt Top/Flop-Pille (Sonne/Regenwolke, nicht grün/rot) und Lebensdauer. Keine Zähler, keine Streaks, keine externen Ressourcen. Deutsch, Du-Form, warm und kurz.

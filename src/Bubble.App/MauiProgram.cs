@@ -1,6 +1,7 @@
 using Bubble.App.Pages;
 using Bubble.App.Services;
 using Microsoft.Extensions.Logging;
+using ZXing.Net.Maui.Controls;
 
 namespace Bubble.App;
 
@@ -11,12 +12,14 @@ public static class MauiProgram
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
+			.UseBarcodeReader()
 			.ConfigureFonts(fonts =>
 			{
 				// Laut DESIGN.md: Display = Fraunces, Body = Inter (beide SIL OFL, Lizenzen in docs/licenses)
 				fonts.AddFont("Inter-Regular.ttf", "Body");
 				fonts.AddFont("Inter-Medium.ttf", "BodyMedium");
 				fonts.AddFont("Inter-SemiBold.ttf", "BodySemibold");
+				fonts.AddFont("Inter-Bold.ttf", "BodyBold");
 				fonts.AddFont("Fraunces-Regular.ttf", "Display");
 			});
 
@@ -25,11 +28,9 @@ public static class MauiProgram
 		Microsoft.Maui.Handlers.EditorHandler.Mapper.AppendToMapping("NoChrome", (handler, _) => RemoveChrome(handler.PlatformView));
 
 		builder.Services.AddSingleton<AccountService>();
-		builder.Services.AddTransient<OnboardingPage>();
-		builder.Services.AddTransient<BubblesPage>();
-		builder.Services.AddTransient<FeedPage>();
-		builder.Services.AddTransient<ComposePage>();
-		builder.Services.AddTransient<BackupPage>();
+		builder.Services.AddSingleton<FeedService>();
+		foreach (var page in typeof(MauiProgram).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(ContentPage)) && !t.IsAbstract))
+			builder.Services.AddTransient(page);
 
 #if DEBUG
 		builder.Logging.AddDebug();

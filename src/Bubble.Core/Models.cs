@@ -8,7 +8,8 @@ public enum PostLifetime { Story24h, Persistent }
 
 public enum Mood { Top, Flop }
 
-public enum MessageKind { Post, LifetimeChanged }
+/// <summary>Post = Highlight, LifetimeChanged = neue Lebensdauer, Profile = Name und Profilbild des Absenders.</summary>
+public enum MessageKind { Post, LifetimeChanged, Profile }
 
 /// <summary>
 /// Eine Bubble aus Sicht eines Mitglieds. Der Root-Key ist das gemeinsame Geheimnis;
@@ -48,8 +49,11 @@ public sealed record BubbleMessage
     public Mood? Mood { get; init; }
     public string? Text { get; init; }
 
-    /// <summary>JPEG, bereits auf dem Gerät von Metadaten befreit.</summary>
+    /// <summary>JPEG, bereits auf dem Gerät von Metadaten befreit. Bei Profile: das Profilbild.</summary>
     public byte[]? Image { get; init; }
+
+    /// <summary>Bei Profile: kurzer Satz über sich.</summary>
+    public string? Bio { get; init; }
 
     public DateTimeOffset? ExpiresAt =>
         Kind == MessageKind.Post && Lifetime == PostLifetime.Story24h ? CreatedAt.AddHours(24) : null;
@@ -61,6 +65,11 @@ public sealed class Vault
     public int Version { get; set; } = 1;
     public required string IdentitySeed { get; set; }
     public required string DisplayName { get; set; }
+
+    /// <summary>Quadratisches JPEG ohne Metadaten. Wird verschlüsselt an jede Bubble geschickt.</summary>
+    public byte[]? Avatar { get; set; }
+    public string? Bio { get; set; }
+
     public List<BubbleMembership> Bubbles { get; set; } = [];
 
     /// <summary>Gesetzt, sobald ein Backup eingerichtet wurde; damit wird es bei Änderungen automatisch aktualisiert.</summary>

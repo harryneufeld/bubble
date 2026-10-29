@@ -13,7 +13,7 @@ static class Labels
 
     public static string Remaining(BubbleMessage message)
     {
-        if (message.ExpiresAt is not { } expires) return "📌 dauerhaft";
+        if (message.ExpiresAt is not { } expires) return "📌 bleibt";
         var left = expires - DateTimeOffset.UtcNow;
         return left.TotalHours >= 1 ? $"⏳ noch {(int)left.TotalHours} h" : $"⏳ noch {Math.Max(1, (int)left.TotalMinutes)} min";
     }
@@ -27,12 +27,22 @@ static class Labels
 
     /// <summary>Unterscheidet „Server nicht erreichbar“ von „Server hat abgelehnt“.</summary>
     public static string ConnectionError(string relayUrl, HttpRequestException ex) => ex.StatusCode is { } status
-        ? $"Der Server {relayUrl} hat die Anfrage abgelehnt (HTTP {(int)status})."
-        : $"Der Server {relayUrl} ist nicht erreichbar.";
+        ? $"Der Server {Host(relayUrl)} hat die Anfrage abgelehnt (HTTP {(int)status})."
+        : $"Der Server {Host(relayUrl)} ist nicht erreichbar.";
 
-    public static string Time(DateTimeOffset createdAt)
+    public static string Host(string relayUrl) => Uri.TryCreate(relayUrl, UriKind.Absolute, out var uri) ? uri.Authority : relayUrl;
+
+    /// <summary>„gerade eben“, „vor 5 min“, „vor 3 h“, „gestern, 18:20“, „12.10., 09:15“.</summary>
+    public static string Ago(DateTimeOffset createdAt)
     {
+        var age = DateTimeOffset.UtcNow - createdAt;
+        if (age.TotalMinutes < 1) return "gerade eben";
+        if (age.TotalHours < 1) return $"vor {(int)age.TotalMinutes} min";
         var local = createdAt.ToLocalTime();
-        return local.Date == DateTime.Today ? $"heute, {local:HH:mm}" : local.ToString("dd.MM., HH:mm");
+        if (local.Date == DateTime.Today) return $"vor {(int)age.TotalHours} h";
+        if (local.Date == DateTime.Today.AddDays(-1)) return $"gestern, {local:HH:mm}";
+        return local.ToString("dd.MM., HH:mm");
     }
+
+    public static string People(int count) => count == 1 ? "1 Person" : $"{count} Leute";
 }

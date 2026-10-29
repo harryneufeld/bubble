@@ -3,35 +3,27 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-public sealed class PostItem(FeedPost post)
+public sealed record MemberItem(string FullName, byte[]? Image, bool IsMe)
 {
-    public string Author { get; } = post.IsMine ? $"{post.Message.AuthorName} (du)" : post.Message.AuthorName;
-    public string Mood { get; } = Labels.Mood(post.Message.Mood);
-    public bool IsTop { get; } = post.Message.Mood == Core.Mood.Top;
-    public bool IsFlop { get; } = post.Message.Mood == Core.Mood.Flop;
-    public string Time { get; } = Labels.Time(post.Message.CreatedAt);
-    public string Remaining { get; } = Labels.Remaining(post.Message);
-    public bool IsStory { get; } = post.Message.ExpiresAt is not null;
-    public bool IsPersistent => !IsStory;
-    public string? Text { get; } = post.Message.Text;
-    public bool HasText => Text is not null;
-    public bool HasImage { get; } = post.Message.Image is not null;
-    public string ImageDescription => $"Foto von {post.Message.AuthorName}";
-    public ImageSource? Image { get; } = post.Message.Image is { } bytes ? ImageSource.FromStream(() => new MemoryStream(bytes)) : null;
+    public string Name => IsMe ? "Du" : FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? FullName;
+    public string Description => IsMe ? "Du" : FullName;
 }
 
+/// <summary>Eine Bubble: Cover, Mitglieder, Einladen und alle Highlights.</summary>
 [QueryProperty(nameof(MailboxId), "id")]
 public partial class FeedPage : ContentPage
 {
     readonly AccountService _account;
+    readonly FeedService _feed;
     BubbleMembership? _bubble;
 
     public string MailboxId { get; set; } = "";
 
-    public FeedPage(AccountService account)
+    public FeedPage(AccountService account, FeedService feed)
     {
         InitializeComponent();
         _account = account;
+        _feed = feed;
     }
 
     protected override async void OnAppearing()
@@ -43,7 +35,7 @@ public partial class FeedPage : ContentPage
             await Shell.Current.GoToAsync("..");
             return;
         }
-        Title = _bubble.Name;
+        Render();
         await LoadAsync();
     }
 
@@ -52,45 +44,47 @@ public partial class FeedPage : ContentPage
     async Task LoadAsync()
     {
         if (_bubble is null) return;
-        Refresher.IsRefreshing = true;
         try
         {
-            var client = _account.Client;
-            var lifetimeBefore = _bubble.Lifetime;
-            var feed = await client.LoadFeedAsync(_bubble);
-            if (_bubble.Lifetime != lifetimeBefore) await _account.SaveAsync(); // von einem anderen Mitglied geändert
-            Posts.ItemsSource = feed.Select(p => new PostItem(p)).ToList();
-            var postedToday = client.HasPostedToday(feed);
-            ComposeButton.IsEnabled = !postedToday;
-            ComposeButton.Text = postedToday ? "✅ Heute schon geteilt" : "Mein Highlight teilen";
+            await _feed.RefreshAsync(_bubble);
+            Render();
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Feed nicht geladen", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+            await DisplayAlertAsync("Nicht geladen", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
         finally
         {
-            LifetimeLabel.Text = $"Neue Posts: {Labels.Lifetime(_bubble.Lifetime)}";
             Refresher.IsRefreshing = false;
         }
+    }
+
+    void Render()
+    {
+        var bubble = _bubble!;
+        var snapshot = _feed.SnapshotFor(bubble);
+        var posts = _feed.PostsOf(bubble);
+
+        NameLabel.Text = bubble.Name;
+        LifetimeLabel.Text = $"Neue Highlights: {Labels.Lifetime(bubble.Lifetime)}";
+        PeopleLabel.Text = Labels.People(snapshot?.Members.Count ?? 1);
+        var cover = posts.FirstOrDefault(p => p.Post.Message.Image is not null)?.Post.Message.Image;
+        CoverImage.Source = cover is null ? null : ImageSource.FromStream(() => new MemoryStream(cover));
+        CoverFrame.Background = Gradients.For(bubble.MailboxId);
+
+        Members.ItemsSource = (snapshot?.Members ?? []).Select(m => new MemberItem(m.Name, m.Avatar, m.IsMe)).ToList();
+        Posts.ItemsSource = posts.Select(p => new PostItem(p, showBubble: false)).ToList();
+
+        var posted = _feed.HasPostedToday(bubble);
+        ComposeButton.IsEnabled = !posted;
+        ComposeButton.Text = posted ? "✓ Heute schon geteilt" : "Mein Highlight teilen";
     }
 
     async void OnCompose(object? sender, EventArgs e) =>
         await Shell.Current.GoToAsync($"{nameof(ComposePage)}?id={Uri.EscapeDataString(MailboxId)}");
 
-    async void OnInvite(object? sender, EventArgs e)
-    {
-        if (_bubble is null) return;
-        var ok = await DisplayAlertAsync("Einladen",
-            "Der Link enthält den Schlüssel der Bubble. Wer ihn hat, kann alles lesen. Teile ihn nur direkt mit Leuten, die du dabeihaben willst.",
-            "Link teilen", "Abbrechen");
-        if (!ok) return;
-        await Share.Default.RequestAsync(new ShareTextRequest
-        {
-            Title = $"Einladung in „{_bubble.Name}“",
-            Text = Invite.For(_bubble).ToLink(),
-        });
-    }
+    async void OnInvite(object? sender, EventArgs e) =>
+        await Shell.Current.GoToAsync($"{nameof(InvitePage)}?id={Uri.EscapeDataString(MailboxId)}");
 
     async void OnChangeLifetime(object? sender, EventArgs e)
     {
@@ -98,7 +92,7 @@ public partial class FeedPage : ContentPage
         var story = Labels.Lifetime(PostLifetime.Story24h);
         var persistent = Labels.Lifetime(PostLifetime.Persistent);
         var choice = await DisplayActionSheetAsync(
-            "Gilt für neue Posts. Bestehende Posts behalten ihre Einstellung. Alle Mitglieder sehen die Änderung.",
+            "Gilt für neue Highlights. Bestehende behalten ihre Einstellung. Alle Mitglieder sehen die Änderung.",
             "Abbrechen", null, story, persistent);
         if (choice != story && choice != persistent) return;
 

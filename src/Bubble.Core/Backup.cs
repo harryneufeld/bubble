@@ -83,20 +83,27 @@ public static class Backup
     /// <summary>Aus dem Code werden drei unabhängige Werte abgeleitet: Schlüssel, Speicher-ID und Schreib-Token.</summary>
     public static CodeSecrets DeriveFromCode(string code)
     {
+        var output = Argon2(Encoding.UTF8.GetBytes(NormalizeCode(code)), Salt, 96);
+        return new CodeSecrets(
+            output[..32],
+            Base64Url.Encode(output[32..64]),
+            Base64Url.Encode(output[64..96]));
+    }
+
+    /// <summary>Argon2id mit den oben eingestellten Kosten. Auch für kurze Einladungscodes genutzt.</summary>
+    internal static byte[] Argon2(byte[] password, byte[] salt, int length)
+    {
         var parameters = new Argon2Parameters.Builder(Argon2Parameters.Argon2id)
             .WithVersion(Argon2Parameters.Version13)
             .WithIterations(Argon2Iterations)
             .WithMemoryAsKB(Argon2MemoryKiB)
             .WithParallelism(1)
-            .WithSalt(Salt)
+            .WithSalt(salt)
             .Build();
         var generator = new Argon2BytesGenerator();
         generator.Init(parameters);
-        var output = new byte[96];
-        generator.GenerateBytes(Encoding.UTF8.GetBytes(NormalizeCode(code)), output);
-        return new CodeSecrets(
-            output[..32],
-            Base64Url.Encode(output[32..64]),
-            Base64Url.Encode(output[64..96]));
+        var output = new byte[length];
+        generator.GenerateBytes(password, output);
+        return output;
     }
 }

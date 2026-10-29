@@ -52,10 +52,51 @@ public sealed class AccountService
         return Vault is not null;
     }
 
-    public Task CreateAsync(string displayName)
+    public Task CreateAsync(string displayName, string? bio, byte[]? avatar)
     {
         Vault = Vault.Create(displayName.Trim());
+        Vault.Bio = string.IsNullOrWhiteSpace(bio) ? null : bio.Trim();
+        Vault.Avatar = avatar;
         return SaveAsync();
+    }
+
+    /// <summary>Speichert das Profil und schickt es an alle Bubbles. False, wenn mindestens eine Bubble nicht erreichbar war.</summary>
+    public async Task<bool> UpdateProfileAsync(string displayName, string? bio, byte[]? avatar)
+    {
+        var vault = Vault ?? throw new InvalidOperationException("Kein Account.");
+        vault.DisplayName = displayName.Trim();
+        vault.Bio = string.IsNullOrWhiteSpace(bio) ? null : bio.Trim();
+        vault.Avatar = avatar;
+        await SaveAsync();
+        var results = await Task.WhenAll(vault.Bubbles.Select(TryPublishProfileAsync));
+        return results.All(ok => ok);
+    }
+
+    /// <summary>Gründet eine Bubble und stellt sich darin vor.</summary>
+    public async Task<BubbleMembership> CreateBubbleAsync(string name, PostLifetime lifetime)
+    {
+        var bubble = BubbleMembership.Create(name.Trim(), DefaultRelayUrl, lifetime);
+        Vault!.Bubbles.Add(bubble);
+        await SaveAsync();
+        await TryPublishProfileAsync(bubble);
+        return bubble;
+    }
+
+    /// <summary>Tritt einer Bubble bei. Null, wenn man schon drin ist.</summary>
+    public async Task<BubbleMembership?> JoinAsync(Invite invite)
+    {
+        var bubble = invite.ToMembership();
+        if (FindBubble(bubble.MailboxId) is not null) return null;
+        Vault!.Bubbles.Add(bubble);
+        await SaveAsync();
+        await TryPublishProfileAsync(bubble);
+        return bubble;
+    }
+
+    async Task<bool> TryPublishProfileAsync(BubbleMembership bubble)
+    {
+        try { await Client.PublishProfileAsync(bubble); return true; }
+        catch (HttpRequestException) { return false; }
     }
 
     public BubbleMembership? FindBubble(string mailboxId) =>

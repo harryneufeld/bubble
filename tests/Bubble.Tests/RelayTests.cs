@@ -159,4 +159,49 @@ public class RelayTests : IDisposable
         var ex = await Assert.ThrowsAsync<HttpRequestException>(() => _relay.Relay("").PutBackupAsync(attacker, [1]));
         Assert.Equal(HttpStatusCode.Forbidden, ex.StatusCode);
     }
+
+    [Fact]
+    public async Task Profile_IsSharedEncrypted_AndNewestWins()
+    {
+        var anna = Vault.Create("Anna");
+        var ben = Vault.Create("Ben");
+        var bubble = BubbleMembership.Create("WG", "http://relay/", PostLifetime.Story24h);
+
+        anna.Avatar = [9, 9, 9];
+        anna.Bio = "Kaffee zuerst";
+        await _relay.ClientFor(anna).PublishProfileAsync(bubble);
+        await _relay.ClientFor(ben).PostAsync(bubble, Mood.Top, "Hallo", null);
+        _relay.Time.Advance(TimeSpan.FromMinutes(1));
+        anna.DisplayName = "Anna K.";
+        await _relay.ClientFor(anna).PublishProfileAsync(bubble);
+
+        var snapshot = await _relay.ClientFor(ben).LoadAsync(bubble);
+        Assert.Single(snapshot.Posts); // Profile sind keine Posts
+        Assert.Equal(2, snapshot.Members.Count);
+        Assert.True(snapshot.Members[0].IsMe);
+        var annaSeen = snapshot.MemberFor(anna.Identity.PublicKey)!;
+        Assert.Equal("Anna K.", annaSeen.Name);
+        Assert.Equal([9, 9, 9], annaSeen.Avatar);
+        Assert.Equal("Kaffee zuerst", annaSeen.Bio);
+
+        var raw = await _relay.Http().GetStringAsync($"v1/mailboxes/{bubble.MailboxId}/messages");
+        Assert.DoesNotContain("Kaffee", raw);
+    }
+
+    [Fact]
+    public async Task ShortInvite_ResolvesToBubble_AndExpires()
+    {
+        var bubble = BubbleMembership.Create("Laufgruppe", "http://relay/", PostLifetime.Persistent);
+        var code = await ShortInvite.PublishAsync(Invite.For(bubble), _relay.Relay(""), _relay.Time);
+        Assert.Matches("^[0-9A-Z]{5}-[0-9A-Z]{5}$", code);
+
+        var invite = await ShortInvite.ResolveAsync(code.ToLowerInvariant().Replace("-", " "), _relay.Relay(""));
+        Assert.Equal(bubble.MailboxId, invite!.ToMembership().MailboxId);
+        Assert.Equal("Laufgruppe", invite.Name);
+
+        Assert.Null(await ShortInvite.ResolveAsync(ShortInvite.GenerateCode(), _relay.Relay("")));
+
+        _relay.Time.Advance(ShortInvite.Validity + TimeSpan.FromMinutes(1));
+        Assert.Null(await ShortInvite.ResolveAsync(code, _relay.Relay("")));
+    }
 }

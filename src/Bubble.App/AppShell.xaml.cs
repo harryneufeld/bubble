@@ -7,9 +7,8 @@ public partial class AppShell : Shell
 	public AppShell()
 	{
 		InitializeComponent();
-		Routing.RegisterRoute(nameof(OnboardingPage), typeof(OnboardingPage));
-		Routing.RegisterRoute(nameof(FeedPage), typeof(FeedPage));
-		Routing.RegisterRoute(nameof(ComposePage), typeof(ComposePage));
-		Routing.RegisterRoute(nameof(BackupPage), typeof(BackupPage));
+		foreach (var page in new[] { typeof(OnboardingPage), typeof(FeedPage), typeof(ComposePage), typeof(BackupPage),
+		                             typeof(InvitePage), typeof(JoinPage), typeof(StoryPage), typeof(ProfileEditPage) })
+			Routing.RegisterRoute(page.Name, page);
 	}
 }

@@ -1,46 +1,88 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Bubble.App.Controls"
              x:Class="Bubble.App.Pages.OnboardingPage"
              Shell.PresentationMode="ModalNotAnimated"
              Shell.NavBarIsVisible="False"
              Title="Willkommen">
-    <ScrollView>
-        <VerticalStackLayout Style="{StaticResource Column}" Padding="16,48,16,32" Spacing="12">
-            <Label Text="🫧" FontSize="44" />
-            <Label Text="Willkommen bei Bubble" Style="{StaticResource DisplayText}" />
-            <Label Style="{StaticResource SoftText}"
-                   Text="Teile jeden Tag ein Highlight mit deinen Leuten. Alles ist Ende-zu-Ende-verschlüsselt, und du brauchst weder E-Mail noch Telefonnummer." />
+    <Grid>
+        <!-- Deko: schillernde Blasen im Hintergrund -->
+        <Ellipse WidthRequest="340" HeightRequest="340" Opacity="0.55" HorizontalOptions="End" VerticalOptions="Start" Margin="0,-90,-120,0"
+                 Fill="{StaticResource BubbleGradient}" InputTransparent="True" />
+        <Ellipse WidthRequest="180" HeightRequest="180" Opacity="0.35" HorizontalOptions="Start" VerticalOptions="Start" Margin="-60,210,0,0"
+                 Fill="{StaticResource CtaGradient}" InputTransparent="True" />
+        <Ellipse WidthRequest="70" HeightRequest="70" Opacity="0.5" HorizontalOptions="End" VerticalOptions="Start" Margin="0,280,48,0"
+                 Fill="{StaticResource BubbleGradient}" InputTransparent="True" />
+        <BoxView InputTransparent="True">
+            <BoxView.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#330B0A10" Offset="0" />
+                    <GradientStop Color="#FF0B0A10" Offset="0.55" />
+                </LinearGradientBrush>
+            </BoxView.Background>
+        </BoxView>
 
-            <Label Text="Wie sollen dich deine Bubbles nennen?" Style="{StaticResource HeadingText}" Margin="0,24,0,0" />
-            <Border Style="{StaticResource Field}">
-                <Entry x:Name="NameEntry" Placeholder="Dein Name" ReturnType="Done" Completed="OnStart"
-                       SemanticProperties.Description="Dein Name" />
-            </Border>
-            <Button x:Name="StartButton" Text="Los geht's" Clicked="OnStart" Style="{StaticResource PrimaryButton}" />
+        <ScrollView>
+            <Grid Style="{StaticResource Column}" Padding="24,56,24,32">
 
-            <BoxView Style="{StaticResource Divider}" Margin="0,24" />
+                <!-- Schritt 1: Willkommen -->
+                <VerticalStackLayout x:Name="WelcomeStep" Spacing="16" VerticalOptions="End" Margin="0,180,0,0">
+                    <Label Text="bubble" Style="{StaticResource Wordmark}" FontSize="44" />
+                    <Label Text="Dein Tag.&#10;Deine Leute." Style="{StaticResource HeroText}" FontSize="44" />
+                    <Label Style="{StaticResource SoftText}" FontSize="17"
+                           Text="Teile jeden Tag ein Highlight mit deinen engsten Leuten. Ende-zu-Ende-verschlüsselt, ohne E-Mail und ohne Telefonnummer." />
+                    <Button Text="Los geht's" Clicked="OnBegin" Margin="0,24,0,0" />
+                    <Button Text="Ich habe schon einen Account" Clicked="OnShowRestore" Style="{StaticResource GhostButton}" />
+                </VerticalStackLayout>
 
-            <Label Text="Du hast schon einen Account?" Style="{StaticResource HeadingText}" />
-            <Label Style="{StaticResource SmallText}"
-                   Text="Gib deinen Backup-Code ein. Du findest ihn zum Beispiel in deinem Passwortmanager." />
-            <Border Style="{StaticResource Field}">
-                <Entry x:Name="CodeEntry" Placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
-                       FontFamily="{StaticResource MonoFont}" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False"
-                       SemanticProperties.Description="Backup-Code" />
-            </Border>
-            <Button x:Name="RestoreButton" Text="Wiederherstellen" Clicked="OnRestore" Style="{StaticResource SecondaryButton}" />
-            <ActivityIndicator x:Name="Busy" IsRunning="False" IsVisible="{Binding IsRunning, Source={x:Reference Busy}}" />
+                <!-- Schritt 2: Profil -->
+                <VerticalStackLayout x:Name="ProfileStep" Spacing="14" IsVisible="False">
+                    <Label Text="Wer bist du?" Style="{StaticResource HeroText}" />
+                    <Label Style="{StaticResource SoftText}" Text="So sehen dich deine Bubbles. Dein Profil geht nur verschlüsselt an Leute in deinen Bubbles." />
 
-            <BoxView Style="{StaticResource Divider}" Margin="0,24" />
+                    <Grid HorizontalOptions="Center" Margin="0,16">
+                        <controls:AvatarView x:Name="AvatarPreview" Size="132" Ring="New" ShowPlus="True" />
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnPickAvatar" />
+                        </Grid.GestureRecognizers>
+                        <SemanticProperties.Description>Profilbild wählen</SemanticProperties.Description>
+                    </Grid>
+                    <Label Text="Tippe aufs Bild, um ein Foto zu wählen" Style="{StaticResource CaptionText}" HorizontalTextAlignment="Center" Margin="0,-6,0,8" />
 
-            <Label Text="Server" Style="{StaticResource HeadingText}" />
-            <Label Style="{StaticResource SmallText}"
-                   Text="Adresse des Relays, z. B. eines Rechners in deinem Netzwerk. Der Relay speichert nur verschlüsselte Daten." />
-            <Border Style="{StaticResource Field}">
-                <Entry x:Name="ServerEntry" Placeholder="192.168.1.20:5080" Keyboard="Url"
-                       SemanticProperties.Description="Server-Adresse" />
-            </Border>
-        </VerticalStackLayout>
-    </ScrollView>
+                    <Label Text="Name" Style="{StaticResource SectionText}" />
+                    <Border Style="{StaticResource Field}">
+                        <Entry x:Name="NameEntry" Placeholder="Wie nennen dich deine Leute?" MaxLength="40" ReturnType="Next"
+                               TextChanged="OnNameChanged" SemanticProperties.Description="Dein Name" />
+                    </Border>
+                    <Label Text="Über dich (optional)" Style="{StaticResource SectionText}" Margin="0,6,0,0" />
+                    <Border Style="{StaticResource Field}">
+                        <Entry x:Name="BioEntry" Placeholder="z. B. Kaffee zuerst, dann reden" MaxLength="80" ReturnType="Done"
+                               SemanticProperties.Description="Über dich" />
+                    </Border>
+
+                    <Button x:Name="CreateButton" Text="Profil erstellen" Clicked="OnCreate" Margin="0,16,0,0" />
+                    <Grid ColumnDefinitions="*,Auto" Margin="4,0">
+                        <Label x:Name="ServerLabel" Style="{StaticResource CaptionText}" VerticalOptions="Center" />
+                        <Button Grid.Column="1" Text="Server ändern" Clicked="OnChangeServer" Style="{StaticResource GhostButton}" FontSize="13" />
+                    </Grid>
+                </VerticalStackLayout>
+
+                <!-- Wiederherstellen -->
+                <VerticalStackLayout x:Name="RestoreStep" Spacing="14" IsVisible="False">
+                    <Label Text="Willkommen zurück" Style="{StaticResource HeroText}" />
+                    <Label Style="{StaticResource SoftText}" Text="Gib deinen Backup-Code ein. Du findest ihn zum Beispiel in deinem Passwortmanager." />
+                    <Border Style="{StaticResource Field}" Margin="0,12,0,0">
+                        <Entry x:Name="CodeEntry" Placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" FontFamily="{StaticResource MonoFont}" FontSize="15"
+                               IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" SemanticProperties.Description="Backup-Code" />
+                    </Border>
+                    <Button x:Name="RestoreButton" Text="Wiederherstellen" Clicked="OnRestore" Margin="0,12,0,0" />
+                    <Button Text="Zurück" Clicked="OnShowWelcome" Style="{StaticResource GhostButton}" />
+                </VerticalStackLayout>
+
+                <ActivityIndicator x:Name="Busy" IsRunning="False" IsVisible="{Binding IsRunning, Source={x:Reference Busy}}"
+                                   VerticalOptions="End" HorizontalOptions="Center" />
+            </Grid>
+        </ScrollView>
+    </Grid>
 </ContentPage>
