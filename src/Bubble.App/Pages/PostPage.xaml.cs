@@ -6,6 +6,7 @@ namespace Bubble.App.Pages;
 /// <summary>Ein Highlight mit Herz-Blase und Kommentaren.</summary>
 [QueryProperty(nameof(MailboxId), "id")]
 [QueryProperty(nameof(PostId), "post")]
+[QueryProperty(nameof(ToComments), "comments")]
 public partial class PostPage : ContentPage
 {
     readonly AccountService _account;
@@ -15,6 +16,10 @@ public partial class PostPage : ContentPage
 
     public string MailboxId { get; set; } = "";
     public string PostId { get; set; } = "";
+
+    /// <summary>„1“: direkt zu den Kommentaren springen (aus der Story-Ansicht).</summary>
+    public string ToComments { get; set; } = "";
+    bool _scrolled;
 
     public PostPage(AccountService account, FeedService feed)
     {
@@ -32,7 +37,17 @@ public partial class PostPage : ContentPage
             await Shell.Current.GoToAsync("..");
             return;
         }
+        GoToComments();
         await LoadAsync();
+    }
+
+    /// <summary>Scrollt hinter die Karte zu den Kommentaren, oder setzt den Cursor ins Eingabefeld, wenn es noch keine gibt.</summary>
+    void GoToComments()
+    {
+        if (ToComments != "1" || _scrolled || _item is null) return;
+        _scrolled = true;
+        if (_item.Comments.Count > 0) CommentList.ScrollTo(0, position: ScrollToPosition.Start, animate: true);
+        else Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(400), () => CommentEntry.Focus());
     }
 
     async void OnRefreshing(object? sender, EventArgs e) => await LoadAsync();

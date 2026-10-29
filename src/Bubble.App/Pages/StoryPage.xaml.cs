@@ -14,6 +14,7 @@ public partial class StoryPage : ContentPage
     List<BoxView> _bars = [];
     int _index;
     DateTime _shownAt;
+    PostItem? _current;
 
     public string MailboxId { get; set; } = "";
 
@@ -77,6 +78,8 @@ public partial class StoryPage : ContentPage
         AuthorAvatar.Image = story.Author?.Avatar;
         AuthorLabel.Text = story.Post.IsMine ? "Du" : story.Author?.Name ?? m.AuthorName;
         MetaLabel.Text = $"{story.Bubble.Name} · {Labels.Ago(m.CreatedAt)}";
+        _current = new PostItem(story, _feed, showBubble: true);
+        ShowReactions();
         MoodLabel.Text = Labels.Feeling(m);
         MoodChip.IsVisible = MoodLabel.Text.Length > 0;
 
@@ -97,6 +100,39 @@ public partial class StoryPage : ContentPage
             Caption.IsVisible = false;
         }
         SemanticScreenReader.Announce($"{AuthorLabel.Text}: {m.Text}");
+    }
+
+    void ShowReactions()
+    {
+        if (_current is not { } item) return;
+        LikeButton.Source = item.LikeIcon;
+        SemanticProperties.SetDescription(LikeButton, item.LikeDescription);
+        LikersLabel.Text = item.HasLikers ? $"♥ {item.LikersText}" : "";
+        CommentButton.Text = item.CommentsText;
+    }
+
+    async void OnLike(object? sender, EventArgs e)
+    {
+        if (_current is not { } item) return;
+        _ = Pop(LikeButton);
+        var task = item.ToggleLikeAsync();
+        ShowReactions(); // sofort anzeigen
+        await task;
+        if (_current == item) ShowReactions(); // nach einem Fehler steht hier wieder der alte Zustand
+    }
+
+    static async Task Pop(VisualElement view)
+    {
+        await view.ScaleToAsync(1.3, 90, Easing.CubicOut);
+        await view.ScaleToAsync(1, 140, Easing.SpringOut);
+    }
+
+    /// <summary>Schließt die Story und öffnet das Highlight, direkt bei den Kommentaren.</summary>
+    async void OnComments(object? sender, EventArgs e)
+    {
+        if (_current is not { } item) return;
+        _timer.Stop();
+        await Shell.Current.GoToAsync($"../{nameof(PostPage)}?id={Uri.EscapeDataString(item.MailboxId)}&post={Uri.EscapeDataString(item.Id)}&comments=1");
     }
 
     void Tick()
