@@ -1,54 +1,68 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Bubble.App.Controls"
              xmlns:pages="clr-namespace:Bubble.App.Pages"
              x:Class="Bubble.App.Pages.BubblesPage"
              x:DataType="pages:BubblesPage"
-             Title="Meine Bubbles">
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Backup" Clicked="OnBackup" />
-        <ToolbarItem Text="Server" Clicked="OnServer" />
-    </ContentPage.ToolbarItems>
-
-    <Grid Style="{StaticResource Column}" RowDefinitions="*,Auto" Padding="16,8,16,16">
-        <CollectionView x:Name="List" SelectionMode="None">
-            <CollectionView.EmptyView>
-                <VerticalStackLayout Padding="8,48" Spacing="8" VerticalOptions="Center">
-                    <Label Text="Noch ganz still hier." Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
-                    <Label Style="{StaticResource SoftText}" HorizontalTextAlignment="Center"
-                           Text="Gründe eine Bubble und lade deine Leute ein, oder tritt über einen Einladungslink bei." />
-                </VerticalStackLayout>
-            </CollectionView.EmptyView>
+             Shell.NavBarIsVisible="False"
+             Title="Bubbles">
+    <RefreshView x:Name="Refresher" Refreshing="OnRefreshing">
+        <CollectionView x:Name="List" SelectionMode="None" MaximumWidthRequest="600">
+            <CollectionView.Header>
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="16,16,16,12">
+                    <Label Text="Deine Bubbles" Style="{StaticResource TitleText}" VerticalOptions="Center" />
+                    <ImageButton Grid.Column="1" Source="ic_scan.png" Style="{StaticResource IconButton}" Clicked="OnJoin"
+                                 SemanticProperties.Description="Bubble beitreten" ToolTipProperties.Text="Bubble beitreten" />
+                    <ImageButton Grid.Column="2" Source="ic_plus.png" Style="{StaticResource IconButton}" Clicked="OnCreate"
+                                 Background="{StaticResource CtaGradient}"
+                                 SemanticProperties.Description="Bubble gründen" ToolTipProperties.Text="Bubble gründen" />
+                </Grid>
+            </CollectionView.Header>
             <CollectionView.ItemsLayout>
-                <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
+                <GridItemsLayout Orientation="Vertical" Span="2" HorizontalItemSpacing="12" VerticalItemSpacing="12" />
             </CollectionView.ItemsLayout>
             <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="pages:BubbleItem">
-                    <Border Style="{StaticResource Card}" Padding="16,14"
-                            SemanticProperties.Description="{Binding Name}" SemanticProperties.Hint="Öffnet die Bubble">
+                <DataTemplate x:DataType="pages:BubbleTile">
+                    <Border StrokeShape="RoundRectangle 24" HeightRequest="220" Margin="0" Background="{Binding Fallback}"
+                            SemanticProperties.Description="{Binding Description}">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnTapped" CommandParameter="{Binding .}" />
                         </Border.GestureRecognizers>
-                        <VerticalStackLayout Spacing="8">
-                            <Label Text="{Binding Name}" Style="{StaticResource TitleText}" />
-                            <HorizontalStackLayout Spacing="10">
-                                <Border Style="{StaticResource BadgeStory}" IsVisible="{Binding IsStory}">
-                                    <Label Text="{Binding Lifetime}" Style="{StaticResource BadgeStoryText}" />
-                                </Border>
-                                <Border Style="{StaticResource BadgePersistent}" IsVisible="{Binding IsPersistent}">
-                                    <Label Text="{Binding Lifetime}" Style="{StaticResource BadgePersistentText}" />
-                                </Border>
-                                <Label Text="{Binding Server}" Style="{StaticResource CaptionText}" VerticalOptions="Center" />
-                            </HorizontalStackLayout>
-                        </VerticalStackLayout>
+                        <Grid>
+                            <Image Source="{Binding Cover}" Aspect="AspectFill" IsVisible="{Binding HasCover}" />
+                            <BoxView Background="{StaticResource PhotoShade}" />
+                            <Ellipse WidthRequest="10" HeightRequest="10" Fill="{StaticResource BubbleGradient}" IsVisible="{Binding HasNew}"
+                                     HorizontalOptions="End" VerticalOptions="Start" Margin="14" SemanticProperties.Description="Neues" />
+                            <VerticalStackLayout VerticalOptions="End" Padding="14" Spacing="8">
+                                <HorizontalStackLayout Spacing="-10" BindableLayout.ItemsSource="{Binding Faces}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="pages:Face">
+                                            <Border StrokeShape="Ellipse" Stroke="{StaticResource Surface}" StrokeThickness="2">
+                                                <controls:AvatarView Size="28" Image="{Binding Image}" Name="{Binding Name}" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </HorizontalStackLayout>
+                                <Label Text="{Binding Name}" FontFamily="BodyBold" FontSize="18" TextColor="White" LineBreakMode="TailTruncation" MaxLines="2" />
+                                <Label Text="{Binding Meta}" FontSize="12" FontFamily="BodyMedium" TextColor="#D9FFFFFF" />
+                            </VerticalStackLayout>
+                        </Grid>
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="24,48" Spacing="12">
+                    <Label Text="Noch keine Bubble" Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
+                    <Label Style="{StaticResource SoftText}" HorizontalTextAlignment="Center"
+                           Text="Gründe eine Bubble für deine Leute oder scanne den QR-Code einer Einladung." />
+                    <Button Text="Bubble gründen" Clicked="OnCreate" Margin="0,12,0,0" />
+                    <Button Text="Beitreten" Clicked="OnJoin" Style="{StaticResource SecondaryButton}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+            <CollectionView.Footer>
+                <BoxView HeightRequest="24" Color="Transparent" />
+            </CollectionView.Footer>
         </CollectionView>
-
-        <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="0,12,0,0">
-            <Button Text="Beitreten" Clicked="OnJoin" Style="{StaticResource SecondaryButton}" />
-            <Button Grid.Column="1" Text="Neue Bubble" Clicked="OnCreate" Style="{StaticResource PrimaryButton}" />
-        </Grid>
-    </Grid>
+    </RefreshView>
 </ContentPage>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bubble.App.Pages.InvitePage"
+             Shell.TabBarIsVisible="False"
+             Title="Leute einladen">
+    <ScrollView>
+        <VerticalStackLayout Style="{StaticResource Column}" Padding="20,8,20,32" Spacing="16">
+            <Label x:Name="TitleLabel" Style="{StaticResource TitleText}" />
+
+            <Border Style="{StaticResource InfoBar}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <Image Source="ic_shield.png" WidthRequest="22" HeightRequest="22" VerticalOptions="Start" Margin="0,2,0,0" />
+                    <Label Grid.Column="1" Style="{StaticResource SmallText}"
+                           Text="QR-Code, Code und Link enthalten den Schlüssel der Bubble. Wer sie hat, kann alles lesen. Zeig sie nur Leuten, die du dabeihaben willst." />
+                </Grid>
+            </Border>
+
+            <!-- QR-Code: zum Scannen in der Bubble-App -->
+            <Border StrokeShape="RoundRectangle 28" BackgroundColor="White" Padding="16" HorizontalOptions="Center" Margin="0,8,0,0">
+                <Image x:Name="QrImage" WidthRequest="240" HeightRequest="240" SemanticProperties.Description="QR-Code der Einladung" />
+            </Border>
+            <Label Text="In Bubble auf „Beitreten“ tippen und scannen" Style="{StaticResource CaptionText}" HorizontalTextAlignment="Center" />
+
+            <!-- Kurzer Code zum Abtippen -->
+            <Border Style="{StaticResource SecretBox}" Margin="0,8,0,0">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Oder per Code" Style="{StaticResource SectionText}" HorizontalTextAlignment="Center" />
+                    <Grid>
+                        <Label x:Name="CodeLabel" Style="{StaticResource CodeText}" SemanticProperties.Description="Einladungscode" />
+                        <ActivityIndicator x:Name="CodeBusy" IsRunning="True" HorizontalOptions="Center" />
+                    </Grid>
+                    <Label x:Name="CodeHint" Style="{StaticResource CaptionText}" HorizontalTextAlignment="Center" />
+                    <Button x:Name="CopyButton" Text="Code kopieren" ImageSource="ic_copy.png" Clicked="OnCopy" Style="{StaticResource SecondaryButton}" IsEnabled="False" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Button Text="Link teilen" ImageSource="ic_share.png" ContentLayout="Left,10" Clicked="OnShare" Margin="0,8,0,0" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

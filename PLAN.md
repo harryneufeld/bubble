@@ -5,7 +5,7 @@ Eine App, in der man in privaten Gruppen („Bubbles“) ein tägliches Highligh
 
 ## Kernfunktionen
 - **Bubbles:** kleine private Gruppen, Beitritt per Einladungslink
-- **1 Highlight pro Tag und Bubble**, markiert als Top 👍 oder Flop 👎
+- **Highlights teilen**, so oft man mag, markiert als Top 👍 oder Flop 👎
 - **Editor wie Canva:** Story-Leinwand (9:16) mit Fotos, Text, Stickern und Vorlagen; geteilt wird das fertige Bild
 - **Lebensdauer pro Bubble einstellbar:** ⏳ 24h (wie Stories) oder 📌 dauerhaft
   - jeder Post zeigt ein Badge mit seiner Lebensdauer

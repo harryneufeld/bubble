@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Für dein Profilbild, Fotos und um Einladungs-QR-Codes zu scannen.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Um ein Foto für dein Highlight oder Profilbild auszuwählen.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIDeviceFamily</key>

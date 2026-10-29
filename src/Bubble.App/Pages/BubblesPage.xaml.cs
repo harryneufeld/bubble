@@ -1,110 +1,80 @@
+using Bubble.App.Controls;
 using Bubble.App.Services;
 using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-public sealed record BubbleItem(string MailboxId, string Name, PostLifetime Kind, string Server)
+public sealed record Face(string Name, byte[]? Image);
+
+public sealed class BubbleTile(BubbleMembership bubble, BubbleSnapshot? snapshot, bool hasNew)
 {
-    public string Lifetime => Labels.Lifetime(Kind);
-    public bool IsStory => Kind == PostLifetime.Story24h;
-    public bool IsPersistent => !IsStory;
+    public string MailboxId => bubble.MailboxId;
+    public string Name => bubble.Name;
+    public bool HasNew => hasNew;
+    public IReadOnlyList<Face> Faces { get; } = (snapshot?.Members ?? []).Take(5).Select(m => new Face(m.Name, m.Avatar)).ToList();
+    public string Meta => snapshot is null
+        ? $"{Labels.Lifetime(bubble.Lifetime)}"
+        : $"{Labels.People(snapshot.Members.Count)} · {Labels.Lifetime(bubble.Lifetime)}";
+    readonly byte[]? _cover = snapshot?.Posts.FirstOrDefault(p => p.Message.Image is not null)?.Message.Image;
+    public bool HasCover => _cover is not null;
+    public ImageSource? Cover => _cover is { } bytes ? ImageSource.FromStream(() => new MemoryStream(bytes)) : null;
+    public Brush Fallback { get; } = Gradients.For(bubble.MailboxId);
+    public string Description => $"{Name}, {Meta}{(hasNew ? ", Neues" : "")}";
 }
 
 public partial class BubblesPage : ContentPage
 {
     readonly AccountService _account;
+    readonly FeedService _feed;
 
-    public BubblesPage(AccountService account)
+    public BubblesPage(AccountService account, FeedService feed)
     {
         InitializeComponent();
         _account = account;
+        _feed = feed;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        if (!await _account.LoadAsync())
-        {
-            await Shell.Current.GoToAsync(nameof(OnboardingPage));
-            return;
-        }
-        Refresh();
+        if (!await _account.LoadAsync()) return;
+        Render();
+        await _feed.RefreshAsync();
+        Render();
     }
 
-    void Refresh() => List.ItemsSource = _account.Vault!.Bubbles
-        .Select(b => new BubbleItem(b.MailboxId, b.Name, b.Lifetime, new Uri(b.RelayUrl).Authority))
+    async void OnRefreshing(object? sender, EventArgs e)
+    {
+        await _feed.RefreshAsync();
+        Render();
+        Refresher.IsRefreshing = false;
+    }
+
+    void Render() => List.ItemsSource = _account.Vault!.Bubbles
+        .Select(b => new BubbleTile(b, _feed.SnapshotFor(b), _feed.StoriesOf(b).Any(s => !s.Post.IsMine && !_feed.IsSeen(s.Post.Id))))
         .ToList();
 
     async void OnTapped(object? sender, TappedEventArgs e)
     {
-        if (e.Parameter is not BubbleItem item) return;
-        await Shell.Current.GoToAsync($"{nameof(FeedPage)}?id={Uri.EscapeDataString(item.MailboxId)}");
+        if (e.Parameter is BubbleTile tile)
+            await Shell.Current.GoToAsync($"{nameof(FeedPage)}?id={Uri.EscapeDataString(tile.MailboxId)}");
     }
 
-    async void OnCreate(object? sender, EventArgs e)
+    async void OnCreate(object? sender, EventArgs e) => await CreateBubbleFlowAsync(this, _account);
+
+    async void OnJoin(object? sender, EventArgs e) => await Shell.Current.GoToAsync(nameof(JoinPage));
+
+    /// <summary>Name und Lebensdauer abfragen, Bubble gründen und direkt zum Einladen wechseln.</summary>
+    public static async Task CreateBubbleFlowAsync(Page page, AccountService account)
     {
-        var name = await DisplayPromptAsync("Neue Bubble", "Wie soll die Bubble heißen?", "Weiter", "Abbrechen", "z. B. Familie, WG, Laufgruppe");
+        var name = await SheetPage.PromptAsync(page, "Neue Bubble", "Wie soll sie heißen?", "Weiter", "z. B. Familie, WG, Laufgruppe", maxLength: 40);
         if (string.IsNullOrWhiteSpace(name)) return;
 
-        var story = Labels.Lifetime(PostLifetime.Story24h);
-        var persistent = Labels.Lifetime(PostLifetime.Persistent);
-        var choice = await DisplayActionSheetAsync("Wie lange sollen Posts sichtbar sein?", "Abbrechen", null, story, persistent);
-        if (choice != story && choice != persistent) return;
+        var choice = await SheetPage.ChooseAsync(page, "Wie lange sollen Highlights sichtbar sein?",
+            "Das gilt für neue Highlights und lässt sich später ändern.", Labels.LifetimeOptions(PostLifetime.Story24h));
+        if (choice is not { } index) return;
 
-        var lifetime = choice == story ? PostLifetime.Story24h : PostLifetime.Persistent;
-        _account.Vault!.Bubbles.Add(BubbleMembership.Create(name.Trim(), AccountService.DefaultRelayUrl, lifetime));
-        await SaveAndRefresh();
-    }
-
-    async void OnJoin(object? sender, EventArgs e)
-    {
-        var clip = Clipboard.Default.HasText ? await Clipboard.Default.GetTextAsync() : null;
-        var prefill = clip is not null && Invite.TryParse(clip, out _) ? clip : "";
-        var link = await DisplayPromptAsync("Bubble beitreten", "Füge den Einladungslink ein:", "Beitreten", "Abbrechen", "bubble://join#…", initialValue: prefill);
-        if (string.IsNullOrWhiteSpace(link)) return;
-
-        if (!Invite.TryParse(link, out var invite))
-        {
-            await DisplayAlertAsync("Ungültiger Link", "Das sieht nicht nach einer Bubble-Einladung aus.", "OK");
-            return;
-        }
-        var bubble = invite!.ToMembership();
-        if (_account.FindBubble(bubble.MailboxId) is not null)
-        {
-            await DisplayAlertAsync("Schon dabei", $"Du bist bereits in „{bubble.Name}“.", "OK");
-            return;
-        }
-        _account.Vault!.Bubbles.Add(bubble);
-        await SaveAndRefresh();
-    }
-
-    async void OnBackup(object? sender, EventArgs e) => await Shell.Current.GoToAsync(nameof(BackupPage));
-
-    async void OnServer(object? sender, EventArgs e)
-    {
-        var input = await DisplayPromptAsync("Server",
-            "Gilt für neue Bubbles und dein Backup. Bestehende Bubbles bleiben auf ihrem Server.",
-            "Speichern", "Abbrechen", "192.168.1.20:5080", initialValue: AccountService.DefaultRelayUrl, keyboard: Keyboard.Url);
-        if (input is null) return;
-        if (!AccountService.TryNormalizeRelayUrl(input, out var url))
-        {
-            await DisplayAlertAsync("Ungültige Server-Adresse", "Beispiel: 192.168.1.20:5080", "OK");
-            return;
-        }
-        if (!await AccountService.IsReachableAsync(url))
-        {
-            await DisplayAlertAsync("Server nicht erreichbar", $"Unter {url} antwortet kein Bubble-Relay.", "OK");
-            return;
-        }
-        AccountService.DefaultRelayUrl = url;
-        await SaveAndRefresh(); // lädt ein eingerichtetes Backup auf den neuen Server
-    }
-
-    async Task SaveAndRefresh()
-    {
-        var backupOk = await _account.SaveAsync();
-        Refresh();
-        if (!backupOk)
-            await DisplayAlertAsync("Backup nicht aktualisiert", "Der Server ist nicht erreichbar. Das Backup wird beim nächsten Speichern aktualisiert.", "OK");
+        var bubble = await account.CreateBubbleAsync(name, Labels.LifetimeAt(index));
+        await Shell.Current.GoToAsync($"{nameof(InvitePage)}?id={Uri.EscapeDataString(bubble.MailboxId)}");
     }
 }

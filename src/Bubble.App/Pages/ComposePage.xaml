@@ -2,23 +2,22 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Bubble.App.Pages.ComposePage"
+             Shell.TabBarIsVisible="False"
              Title="Highlight teilen">
     <Grid Style="{StaticResource Column}" RowDefinitions="*,Auto" Padding="16,8,16,16">
         <ScrollView>
-            <VerticalStackLayout Spacing="12" Padding="0,0,0,12">
+            <VerticalStackLayout Spacing="14" Padding="0,0,0,12">
                 <Label Text="Wie war dein Tag?" Style="{StaticResource TitleText}" />
 
                 <!-- Auswahl Top/Flop: Sonne oder Regenwolke, kein Wertungs-Rot/Grün -->
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                    <Border x:Name="TopChoice" StrokeShape="RoundRectangle 20" Padding="16,14" MinimumHeightRequest="56"
-                            SemanticProperties.Description="Top">
+                    <Border x:Name="TopChoice" StrokeShape="RoundRectangle 20" Padding="16,14" MinimumHeightRequest="60" SemanticProperties.Description="Top">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnTop" />
                         </Border.GestureRecognizers>
                         <Label x:Name="TopText" Text="👍 Top" FontFamily="BodySemibold" HorizontalTextAlignment="Center" VerticalOptions="Center" />
                     </Border>
-                    <Border x:Name="FlopChoice" Grid.Column="1" StrokeShape="RoundRectangle 20" Padding="16,14" MinimumHeightRequest="56"
-                            SemanticProperties.Description="Flop">
+                    <Border x:Name="FlopChoice" Grid.Column="1" StrokeShape="RoundRectangle 20" Padding="16,14" MinimumHeightRequest="60" SemanticProperties.Description="Flop">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnFlop" />
                         </Border.GestureRecognizers>
@@ -26,32 +25,34 @@
                     </Border>
                 </Grid>
 
-                <Border Style="{StaticResource Field}" Padding="8,4">
+                <Border Style="{StaticResource Field}" Padding="12,6">
                     <Editor x:Name="TextEditor" Placeholder="Was war heute besonders?" AutoSize="TextChanges" MaxLength="1000"
                             MinimumHeightRequest="120" SemanticProperties.Description="Dein Highlight" />
                 </Border>
 
                 <Border x:Name="PreviewFrame" Style="{StaticResource Photo}" IsVisible="False">
-                    <Image x:Name="Preview" Aspect="AspectFit" MaximumHeightRequest="360"
-                           SemanticProperties.Description="Gewähltes Foto" />
+                    <Image x:Name="Preview" Aspect="AspectFill" HeightRequest="320" SemanticProperties.Description="Gewähltes Foto" />
                 </Border>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                    <Button x:Name="PhotoButton" Text="Foto wählen" Clicked="OnPickPhoto" Style="{StaticResource SecondaryButton}" />
-                    <Button x:Name="RemovePhotoButton" Grid.Column="1" Text="Entfernen" Clicked="OnRemovePhoto" IsVisible="False"
-                            Style="{StaticResource GhostButton}" />
+                    <Button x:Name="PhotoButton" Text="Foto hinzufügen" ImageSource="ic_camera.png" Clicked="OnPickPhoto" Style="{StaticResource SecondaryButton}" />
+                    <Button x:Name="RemovePhotoButton" Grid.Column="1" Text="Entfernen" Clicked="OnRemovePhoto" IsVisible="False" Style="{StaticResource GhostButton}" />
                 </Grid>
                 <Label Text="Standort- und Kameradaten werden entfernt." Style="{StaticResource CaptionText}" />
 
-                <Border Style="{StaticResource InfoBar}" Padding="14,12" Margin="0,8,0,0">
+                <!-- Bubble wählen -->
+                <Label Text="Teilen in" Style="{StaticResource SectionText}" Margin="0,8,0,0" />
+                <FlexLayout x:Name="BubbleChips" Wrap="Wrap" JustifyContent="Start" />
+
+                <Border Style="{StaticResource InfoBar}">
                     <Label x:Name="LifetimeLabel" Style="{StaticResource SmallText}" />
                 </Border>
             </VerticalStackLayout>
         </ScrollView>
 
         <Grid Grid.Row="1">
-            <Button x:Name="ShareButton" Text="Teilen" Clicked="OnShare" Style="{StaticResource PrimaryButton}" />
+            <Button x:Name="ShareButton" Text="Teilen" Clicked="OnShare" />
             <ActivityIndicator x:Name="Busy" IsRunning="False" IsVisible="{Binding IsRunning, Source={x:Reference Busy}}"
-                               Color="{StaticResource OnPrimary}" HorizontalOptions="End" Margin="0,0,20,0" HeightRequest="24" WidthRequest="24" />
+                               Color="White" HorizontalOptions="End" Margin="0,0,20,0" HeightRequest="24" WidthRequest="24" />
         </Grid>
     </Grid>
 </ContentPage>

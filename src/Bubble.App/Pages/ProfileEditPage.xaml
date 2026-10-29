@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Bubble.App.Controls"
+             x:Class="Bubble.App.Pages.ProfileEditPage"
+             Shell.TabBarIsVisible="False"
+             Title="Profil bearbeiten">
+    <ScrollView>
+        <VerticalStackLayout Style="{StaticResource Column}" Padding="20,8,20,32" Spacing="14">
+            <Grid HorizontalOptions="Center" Margin="0,8">
+                <controls:AvatarView x:Name="AvatarPreview" Size="132" Ring="New" ShowPlus="True" />
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnPickAvatar" />
+                </Grid.GestureRecognizers>
+                <SemanticProperties.Description>Profilbild ändern</SemanticProperties.Description>
+            </Grid>
+            <Label Text="Name" Style="{StaticResource SectionText}" />
+            <Border Style="{StaticResource Field}">
+                <Entry x:Name="NameEntry" MaxLength="40" TextChanged="OnNameChanged" SemanticProperties.Description="Dein Name" />
+            </Border>
+            <Label Text="Über dich" Style="{StaticResource SectionText}" Margin="0,6,0,0" />
+            <Border Style="{StaticResource Field}">
+                <Entry x:Name="BioEntry" Placeholder="z. B. Kaffee zuerst, dann reden" MaxLength="80" SemanticProperties.Description="Über dich" />
+            </Border>
+            <Label Style="{StaticResource CaptionText}" Text="Änderungen gehen verschlüsselt an alle deine Bubbles." />
+            <Button x:Name="SaveButton" Text="Speichern" Clicked="OnSave" Margin="0,12,0,0" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Vollbild-Stories einer Bubble: tippen rechts = weiter, links = zurück -->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Bubble.App.Controls"
+             x:Class="Bubble.App.Pages.StoryPage"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             Shell.PresentationMode="ModalAnimated"
+             BackgroundColor="Black">
+    <Grid MaximumWidthRequest="560">
+        <!-- Inhalt -->
+        <Grid x:Name="TextStage" IsVisible="False">
+            <Label x:Name="StoryText" FontFamily="BodyBold" FontSize="32" LineHeight="1.15" TextColor="White"
+                   HorizontalTextAlignment="Center" VerticalOptions="Center" Margin="32,0" />
+        </Grid>
+        <Image x:Name="StoryImage" Aspect="AspectFit" IsVisible="False" />
+
+        <!-- Lesbarkeit oben und unten -->
+        <BoxView HeightRequest="160" VerticalOptions="Start" InputTransparent="True">
+            <BoxView.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#B3000000" Offset="0" />
+                    <GradientStop Color="#00000000" Offset="1" />
+                </LinearGradientBrush>
+            </BoxView.Background>
+        </BoxView>
+        <BoxView x:Name="BottomShade" HeightRequest="220" VerticalOptions="End" InputTransparent="True" Background="{StaticResource PhotoShade}" />
+
+        <!-- Tippzonen -->
+        <Grid ColumnDefinitions="*,2*">
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnPrevious" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <BoxView Grid.Column="1" Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnNext" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+        </Grid>
+
+        <!-- Kopf: Fortschritt, Absender, Schließen -->
+        <VerticalStackLayout VerticalOptions="Start" Padding="12,12,12,0" Spacing="12">
+            <Grid x:Name="Progress" ColumnSpacing="4" HeightRequest="3" InputTransparent="True" />
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <controls:AvatarView x:Name="AuthorAvatar" Size="38" />
+                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" InputTransparent="True">
+                    <Label x:Name="AuthorLabel" FontFamily="BodySemibold" FontSize="15" TextColor="White" />
+                    <Label x:Name="MetaLabel" FontSize="12" TextColor="#D9FFFFFF" />
+                </VerticalStackLayout>
+                <ImageButton Grid.Column="2" Source="ic_close.png" Style="{StaticResource IconButton}" BackgroundColor="#33FFFFFF"
+                             Clicked="OnClose" SemanticProperties.Description="Schließen" />
+            </Grid>
+        </VerticalStackLayout>
+
+        <!-- Fuß: Stimmung und Bildunterschrift -->
+        <VerticalStackLayout VerticalOptions="End" Padding="20,0,20,40" Spacing="10" InputTransparent="True">
+            <Border x:Name="MoodChip" Style="{StaticResource GlassPill}">
+                <Label x:Name="MoodLabel" Style="{StaticResource PillText}" TextColor="White" />
+            </Border>
+            <Label x:Name="Caption" FontSize="17" TextColor="White" LineHeight="1.3" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

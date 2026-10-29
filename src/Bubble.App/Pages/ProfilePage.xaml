@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Bubble.App.Controls"
+             x:Class="Bubble.App.Pages.ProfilePage"
+             Shell.NavBarIsVisible="False"
+             Title="Profil">
+    <ScrollView>
+        <VerticalStackLayout Style="{StaticResource Column}" Padding="20,24,20,32" Spacing="14">
+            <controls:AvatarView x:Name="Avatar" Size="132" Ring="New" HorizontalOptions="Center" />
+            <Label x:Name="NameLabel" Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
+            <Label x:Name="BioLabel" Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
+            <Label x:Name="StatsLabel" Style="{StaticResource CaptionText}" HorizontalTextAlignment="Center" />
+            <Button Text="Profil bearbeiten" ImageSource="ic_edit.png" Clicked="OnEdit" Style="{StaticResource SecondaryButton}" HorizontalOptions="Center" Margin="0,4,0,12" />
+
+            <Label Text="Konto" Style="{StaticResource SectionText}" />
+            <Border Style="{StaticResource Card}" Padding="4">
+                <VerticalStackLayout>
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Padding="14,14">
+                        <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnBackup" /></Grid.GestureRecognizers>
+                        <Image Source="ic_shield.png" WidthRequest="22" HeightRequest="22" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="Backup und neues Gerät" Style="{StaticResource HeadingText}" FontSize="16" />
+                            <Label x:Name="BackupLabel" Style="{StaticResource CaptionText}" />
+                        </VerticalStackLayout>
+                        <Image Grid.Column="2" Source="ic_chevron.png" WidthRequest="18" HeightRequest="18" Opacity="0.6" />
+                    </Grid>
+                    <BoxView Style="{StaticResource Divider}" Margin="14,0" />
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Padding="14,14">
+                        <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnServer" /></Grid.GestureRecognizers>
+                        <Image Source="ic_server.png" WidthRequest="22" HeightRequest="22" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="Server" Style="{StaticResource HeadingText}" FontSize="16" />
+                            <Label x:Name="ServerLabel" Style="{StaticResource CaptionText}" />
+                        </VerticalStackLayout>
+                        <Image Grid.Column="2" Source="ic_chevron.png" WidthRequest="18" HeightRequest="18" Opacity="0.6" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Style="{StaticResource CaptionText}" Margin="4,12,4,0" HorizontalTextAlignment="Center"
+                   Text="Bubble speichert nur verschlüsselte Daten. Dein Schlüssel liegt auf diesem Gerät – kein Konto, keine Telefonnummer." />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

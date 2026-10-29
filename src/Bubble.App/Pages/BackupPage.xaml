@@ -2,22 +2,23 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Bubble.App.Pages.BackupPage"
+             Shell.TabBarIsVisible="False"
              Title="Backup">
     <ScrollView>
-        <VerticalStackLayout Style="{StaticResource Column}" Padding="16,16,16,32" Spacing="12">
+        <VerticalStackLayout Style="{StaticResource Column}" Padding="20,8,20,32" Spacing="14">
             <Label Text="Auf einem neuen Gerät weitermachen" Style="{StaticResource TitleText}" />
             <Label Style="{StaticResource SoftText}"
                    Text="Deine Schlüssel liegen nur auf diesem Gerät. Mit einem Backup-Code holst du sie auf ein neues Gerät. Der Server speichert das Backup nur verschlüsselt und kann es ohne deinen Code nicht öffnen." />
 
-            <Border Style="{StaticResource InfoBar}" Padding="14,12">
+            <Border Style="{StaticResource InfoBar}">
                 <Label x:Name="StatusLabel" Style="{StaticResource SmallText}" />
             </Border>
 
             <Border x:Name="CodeBox" IsVisible="False" Style="{StaticResource SecretBox}" Margin="0,8,0,0">
-                <VerticalStackLayout Spacing="12">
-                    <Label Text="Dein Backup-Code" Style="{StaticResource HeadingText}" />
-                    <Label x:Name="CodeLabel" Style="{StaticResource CodeText}" LineBreakMode="WordWrap" />
-                    <Button Text="Kopieren" Clicked="OnCopy" Style="{StaticResource SecondaryButton}" />
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="Dein Backup-Code" Style="{StaticResource SectionText}" HorizontalTextAlignment="Center" />
+                    <Label x:Name="CodeLabel" Style="{StaticResource CodeText}" FontSize="20" LineBreakMode="WordWrap" />
+                    <Button Text="Code kopieren" ImageSource="ic_copy.png" Clicked="OnCopy" Style="{StaticResource SecondaryButton}" />
                     <Label Style="{StaticResource SmallText}"
                            Text="Speichere den Code jetzt in deinem Passwortmanager, z. B. Bitwarden, 1Password, Apple Passwörter oder Google Passwortmanager. Er wird nur dieses eine Mal angezeigt. Ohne ihn kann niemand dein Backup öffnen, auch du nicht." />
                 </VerticalStackLayout>

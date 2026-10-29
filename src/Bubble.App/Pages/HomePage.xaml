@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Bubble.App.Controls"
+             xmlns:pages="clr-namespace:Bubble.App.Pages"
+             x:Class="Bubble.App.Pages.HomePage"
+             x:DataType="pages:HomePage"
+             Shell.NavBarIsVisible="False"
+             Title="Heute">
+    <RefreshView x:Name="Refresher" Refreshing="OnRefreshing">
+        <CollectionView x:Name="Feed" SelectionMode="None" MaximumWidthRequest="600">
+            <CollectionView.Header>
+                <VerticalStackLayout Spacing="4" Padding="0,12,0,8">
+                    <!-- Kopfzeile -->
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="16,4">
+                        <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                            <Label Text="bubble" Style="{StaticResource Wordmark}" />
+                            <Ellipse WidthRequest="9" HeightRequest="9" Fill="{StaticResource BubbleGradient}" VerticalOptions="End" Margin="0,0,0,9" />
+                        </HorizontalStackLayout>
+                        <ImageButton Grid.Column="1" Source="ic_scan.png" Style="{StaticResource IconButton}" Clicked="OnJoin"
+                                     SemanticProperties.Description="Bubble beitreten" ToolTipProperties.Text="Bubble beitreten" />
+                        <ImageButton Grid.Column="2" Source="ic_plus.png" Style="{StaticResource IconButton}" Clicked="OnCompose"
+                                     Background="{StaticResource CtaGradient}"
+                                     SemanticProperties.Description="Highlight teilen" ToolTipProperties.Text="Highlight teilen" />
+                    </Grid>
+
+                    <!-- Stories -->
+                    <CollectionView x:Name="Stories" SelectionMode="None" HeightRequest="112" Margin="0,8,0,0"
+                                    HorizontalScrollBarVisibility="Never">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="14" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.Header>
+                            <BoxView WidthRequest="2" Color="Transparent" />
+                        </CollectionView.Header>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="pages:StoryRing">
+                                <VerticalStackLayout Spacing="6" WidthRequest="76" SemanticProperties.Description="{Binding Description}">
+                                    <VerticalStackLayout.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnStoryTapped" CommandParameter="{Binding .}" />
+                                    </VerticalStackLayout.GestureRecognizers>
+                                    <controls:AvatarView Size="74" Image="{Binding Image}" Name="{Binding Name}" Ring="{Binding Ring}" ShowPlus="{Binding ShowPlus}" />
+                                    <Label Text="{Binding Title}" FontSize="12" FontFamily="BodyMedium" HorizontalTextAlignment="Center"
+                                           LineBreakMode="TailTruncation" TextColor="{Binding TitleColor}" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Border x:Name="OfflineBar" Style="{StaticResource InfoBar}" Margin="16,8,16,0" IsVisible="False">
+                        <Label x:Name="OfflineLabel" Style="{StaticResource SmallText}" />
+                    </Border>
+
+                    <Label x:Name="FeedTitle" Text="Highlights" Style="{StaticResource TitleText}" Margin="16,16,16,4" />
+                </VerticalStackLayout>
+            </CollectionView.Header>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="pages:PostItem">
+                    <controls:PostCard Margin="12,0">
+                        <controls:PostCard.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnPostTapped" CommandParameter="{Binding .}" />
+                        </controls:PostCard.GestureRecognizers>
+                    </controls:PostCard>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+            <CollectionView.EmptyView>
+                <VerticalStackLayout x:Name="EmptyState" Padding="24,32" Spacing="12">
+                    <Grid HeightRequest="150" WidthRequest="200" HorizontalOptions="Center">
+                        <Ellipse WidthRequest="120" HeightRequest="120" Fill="{StaticResource BubbleGradient}" Opacity="0.85" HorizontalOptions="Start" VerticalOptions="End" />
+                        <Ellipse WidthRequest="70" HeightRequest="70" Fill="{StaticResource CtaGradient}" HorizontalOptions="End" VerticalOptions="Start" Margin="0,4,18,0" />
+                        <Ellipse WidthRequest="26" HeightRequest="26" Fill="{StaticResource BubbleGradient}" Opacity="0.7" HorizontalOptions="End" VerticalOptions="End" Margin="0,0,46,18" />
+                    </Grid>
+                    <Label x:Name="EmptyTitle" Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
+                    <Label x:Name="EmptyText" Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
+                    <Button x:Name="EmptyAction" Clicked="OnEmptyAction" Margin="0,12,0,0" />
+                    <Button x:Name="EmptySecondary" Text="Einladungscode eingeben" Clicked="OnJoin" Style="{StaticResource GhostButton}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.Footer>
+                <BoxView HeightRequest="24" Color="Transparent" />
+            </CollectionView.Footer>
+        </CollectionView>
+    </RefreshView>
+</ContentPage>
