@@ -8,35 +8,52 @@
         <ToolbarItem Text="Einladen" Clicked="OnInvite" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="Auto,*,Auto" Padding="16,8">
-        <Border Padding="12,8" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Secondary}" StrokeThickness="0">
+    <Grid Style="{StaticResource Column}" RowDefinitions="Auto,*,Auto" Padding="16,8,16,16">
+        <Border Style="{StaticResource InfoBar}">
             <Grid ColumnDefinitions="*,Auto">
-                <Label x:Name="LifetimeLabel" VerticalOptions="Center" TextColor="{StaticResource Tertiary}" />
-                <Button Grid.Column="1" Text="Ändern" Clicked="OnChangeLifetime" Padding="12,4" FontSize="13" />
+                <Label x:Name="LifetimeLabel" Style="{StaticResource SmallText}" VerticalOptions="Center" />
+                <Button Grid.Column="1" Text="Ändern" Clicked="OnChangeLifetime" Style="{StaticResource GhostButton}"
+                        SemanticProperties.Hint="Lebensdauer für neue Posts ändern" />
             </Grid>
         </Border>
 
-        <RefreshView Grid.Row="1" x:Name="Refresher" Refreshing="OnRefreshing" Margin="0,8">
-            <CollectionView x:Name="Posts">
+        <RefreshView Grid.Row="1" x:Name="Refresher" Refreshing="OnRefreshing" Margin="0,12">
+            <CollectionView x:Name="Posts" SelectionMode="None">
                 <CollectionView.EmptyView>
-                    <Label Text="Heute noch keine Highlights. Mach den Anfang!" HorizontalTextAlignment="Center" Margin="24" />
+                    <VerticalStackLayout Padding="8,48" Spacing="8" VerticalOptions="Center">
+                        <Label Text="Heute noch kein Highlight." Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
+                        <Label Text="Wie war dein Tag? Mach gern den Anfang." Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="pages:PostItem">
-                        <Border Padding="14" StrokeShape="RoundRectangle 16" Stroke="{StaticResource Gray200}">
-                            <VerticalStackLayout Spacing="8">
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <Label Text="{Binding Author}" FontAttributes="Bold" />
-                                    <Label Grid.Column="1" Text="{Binding Mood}" />
+                        <Border Style="{StaticResource Card}">
+                            <VerticalStackLayout Spacing="12">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <Label Text="{Binding Author}" Style="{StaticResource HeadingText}" VerticalOptions="Center" />
+                                    <Border Grid.Column="1" Style="{StaticResource ChipTop}" IsVisible="{Binding IsTop}">
+                                        <Label Text="{Binding Mood}" Style="{StaticResource ChipTopText}" />
+                                    </Border>
+                                    <Border Grid.Column="1" Style="{StaticResource ChipFlop}" IsVisible="{Binding IsFlop}">
+                                        <Label Text="{Binding Mood}" Style="{StaticResource ChipFlopText}" />
+                                    </Border>
                                 </Grid>
-                                <Image Source="{Binding Image}" IsVisible="{Binding HasImage}" Aspect="AspectFit" MaximumHeightRequest="420" />
-                                <Label Text="{Binding Text}" IsVisible="{Binding HasText}" FontSize="16" />
+                                <Border Style="{StaticResource Photo}" IsVisible="{Binding HasImage}">
+                                    <Image Source="{Binding Image}" Aspect="AspectFit" MaximumHeightRequest="480"
+                                           SemanticProperties.Description="{Binding ImageDescription}" />
+                                </Border>
+                                <Label Text="{Binding Text}" IsVisible="{Binding HasText}" />
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <Label Text="{Binding Time}" FontSize="12" TextColor="{StaticResource Gray500}" />
-                                    <Label Grid.Column="1" Text="{Binding Remaining}" FontSize="12" TextColor="{StaticResource Gray500}" />
+                                    <Label Text="{Binding Time}" Style="{StaticResource CaptionText}" VerticalOptions="Center" />
+                                    <Border Grid.Column="1" Style="{StaticResource BadgeStory}" IsVisible="{Binding IsStory}">
+                                        <Label Text="{Binding Remaining}" Style="{StaticResource BadgeStoryText}" />
+                                    </Border>
+                                    <Border Grid.Column="1" Style="{StaticResource BadgePersistent}" IsVisible="{Binding IsPersistent}">
+                                        <Label Text="{Binding Remaining}" Style="{StaticResource BadgePersistentText}" />
+                                    </Border>
                                 </Grid>
                             </VerticalStackLayout>
                         </Border>
@@ -45,6 +62,6 @@
             </CollectionView>
         </RefreshView>
 
-        <Button Grid.Row="2" x:Name="ComposeButton" Text="✨ Mein Highlight teilen" Clicked="OnCompose" />
+        <Button Grid.Row="2" x:Name="ComposeButton" Text="Mein Highlight teilen" Clicked="OnCompose" Style="{StaticResource PrimaryButton}" />
     </Grid>
 </ContentPage>

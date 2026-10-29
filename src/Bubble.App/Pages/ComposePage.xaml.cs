@@ -30,14 +30,26 @@ public partial class ComposePage : ContentPage
             : $"📌 Dieser Post bleibt dauerhaft in „{_bubble.Name}“.";
     }
 
-    void OnTop(object? sender, EventArgs e) { _mood = Mood.Top; ShowMood(); }
+    void OnTop(object? sender, TappedEventArgs e) { _mood = Mood.Top; ShowMood(); }
 
-    void OnFlop(object? sender, EventArgs e) { _mood = Mood.Flop; ShowMood(); }
+    void OnFlop(object? sender, TappedEventArgs e) { _mood = Mood.Flop; ShowMood(); }
 
     void ShowMood()
     {
-        TopButton.Opacity = _mood == Mood.Top ? 1 : 0.4;
-        FlopButton.Opacity = _mood == Mood.Flop ? 1 : 0.4;
+        ShowChoice(TopChoice, TopText, _mood == Mood.Top, "Top", "OnTop");
+        ShowChoice(FlopChoice, FlopText, _mood == Mood.Flop, "Flop", "OnFlop");
+    }
+
+    // Gewählt: Stimmungsfarbe mit Rahmen. Nicht gewählt: ruhige Karte.
+    static void ShowChoice(Border choice, Label text, bool selected, string fill, string ink)
+    {
+        var dark = Application.Current?.RequestedTheme == AppTheme.Dark;
+        Color Res(string key) => Application.Current!.Resources.TryGetValue(dark && !selected ? key + "Dark" : key, out var c) ? (Color)c : Colors.Transparent;
+        choice.BackgroundColor = Res(selected ? fill : "Surface");
+        choice.Stroke = Res(selected ? ink : "Hairline");
+        choice.StrokeThickness = selected ? 2 : 1;
+        text.TextColor = Res(selected ? ink : "InkSoft");
+        SemanticProperties.SetHint(choice, selected ? "ausgewählt" : "");
     }
 
     async void OnPickPhoto(object? sender, EventArgs e)
@@ -50,7 +62,7 @@ public partial class ComposePage : ContentPage
             _image = await ImageSanitizer.SanitizeAsync(stream);
             var bytes = _image;
             Preview.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
-            Preview.IsVisible = RemovePhotoButton.IsVisible = true;
+            PreviewFrame.IsVisible = RemovePhotoButton.IsVisible = true;
         }
         catch (InvalidDataException)
         {
@@ -62,7 +74,7 @@ public partial class ComposePage : ContentPage
     {
         _image = null;
         Preview.Source = null;
-        Preview.IsVisible = RemovePhotoButton.IsVisible = false;
+        PreviewFrame.IsVisible = RemovePhotoButton.IsVisible = false;
     }
 
     async void OnShare(object? sender, EventArgs e)

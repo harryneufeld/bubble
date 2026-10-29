@@ -7,11 +7,16 @@ public sealed class PostItem(FeedPost post)
 {
     public string Author { get; } = post.IsMine ? $"{post.Message.AuthorName} (du)" : post.Message.AuthorName;
     public string Mood { get; } = Labels.Mood(post.Message.Mood);
+    public bool IsTop { get; } = post.Message.Mood == Core.Mood.Top;
+    public bool IsFlop { get; } = post.Message.Mood == Core.Mood.Flop;
     public string Time { get; } = Labels.Time(post.Message.CreatedAt);
     public string Remaining { get; } = Labels.Remaining(post.Message);
+    public bool IsStory { get; } = post.Message.ExpiresAt is not null;
+    public bool IsPersistent => !IsStory;
     public string? Text { get; } = post.Message.Text;
     public bool HasText => Text is not null;
     public bool HasImage { get; } = post.Message.Image is not null;
+    public string ImageDescription => $"Foto von {post.Message.AuthorName}";
     public ImageSource? Image { get; } = post.Message.Image is { } bytes ? ImageSource.FromStream(() => new MemoryStream(bytes)) : null;
 }
 
@@ -57,7 +62,7 @@ public partial class FeedPage : ContentPage
             Posts.ItemsSource = feed.Select(p => new PostItem(p)).ToList();
             var postedToday = client.HasPostedToday(feed);
             ComposeButton.IsEnabled = !postedToday;
-            ComposeButton.Text = postedToday ? "✅ Heute schon geteilt" : "✨ Mein Highlight teilen";
+            ComposeButton.Text = postedToday ? "✅ Heute schon geteilt" : "Mein Highlight teilen";
         }
         catch (HttpRequestException ex)
         {

@@ -242,7 +242,7 @@ Die Story-Leinwand hat immer das Format **9:16** und wird skaliert, nie beschnit
 | `story`/`persistent` (+ `on-*`) | `Story`, `OnStory`, `Persistent`, `OnPersistent` |
 
 - Farben laufen über `AppThemeBinding` (hell/dunkel), Komponenten über benannte Styles in `Styles.xaml` (`PrimaryButton`, `SecondaryButton`, `Card`, `ChipTop`, `BadgeStory` …).
-- Schriften: `Fraunces-Variable.ttf` und `Inter-Variable.ttf` in `Resources/Fonts`. Bis sie eingebunden sind, ist OpenSans der Ersatz.
+- Schriften: statische TTFs in `Resources/Fonts` (`Fraunces-Regular.ttf` aus Fraunces 72pt, `Inter-Regular/Medium/SemiBold.ttf`), Aliase `Display`, `Body`, `BodyMedium`, `BodySemibold`. MAUI kann keine Achsen variabler Schriften ansteuern, daher statische Schnitte. Lizenzen: `docs/licenses`.
 
 ## 12. Prompt-Hilfe für KI-Agenten
 

@@ -6,36 +6,49 @@
              x:DataType="pages:BubblesPage"
              Title="Meine Bubbles">
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Beitreten" Clicked="OnJoin" />
         <ToolbarItem Text="Backup" Clicked="OnBackup" />
         <ToolbarItem Text="Server" Clicked="OnServer" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="*,Auto" Padding="16">
-        <CollectionView x:Name="List" SelectionMode="Single" SelectionChanged="OnSelected">
+    <Grid Style="{StaticResource Column}" RowDefinitions="*,Auto" Padding="16,8,16,16">
+        <CollectionView x:Name="List" SelectionMode="None">
             <CollectionView.EmptyView>
-                <VerticalStackLayout Padding="24" Spacing="8" VerticalOptions="Center">
-                    <Label Text="Noch keine Bubble" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                    <Label Text="Gründe eine Bubble und lade deine Leute ein, oder tritt über einen Einladungslink bei."
-                           HorizontalTextAlignment="Center" />
+                <VerticalStackLayout Padding="8,48" Spacing="8" VerticalOptions="Center">
+                    <Label Text="Noch ganz still hier." Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
+                    <Label Style="{StaticResource SoftText}" HorizontalTextAlignment="Center"
+                           Text="Gründe eine Bubble und lade deine Leute ein, oder tritt über einen Einladungslink bei." />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemsLayout>
-                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
             </CollectionView.ItemsLayout>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="pages:BubbleItem">
-                    <Border Padding="16" StrokeShape="RoundRectangle 16" Stroke="{StaticResource Gray200}">
-                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                            <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" VerticalOptions="Center" />
-                            <Label Grid.Column="1" Text="{Binding Lifetime}" FontSize="13" VerticalOptions="Center" />
-                            <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Server}" FontSize="12" TextColor="{StaticResource Gray500}" />
-                        </Grid>
+                    <Border Style="{StaticResource Card}" Padding="16,14"
+                            SemanticProperties.Description="{Binding Name}" SemanticProperties.Hint="Öffnet die Bubble">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnTapped" CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="{Binding Name}" Style="{StaticResource TitleText}" />
+                            <HorizontalStackLayout Spacing="10">
+                                <Border Style="{StaticResource BadgeStory}" IsVisible="{Binding IsStory}">
+                                    <Label Text="{Binding Lifetime}" Style="{StaticResource BadgeStoryText}" />
+                                </Border>
+                                <Border Style="{StaticResource BadgePersistent}" IsVisible="{Binding IsPersistent}">
+                                    <Label Text="{Binding Lifetime}" Style="{StaticResource BadgePersistentText}" />
+                                </Border>
+                                <Label Text="{Binding Server}" Style="{StaticResource CaptionText}" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <Button Grid.Row="1" Text="+ Neue Bubble" Clicked="OnCreate" Margin="0,12,0,0" />
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="0,12,0,0">
+            <Button Text="Beitreten" Clicked="OnJoin" Style="{StaticResource SecondaryButton}" />
+            <Button Grid.Column="1" Text="Neue Bubble" Clicked="OnCreate" Style="{StaticResource PrimaryButton}" />
+        </Grid>
     </Grid>
 </ContentPage>

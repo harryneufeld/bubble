@@ -13,9 +13,16 @@ public static class MauiProgram
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
 			{
-				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+				// Laut DESIGN.md: Display = Fraunces, Body = Inter (beide SIL OFL, Lizenzen in docs/licenses)
+				fonts.AddFont("Inter-Regular.ttf", "Body");
+				fonts.AddFont("Inter-Medium.ttf", "BodyMedium");
+				fonts.AddFont("Inter-SemiBold.ttf", "BodySemibold");
+				fonts.AddFont("Fraunces-Regular.ttf", "Display");
 			});
+
+		// Entry/Editor sitzen in einem eigenen Rahmen (Style „Field“), daher ohne native Linie/Rahmen
+		Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("NoChrome", (handler, _) => RemoveChrome(handler.PlatformView));
+		Microsoft.Maui.Handlers.EditorHandler.Mapper.AppendToMapping("NoChrome", (handler, _) => RemoveChrome(handler.PlatformView));
 
 		builder.Services.AddSingleton<AccountService>();
 		builder.Services.AddTransient<OnboardingPage>();
@@ -29,5 +36,25 @@ public static class MauiProgram
 #endif
 
 		return builder.Build();
+	}
+
+	static void RemoveChrome(object view)
+	{
+#if ANDROID
+		if (view is Android.Widget.EditText edit)
+			edit.BackgroundTintList = Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+#elif IOS || MACCATALYST
+		if (view is UIKit.UITextField field)
+			field.BorderStyle = UIKit.UITextBorderStyle.None;
+#elif WINDOWS
+		if (view is Microsoft.UI.Xaml.Controls.TextBox box)
+		{
+			var clear = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+			box.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
+			box.Resources["TextControlBorderThemeThicknessFocused"] = new Microsoft.UI.Xaml.Thickness(0);
+			box.Resources["TextControlBackgroundPointerOver"] = clear;
+			box.Resources["TextControlBackgroundFocused"] = clear;
+		}
+#endif
 	}
 }

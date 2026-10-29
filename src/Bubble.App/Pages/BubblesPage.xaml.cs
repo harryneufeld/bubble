@@ -3,7 +3,12 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-public sealed record BubbleItem(string MailboxId, string Name, string Lifetime, string Server);
+public sealed record BubbleItem(string MailboxId, string Name, PostLifetime Kind, string Server)
+{
+    public string Lifetime => Labels.Lifetime(Kind);
+    public bool IsStory => Kind == PostLifetime.Story24h;
+    public bool IsPersistent => !IsStory;
+}
 
 public partial class BubblesPage : ContentPage
 {
@@ -27,13 +32,12 @@ public partial class BubblesPage : ContentPage
     }
 
     void Refresh() => List.ItemsSource = _account.Vault!.Bubbles
-        .Select(b => new BubbleItem(b.MailboxId, b.Name, Labels.Lifetime(b.Lifetime), new Uri(b.RelayUrl).Authority))
+        .Select(b => new BubbleItem(b.MailboxId, b.Name, b.Lifetime, new Uri(b.RelayUrl).Authority))
         .ToList();
 
-    async void OnSelected(object? sender, SelectionChangedEventArgs e)
+    async void OnTapped(object? sender, TappedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is not BubbleItem item) return;
-        List.SelectedItem = null;
+        if (e.Parameter is not BubbleItem item) return;
         await Shell.Current.GoToAsync($"{nameof(FeedPage)}?id={Uri.EscapeDataString(item.MailboxId)}");
     }
 
