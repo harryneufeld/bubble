@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace Bubble.App.Controls;
@@ -8,6 +9,8 @@ public enum AvatarRing { None, New, Seen }
 /// <summary>
 /// Rundes Profilbild. Ohne Bild zeigt es die Initialen auf einem Verlauf, der sich aus dem
 /// Namen ergibt – so sieht jede Person immer gleich aus. Optional mit Story-Ring und Plus-Badge.
+/// Die Ansicht wird einmal aufgebaut und danach nur noch aktualisiert: In Listen wird sie beim Scrollen
+/// ständig neu gebunden, und jedes Neuaufbauen der Unterelemente kostet dort sichtbar Leistung.
 /// </summary>
 public sealed class AvatarView : ContentView
 {
@@ -24,93 +27,96 @@ public sealed class AvatarView : ContentView
     public bool ShowPlus { get => (bool)GetValue(ShowPlusProperty); set => SetValue(ShowPlusProperty, value); }
 
     static BindableProperty Create(string name, Type type, object? defaultValue = null) =>
-        BindableProperty.Create(name, type, typeof(AvatarView), defaultValue, propertyChanged: (b, _, _) => ((AvatarView)b).Invalidate());
+        BindableProperty.Create(name, type, typeof(AvatarView), defaultValue, propertyChanged: (b, _, _) => ((AvatarView)b).Update());
 
-    // Verläufe für Initialen – alle mit weißem Text >= 4,5:1
-    static readonly (string, string)[] Palettes =
-    [
+    /// <summary>Das kleine Plus am Avatar wurde angetippt („Du“ in der Story-Leiste: Highlight teilen).</summary>
+    public event EventHandler? PlusTapped;
+
+    // Verläufe für Initialen – alle mit weißem Text >= 4,5:1. Einmal angelegt und von allen Avataren geteilt.
+    static readonly Brush[] InitialBrushes = new[]
+    {
         ("#C2185B", "#6D3CF5"), ("#6D3CF5", "#0E7490"), ("#B4235A", "#9A3412"),
         ("#0F766E", "#4338CA"), ("#7C2D92", "#BE185D"), ("#1D4ED8", "#6D28D9"),
-    ];
+    }.Select(p => (Brush)new LinearGradientBrush(
+        [new GradientStop(Color.FromArgb(p.Item1), 0), new GradientStop(Color.FromArgb(p.Item2), 1)],
+        new Point(0, 0), new Point(1, 1))).ToArray();
 
-    bool _dirty;
-
-    public AvatarView() => Rebuild();
-
-    /// <summary>Beim Binden werden bis zu fünf Eigenschaften nacheinander gesetzt; gebaut wird nur einmal danach.</summary>
-    void Invalidate()
-    {
-        if (_dirty) return;
-        _dirty = true;
-        (Dispatcher ?? Application.Current?.Dispatcher)?.Dispatch(() => { _dirty = false; Rebuild(); });
-    }
-
-    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], ImageSource> Sources = new();
+    static readonly Brush SeenRingBrush = new SolidColorBrush(Color.FromArgb("#3A3548"));
+    static readonly ConditionalWeakTable<byte[], ImageSource> Sources = new();
 
     static ImageSource SourceFor(byte[] bytes) =>
         Sources.GetValue(bytes, b => ImageSource.FromStream(() => new MemoryStream(b)));
 
-    void Rebuild()
+    readonly Border _ring = new() { StrokeShape = new Ellipse(), IsVisible = false, InputTransparent = true };
+    readonly Border _circle = new() { StrokeShape = new Ellipse(), StrokeThickness = 0, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+    readonly Image _photo = new() { Aspect = Aspect.AspectFill, IsVisible = false };
+    readonly Grid _initialsBackground = new();
+    readonly Label _initials = new() { TextColor = Colors.White, FontFamily = "BodyBold", HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+    readonly Border _plus = new() { StrokeShape = new Ellipse(), StrokeThickness = 3, HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End, IsVisible = false };
+    readonly Grid _root = new();
+
+    public AvatarView()
+    {
+        var resources = Application.Current!.Resources;
+        _initialsBackground.Children.Add(_initials);
+        _circle.Content = new Grid { Children = { _initialsBackground, _photo } };
+
+        _plus.Stroke = new SolidColorBrush((Color)resources["Canvas"]);
+        _plus.Background = (Brush)resources["CtaGradient"];
+        _plus.Content = new Image { Source = "ic_plus.png" };
+        _plus.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => PlusTapped?.Invoke(this, EventArgs.Empty)) });
+        SemanticProperties.SetDescription(_plus, "Highlight teilen");
+
+        _root.Children.Add(_ring);
+        _root.Children.Add(_circle);
+        _root.Children.Add(_plus);
+        Content = _root;
+        Update();
+    }
+
+    void Update()
     {
         var size = Size;
-        var ring = Ring == AvatarRing.None ? 0 : Math.Max(2, size * 0.045);
-        var gap = Ring == AvatarRing.None ? 0 : Math.Max(2, size * 0.045);
-        var inner = size - 2 * (ring + gap);
+        var hasRing = Ring != AvatarRing.None;
+        var ring = hasRing ? Math.Max(2, size * 0.045) : 0;
+        var inner = size - 2 * (ring + (hasRing ? Math.Max(2, size * 0.045) : 0));
 
-        View face;
+        _root.WidthRequest = _root.HeightRequest = size;
+
+        _ring.IsVisible = hasRing;
+        if (hasRing)
+        {
+            _ring.StrokeThickness = ring;
+            _ring.Stroke = Ring == AvatarRing.New ? (Brush)Application.Current!.Resources["BubbleGradient"] : SeenRingBrush;
+        }
+
+        _circle.WidthRequest = _circle.HeightRequest = inner;
+
         if (Image is { Length: > 0 } bytes)
         {
-            face = new Image { Source = SourceFor(bytes), Aspect = Aspect.AspectFill };
+            _photo.Source = SourceFor(bytes);
+            _photo.IsVisible = true;
+            _initialsBackground.IsVisible = false;
         }
         else
         {
-            var (from, to) = Palettes[(uint)StableHash(Name) % Palettes.Length];
-            face = new Grid
-            {
-                Background = new LinearGradientBrush([new GradientStop(Color.FromArgb(from), 0), new GradientStop(Color.FromArgb(to), 1)], new Point(0, 0), new Point(1, 1)),
-                Children =
-                {
-                    new Label
-                    {
-                        Text = Initials(Name), TextColor = Colors.White, FontFamily = "BodyBold", FontSize = inner * 0.38,
-                        HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
-                    },
-                },
-            };
+            _photo.Source = null;
+            _photo.IsVisible = false;
+            _initialsBackground.IsVisible = true;
+            _initialsBackground.Background = InitialBrushes[(uint)StableHash(Name) % InitialBrushes.Length];
+            _initials.Text = Initials(Name);
+            _initials.FontSize = inner * 0.38;
         }
 
-        var circle = new Border
-        {
-            StrokeShape = new Ellipse(), StrokeThickness = 0, WidthRequest = inner, HeightRequest = inner,
-            HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center, Content = face,
-        };
-
-        var root = new Grid { WidthRequest = size, HeightRequest = size };
-        if (Ring != AvatarRing.None)
-        {
-            root.Children.Add(new Border
-            {
-                StrokeShape = new Ellipse(), StrokeThickness = ring,
-                Stroke = Ring == AvatarRing.New ? (Brush)Application.Current!.Resources["BubbleGradient"] : new SolidColorBrush(Color.FromArgb("#3A3548")),
-            });
-        }
-        root.Children.Add(circle);
-
+        _plus.IsVisible = ShowPlus;
         if (ShowPlus)
         {
             var badge = size * 0.32;
-            root.Children.Add(new Border
-            {
-                StrokeShape = new Ellipse(), WidthRequest = badge, HeightRequest = badge,
-                Stroke = (Color)Application.Current!.Resources["Canvas"], StrokeThickness = 3,
-                Background = (Brush)Application.Current.Resources["CtaGradient"],
-                HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End,
-                Content = new Image { Source = "ic_plus.png", Margin = badge * 0.18 },
-            });
+            _plus.WidthRequest = _plus.HeightRequest = badge;
+            ((Image)_plus.Content).Margin = badge * 0.18;
         }
 
         SemanticProperties.SetDescription(this, string.IsNullOrEmpty(Name) ? "Profilbild" : $"Profilbild von {Name}");
-        Content = root;
     }
 
     public static string Initials(string? name)

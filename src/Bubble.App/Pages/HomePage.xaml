@@ -25,27 +25,22 @@
                     </Grid>
 
                     <!-- Stories -->
-                    <CollectionView x:Name="Stories" SelectionMode="None" HeightRequest="112" Margin="0,8,0,0"
-                                    HorizontalScrollBarVisibility="Never">
-                        <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="14" />
-                        </CollectionView.ItemsLayout>
-                        <CollectionView.Header>
-                            <BoxView WidthRequest="2" Color="Transparent" />
-                        </CollectionView.Header>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="pages:StoryRing">
-                                <VerticalStackLayout Spacing="6" WidthRequest="76" SemanticProperties.Description="{Binding Description}">
-                                    <VerticalStackLayout.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnStoryTapped" CommandParameter="{Binding .}" />
-                                    </VerticalStackLayout.GestureRecognizers>
-                                    <controls:AvatarView Size="74" Image="{Binding Image}" Name="{Binding Name}" Ring="{Binding Ring}" ShowPlus="{Binding ShowPlus}" />
-                                    <Label Text="{Binding Title}" FontSize="12" FontFamily="BodyMedium" HorizontalTextAlignment="Center"
-                                           LineBreakMode="TailTruncation" TextColor="{Binding TitleColor}" />
-                                </VerticalStackLayout>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
+                    <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" HeightRequest="112" Margin="0,8,0,0">
+                        <HorizontalStackLayout x:Name="StoriesRow" Spacing="14" Padding="16,0">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="pages:StoryRing">
+                                    <VerticalStackLayout Spacing="6" WidthRequest="76" SemanticProperties.Description="{Binding Description}">
+                                        <VerticalStackLayout.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnStoryTapped" CommandParameter="{Binding .}" />
+                                        </VerticalStackLayout.GestureRecognizers>
+                                        <controls:AvatarView Size="74" Image="{Binding Image}" Name="{Binding Name}" Ring="{Binding Ring}" ShowPlus="{Binding ShowPlus}" PlusTapped="OnPlusTapped" />
+                                        <Label Text="{Binding Title}" FontSize="12" FontFamily="BodyMedium" HorizontalTextAlignment="Center"
+                                               LineBreakMode="TailTruncation" TextColor="{Binding TitleColor}" />
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </HorizontalStackLayout>
+                    </ScrollView>
 
                     <Border x:Name="OfflineBar" Style="{StaticResource InfoBar}" Margin="16,8,16,0" IsVisible="False">
                         <Label x:Name="OfflineLabel" Style="{StaticResource SmallText}" />

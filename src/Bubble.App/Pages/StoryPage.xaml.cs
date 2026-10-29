@@ -16,6 +16,9 @@ public partial class StoryPage : ContentPage
     DateTime _shownAt;
     PostItem? _current;
 
+    /// <summary>Als Bubble-ID übergeben: alle meine eigenen Stories aus allen Bubbles.</summary>
+    public const string Mine = "me";
+
     public string MailboxId { get; set; } = "";
 
     public StoryPage(AccountService account, FeedService feed)
@@ -31,7 +34,10 @@ public partial class StoryPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        if (_account.FindBubble(MailboxId) is not { } bubble || _feed.StoriesOf(bubble) is not { Count: > 0 } stories)
+        var stories = MailboxId == Mine
+            ? _feed.MyStories()
+            : _account.FindBubble(MailboxId) is { } bubble ? _feed.StoriesOf(bubble) : [];
+        if (stories.Count == 0)
         {
             _ = Close();
             return;
@@ -53,7 +59,7 @@ public partial class StoryPage : ContentPage
         }
 
         // bei der ersten ungesehenen Story beginnen
-        var firstUnseen = stories.Select((s, i) => (s, i)).FirstOrDefault(x => !x.s.Post.IsMine && !_feed.IsSeen(x.s.Post.Id));
+        var firstUnseen = stories.Select((s, i) => (s, i)).FirstOrDefault(x => !_feed.IsSeen(x.s.Post.Id));
         Show(firstUnseen.s is null ? 0 : firstUnseen.i);
         _timer.Start();
     }

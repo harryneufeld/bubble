@@ -35,9 +35,14 @@ public partial class ProfilePage : ContentPage
 
     async Task OpenAsync(string url)
     {
-        try { await Browser.Default.OpenAsync(new Uri(url), BrowserLaunchMode.External); }
-        catch (Exception ex) when (ex is FeatureNotSupportedException or InvalidOperationException)
+        try
         {
+            if (!await Launcher.Default.OpenAsync(new Uri(url)))
+                await DisplayAlertAsync("Link nicht geöffnet", $"Öffne {url} bitte selbst im Browser.", "OK");
+        }
+        catch (Exception)
+        {
+            // kein Browser gefunden oder nicht erlaubt
             await DisplayAlertAsync("Link nicht geöffnet", $"Öffne {url} bitte selbst im Browser.", "OK");
         }
     }

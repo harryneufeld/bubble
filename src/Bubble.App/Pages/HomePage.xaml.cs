@@ -7,8 +7,11 @@ namespace Bubble.App.Pages;
 /// <summary>Ein Kreis in der Story-Leiste: „Du“ (teilen) oder eine Bubble mit Stories der letzten 24 h.</summary>
 public sealed record StoryRing(string Title, string Name, byte[]? Image, AvatarRing Ring, bool ShowPlus, BubbleMembership? Bubble)
 {
-    public Color TitleColor => Ring == AvatarRing.New || Bubble is null ? Colors.White : Color.FromArgb("#8F89A0");
-    public string Description => Bubble is null ? "Dein Highlight teilen" : $"Stories aus {Title}";
+    public bool IsMe => Bubble is null;
+    public Color TitleColor => Ring == AvatarRing.New || IsMe ? Colors.White : Color.FromArgb("#8F89A0");
+    public string Description => IsMe
+        ? (Ring == AvatarRing.None ? "Dein Highlight teilen" : "Deine Stories ansehen")
+        : $"Stories aus {Title}";
 }
 
 public partial class HomePage : ContentPage
@@ -60,15 +63,17 @@ public partial class HomePage : ContentPage
         var vault = _account.Vault!;
         var bubbles = vault.Bubbles;
 
-        // Stories: zuerst „Du“, dann Bubbles mit ungesehenen Stories, dann gesehene
+        // Stories: zuerst „Du“ (meine eigenen Posts der letzten 24 Stunden), dann Bubbles mit ungesehenen Stories, dann gesehene
         var rings = new List<StoryRing>();
-        rings.Add(new StoryRing("Du", vault.DisplayName, vault.Avatar, AvatarRing.None, true, null));
+        var mine = _feed.MyStories();
+        var myRing = mine.Count == 0 ? AvatarRing.None : mine.Any(s => !_feed.IsSeen(s.Post.Id)) ? AvatarRing.New : AvatarRing.Seen;
+        rings.Add(new StoryRing("Du", vault.DisplayName, vault.Avatar, myRing, true, null));
         rings.AddRange(bubbles
             .Select(b => (Bubble: b, Stories: _feed.StoriesOf(b)))
             .Where(x => x.Stories.Count > 0)
             .Select(x =>
             {
-                var unseen = x.Stories.Any(s => !s.Post.IsMine && !_feed.IsSeen(s.Post.Id));
+                var unseen = x.Stories.Any(s => !_feed.IsSeen(s.Post.Id));
                 var cover = x.Stories.LastOrDefault(s => s.Post.Message.Image is not null)?.Post.Message.Image
                             ?? x.Stories[^1].Author?.Avatar;
                 return new StoryRing(x.Bubble.Name, x.Bubble.Name, cover, unseen ? AvatarRing.New : AvatarRing.Seen, false, x.Bubble);
@@ -80,10 +85,10 @@ public partial class HomePage : ContentPage
         if (ringSig != _ringSig)
         {
             _ringSig = ringSig;
-            Stories.ItemsSource = rings;
+            BindableLayout.SetItemsSource(StoriesRow, rings);
         }
 
-        var posts = _feed.AllPosts();
+        var posts = _feed.TimelinePosts();
         var feedSig = string.Join('|', posts.Select(p => PostSig(p))) + $"#{DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 60}";
         if (feedSig != _feedSig)
         {
@@ -102,7 +107,7 @@ public partial class HomePage : ContentPage
         else
         {
             EmptyTitle.Text = "Noch ganz still hier";
-            EmptyText.Text = "Heute hat noch niemand etwas geteilt. Wie war dein Tag?";
+            EmptyText.Text = "Von deinen Leuten gibt es noch nichts Neues. Deine eigenen Highlights findest du oben im Kreis „Du“.";
             EmptyAction.Text = "Mein Highlight teilen";
             EmptySecondary.IsVisible = false;
         }
@@ -122,9 +127,16 @@ public partial class HomePage : ContentPage
     async void OnStoryTapped(object? sender, TappedEventArgs e)
     {
         if (e.Parameter is not StoryRing ring) return;
-        if (ring.Bubble is null) await Compose();
-        else await Shell.Current.GoToAsync($"{nameof(StoryPage)}?id={Uri.EscapeDataString(ring.Bubble.MailboxId)}");
+        if (ring.IsMe)
+        {
+            // Eigene Stories ansehen; ohne welche gleich teilen
+            if (ring.Ring == AvatarRing.None) await Compose();
+            else await Shell.Current.GoToAsync($"{nameof(StoryPage)}?id={StoryPage.Mine}");
+        }
+        else await Shell.Current.GoToAsync($"{nameof(StoryPage)}?id={Uri.EscapeDataString(ring.Bubble!.MailboxId)}");
     }
+
+    async void OnPlusTapped(object? sender, EventArgs e) => await Compose();
 
     async void OnPostTapped(object? sender, TappedEventArgs e)
     {

@@ -77,7 +77,7 @@ public partial class PostPage : ContentPage
         // Nichts Neues: Karte nicht neu aufbauen, sonst lädt das Foto neu und flackert
         if (_item is not null && Sig(post) == _sig) return true;
 
-        _item = new PostItem(post, _feed, showBubble: true);
+        _item = new PostItem(post, _feed, showBubble: true, showFaces: true);
         _sig = Sig(post);
         _item.PropertyChanged += (_, _) => _sig = Sig(_item.Source); // eigenes Herz oder Kommentar: Zustand ist schon angezeigt
         Card.BindingContext = _item;

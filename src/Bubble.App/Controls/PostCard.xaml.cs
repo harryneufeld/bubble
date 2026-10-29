@@ -19,16 +19,21 @@ public partial class PostCard : ContentView
         };
     }
 
+    ImageSource? _shown;
+
     // Das Bild wird erst nach dem Aufbau der Seite dekodiert. Ohne Einblenden sieht man erst einen leeren Rahmen und dann
-    // ein Aufpoppen (Flackern); so blendet es weich ein.
+    // ein Aufpoppen (Flackern); so blendet es weich ein. Zeigt die Karte schon dasselbe Bild, bleibt es stehen.
     protected override void OnBindingContextChanged()
     {
         base.OnBindingContextChanged();
+        var source = PhotoImage.Source;
+        if (ReferenceEquals(source, _shown)) return;
+
+        _shown = source;
         PhotoImage.CancelAnimations();
-        PhotoImage.Opacity = 0;
-        // Bleibt die Quelle gleich, wird nichts neu geladen und IsLoading ändert sich nie
-        Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(60), () => { if (!PhotoImage.IsLoading) ShowPhoto(); });
-        Dispatcher.DispatchDelayed(TimeSpan.FromSeconds(3), ShowPhoto);
+        PhotoImage.Opacity = source is null ? 1 : 0;
+        // Notbremse, falls IsLoading nie wechselt (z. B. Bild schon im Speicher)
+        if (source is not null) Dispatcher.DispatchDelayed(TimeSpan.FromSeconds(1.5), ShowPhoto);
     }
 
     void ShowPhoto()

@@ -37,8 +37,10 @@ public partial class JoinPage : ContentPage
 
     void SelectTab(bool scan)
     {
-        ScanTab.Background = scan ? (Brush)Application.Current!.Resources["CtaGradient"] : null;
-        CodeTab.Background = scan ? null : (Brush)Application.Current!.Resources["CtaGradient"];
+        var active = (Brush)Application.Current!.Resources["CtaGradient"];
+        var idle = new SolidColorBrush(Colors.Transparent);
+        ScanTab.Background = scan ? active : idle;
+        CodeTab.Background = scan ? idle : active;
         var soft = (Color)Application.Current!.Resources["InkSoft"];
         ScanTabText.TextColor = scan ? Colors.White : soft;
         CodeTabText.TextColor = scan ? soft : Colors.White;
