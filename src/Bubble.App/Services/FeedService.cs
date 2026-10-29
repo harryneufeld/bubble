@@ -3,7 +3,7 @@ using Bubble.Core;
 namespace Bubble.App.Services;
 
 /// <summary>Ein Post zusammen mit seiner Bubble und dem Profil des Absenders.</summary>
-public sealed record HomePost(BubbleMembership Bubble, FeedPost Post, Member? Author);
+public sealed record HomePost(BubbleMembership Bubble, FeedPost Post, Member? Author, BubbleSnapshot Snapshot);
 
 /// <summary>
 /// Lädt alle Bubbles parallel und hält das Ergebnis bis zum nächsten Laden im Speicher,
@@ -50,12 +50,12 @@ public sealed class FeedService(AccountService account)
 
     /// <summary>Alle Posts aller Bubbles, neueste zuerst.</summary>
     public IReadOnlyList<HomePost> AllPosts() => (account.Vault?.Bubbles ?? [])
-        .SelectMany(b => SnapshotFor(b) is { } s ? s.Posts.Select(p => new HomePost(b, p, s.MemberFor(p.Message.AuthorKey))) : [])
+        .SelectMany(b => SnapshotFor(b) is { } s ? s.Posts.Select(p => new HomePost(b, p, s.MemberFor(p.Message.AuthorKey), s)) : [])
         .OrderByDescending(p => p.Post.Message.CreatedAt)
         .ToList();
 
     public IReadOnlyList<HomePost> PostsOf(BubbleMembership bubble) => SnapshotFor(bubble) is { } s
-        ? s.Posts.Select(p => new HomePost(bubble, p, s.MemberFor(p.Message.AuthorKey))).ToList()
+        ? s.Posts.Select(p => new HomePost(bubble, p, s.MemberFor(p.Message.AuthorKey), s)).ToList()
         : [];
 
     /// <summary>Posts der letzten 24 Stunden – die „Stories“ einer Bubble, älteste zuerst.</summary>
@@ -63,6 +63,33 @@ public sealed class FeedService(AccountService account)
     {
         var since = DateTimeOffset.UtcNow.AddHours(-24);
         return PostsOf(bubble).Where(p => p.Post.Message.CreatedAt > since).OrderBy(p => p.Post.Message.CreatedAt).ToList();
+    }
+
+    public HomePost? FindPost(BubbleMembership bubble, string postId) =>
+        PostsOf(bubble).FirstOrDefault(p => p.Post.Id == postId);
+
+    /// <summary>
+    /// Setzt oder nimmt das Herz zurück. Die Oberfläche reagiert sofort; schlägt das Senden fehl,
+    /// wird zurückgesetzt und die Ausnahme weitergereicht.
+    /// </summary>
+    public async Task ToggleLikeAsync(HomePost item)
+    {
+        var id = item.Post.Id;
+        var liked = !item.Snapshot.IsLikedByMe(id);
+        item.Snapshot.SetLikeByMe(id, liked);
+        try { await account.Client.LikeAsync(item.Bubble, item.Post, liked); }
+        catch
+        {
+            item.Snapshot.SetLikeByMe(id, !liked);
+            throw;
+        }
+    }
+
+    /// <summary>Kommentiert und zeigt den Kommentar sofort an.</summary>
+    public async Task CommentAsync(HomePost item, string text)
+    {
+        var comment = await account.Client.CommentAsync(item.Bubble, item.Post, text);
+        item.Snapshot.AddComment(item.Post.Id, comment);
     }
 
     public bool IsSeen(string postId) => Seen.Contains(postId);

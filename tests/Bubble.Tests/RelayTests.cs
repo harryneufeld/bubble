@@ -54,12 +54,12 @@ public class RelayTests : IDisposable
         Assert.True(Invite.TryParse(Invite.For(bubble).ToLink(), out var invite));
         var bensBubble = invite!.ToMembership();
 
-        await _relay.ClientFor(anna).PostAsync(bubble, Mood.Top, "Sonnenaufgang am See", [1, 2, 3]);
+        await _relay.ClientFor(anna).PostAsync(bubble, "😊", "Sonnenaufgang am See", [1, 2, 3]);
 
         var feed = await _relay.ClientFor(ben).LoadFeedAsync(bensBubble);
         var post = Assert.Single(feed).Message;
         Assert.Equal("Anna", post.AuthorName);
-        Assert.Equal(Mood.Top, post.Mood);
+        Assert.Equal("😊", post.Emoji);
         Assert.Equal([1, 2, 3], post.Image);
         Assert.False(feed[0].IsMine);
 
@@ -75,9 +75,9 @@ public class RelayTests : IDisposable
         var bubble = BubbleMembership.Create("WG", "http://relay/", PostLifetime.Persistent);
         var client = _relay.ClientFor(anna);
 
-        await client.PostAsync(bubble, Mood.Flop, "Bus verpasst", null);
+        await client.PostAsync(bubble, "😕", "Bus verpasst", null);
         _relay.Time.Advance(TimeSpan.FromMinutes(5));
-        await client.PostAsync(bubble, Mood.Top, "Dafür Kaffee geschenkt bekommen", null);
+        await client.PostAsync(bubble, "😊", "Dafür Kaffee geschenkt bekommen", null);
 
         var feed = await client.LoadFeedAsync(bubble);
         Assert.Equal(["Dafür Kaffee geschenkt bekommen", "Bus verpasst"], feed.Select(p => p.Message.Text));
@@ -91,13 +91,13 @@ public class RelayTests : IDisposable
         var bubble = BubbleMembership.Create("Familie", "http://relay/", PostLifetime.Story24h);
         var bensBubble = Invite.For(bubble).ToMembership();
 
-        await _relay.ClientFor(anna).PostAsync(bubble, Mood.Top, "verschwindet", null);
+        await _relay.ClientFor(anna).PostAsync(bubble, "😊", "verschwindet", null);
         await _relay.ClientFor(anna).SetLifetimeAsync(bubble, PostLifetime.Persistent);
 
         // Die App lädt den Feed vor dem Teilen und übernimmt dabei die aktuelle Lebensdauer.
         var feed = await _relay.ClientFor(ben).LoadFeedAsync(bensBubble);
         Assert.Equal(PostLifetime.Persistent, bensBubble.Lifetime);
-        await _relay.ClientFor(ben).PostAsync(bensBubble, Mood.Top, "bleibt", null);
+        await _relay.ClientFor(ben).PostAsync(bensBubble, "😊", "bleibt", null);
 
         feed = await _relay.ClientFor(ben).LoadFeedAsync(bensBubble);
         Assert.Equal(PostLifetime.Story24h, feed.Single(p => p.Message.Text == "verschwindet").Message.Lifetime);
@@ -112,7 +112,7 @@ public class RelayTests : IDisposable
     {
         var anna = Vault.Create("Anna");
         var bubble = BubbleMembership.Create("A", "http://relay/", PostLifetime.Persistent);
-        await _relay.ClientFor(anna).PostAsync(bubble, Mood.Top, "hi", null);
+        await _relay.ClientFor(anna).PostAsync(bubble, "😊", "hi", null);
         var raw = Assert.Single(await _relay.Relay("").GetMessagesAsync(bubble.MailboxId));
 
         // Server spielt dieselbe Nachricht unter neuer ID erneut ein.
@@ -173,7 +173,7 @@ public class RelayTests : IDisposable
         anna.Avatar = [9, 9, 9];
         anna.Bio = "Kaffee zuerst";
         await _relay.ClientFor(anna).PublishProfileAsync(bubble);
-        await _relay.ClientFor(ben).PostAsync(bubble, Mood.Top, "Hallo", null);
+        await _relay.ClientFor(ben).PostAsync(bubble, "😊", "Hallo", null);
         _relay.Time.Advance(TimeSpan.FromMinutes(1));
         anna.DisplayName = "Anna K.";
         await _relay.ClientFor(anna).PublishProfileAsync(bubble);
@@ -206,5 +206,61 @@ public class RelayTests : IDisposable
 
         _relay.Time.Advance(ShortInvite.Validity + TimeSpan.FromMinutes(1));
         Assert.Null(await ShortInvite.ResolveAsync(code, _relay.Relay("")));
+    }
+
+    [Fact]
+    public async Task Likes_AreToggledPerPerson_AndNewestWins()
+    {
+        var anna = Vault.Create("Anna");
+        var ben = Vault.Create("Ben");
+        var bubble = BubbleMembership.Create("WG", "http://relay/", PostLifetime.Persistent);
+        await _relay.ClientFor(anna).PostAsync(bubble, "😍", "Neue Schuhe", null);
+
+        var annasClient = _relay.ClientFor(anna);
+        var bensClient = _relay.ClientFor(ben);
+        var post = (await bensClient.LoadFeedAsync(bubble)).Single();
+
+        await bensClient.LikeAsync(bubble, post, true);
+        _relay.Time.Advance(TimeSpan.FromMinutes(1));
+        await annasClient.LikeAsync(bubble, post, true);
+        _relay.Time.Advance(TimeSpan.FromMinutes(1));
+        await bensClient.LikeAsync(bubble, post, false); // Herz zurückgenommen
+        _relay.Time.Advance(TimeSpan.FromMinutes(1));
+        await bensClient.LikeAsync(bubble, post, true);  // und wieder gesetzt
+
+        var snapshot = await annasClient.LoadAsync(bubble);
+        Assert.Equal(["Anna", "Ben"], snapshot.LikersOf(post.Id).Select(m => m.Name == "?" ? "?" : m.Name));
+        Assert.True(snapshot.IsLikedByMe(post.Id));
+        Assert.Single(snapshot.Posts); // Herzen sind keine Posts
+    }
+
+    [Fact]
+    public async Task Comments_AreSigned_ShownInOrder_AndExpireWithTheirPost()
+    {
+        var anna = Vault.Create("Anna");
+        var ben = Vault.Create("Ben");
+        var bubble = BubbleMembership.Create("WG", "http://relay/", PostLifetime.Story24h);
+        await _relay.ClientFor(anna).PublishProfileAsync(bubble);
+        await _relay.ClientFor(ben).PublishProfileAsync(bubble);
+        await _relay.ClientFor(anna).PostAsync(bubble, "🥳", "Wir ziehen um!", null);
+
+        var post = (await _relay.ClientFor(ben).LoadFeedAsync(bubble)).Single();
+        var first = await _relay.ClientFor(ben).CommentAsync(bubble, post, "  Glückwunsch!  ");
+        Assert.Equal("Glückwunsch!", first.Text);
+        _relay.Time.Advance(TimeSpan.FromMinutes(2));
+        await _relay.ClientFor(anna).CommentAsync(bubble, post, "Danke dir");
+
+        var snapshot = await _relay.ClientFor(anna).LoadAsync(bubble);
+        Assert.Equal(["Glückwunsch!", "Danke dir"], snapshot.CommentsOf(post.Id).Select(c => c.Text));
+        Assert.Equal(["Ben", "Anna"], snapshot.CommentsOf(post.Id).Select(c => c.AuthorName));
+
+        // Nach 24 Stunden verschwinden Post, Herzen und Kommentare – auch auf dem Relay
+        _relay.Time.Advance(TimeSpan.FromHours(25));
+        snapshot = await _relay.ClientFor(anna).LoadAsync(bubble);
+        Assert.Empty(snapshot.Posts);
+        Assert.Empty(snapshot.CommentsOf(post.Id));
+        var raw = await _relay.Http().GetStringAsync($"v1/mailboxes/{bubble.MailboxId}/messages");
+        Assert.DoesNotContain("Glückwunsch", raw);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _relay.ClientFor(ben).CommentAsync(bubble, post, "zu spät"));
     }
 }

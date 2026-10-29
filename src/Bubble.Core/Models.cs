@@ -8,8 +8,11 @@ public enum PostLifetime { Story24h, Persistent }
 
 public enum Mood { Top, Flop }
 
-/// <summary>Post = Highlight, LifetimeChanged = neue Lebensdauer, Profile = Name und Profilbild des Absenders.</summary>
-public enum MessageKind { Post, LifetimeChanged, Profile }
+/// <summary>
+/// Post = Highlight, LifetimeChanged = neue Lebensdauer, Profile = Name und Profilbild des Absenders,
+/// Like = Herz an einem Post (an/aus), Comment = Kommentar zu einem Post.
+/// </summary>
+public enum MessageKind { Post, LifetimeChanged, Profile, Like, Comment }
 
 /// <summary>
 /// Eine Bubble aus Sicht eines Mitglieds. Der Root-Key ist das gemeinsame Geheimnis;
@@ -46,8 +49,22 @@ public sealed record BubbleMessage
     /// <summary>Bei Posts: die Lebensdauer, unter der geteilt wurde. Bei LifetimeChanged: die neue Einstellung.</summary>
     public required PostLifetime Lifetime { get; init; }
 
+    /// <summary>Alte Posts: Top oder Flop. Neue Posts nutzen <see cref="Emoji"/>.</summary>
     public Mood? Mood { get; init; }
+
+    /// <summary>Wie sich der Absender fühlt, ein einzelnes Emoji (nur bei Posts).</summary>
+    public string? Emoji { get; init; }
+
     public string? Text { get; init; }
+
+    /// <summary>Bei Like und Comment: die Nachrichten-ID des Posts.</summary>
+    public string? TargetId { get; init; }
+
+    /// <summary>Bei Like: true = Herz gesetzt, false = Herz zurückgenommen. Es zählt die jeweils neueste Nachricht.</summary>
+    public bool? Active { get; init; }
+
+    /// <summary>Bei Like und Comment: wann der Post verschwindet – dann verschwinden auch Herzen und Kommentare.</summary>
+    public DateTimeOffset? TargetExpiresAt { get; init; }
 
     /// <summary>JPEG, bereits auf dem Gerät von Metadaten befreit. Bei Profile: das Profilbild.</summary>
     public byte[]? Image { get; init; }
@@ -55,8 +72,12 @@ public sealed record BubbleMessage
     /// <summary>Bei Profile: kurzer Satz über sich.</summary>
     public string? Bio { get; init; }
 
-    public DateTimeOffset? ExpiresAt =>
-        Kind == MessageKind.Post && Lifetime == PostLifetime.Story24h ? CreatedAt.AddHours(24) : null;
+    public DateTimeOffset? ExpiresAt => Kind switch
+    {
+        MessageKind.Post when Lifetime == PostLifetime.Story24h => CreatedAt.AddHours(24),
+        MessageKind.Like or MessageKind.Comment => TargetExpiresAt,
+        _ => null,
+    };
 }
 
 /// <summary>Lokaler Account-Zustand. Liegt im sicheren Speicher des Geräts und (verschlüsselt) im Backup.</summary>

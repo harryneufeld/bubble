@@ -77,8 +77,8 @@ public partial class StoryPage : ContentPage
         AuthorAvatar.Image = story.Author?.Avatar;
         AuthorLabel.Text = story.Post.IsMine ? "Du" : story.Author?.Name ?? m.AuthorName;
         MetaLabel.Text = $"{story.Bubble.Name} · {Labels.Ago(m.CreatedAt)}";
-        MoodLabel.Text = Labels.Mood(m.Mood);
-        MoodChip.IsVisible = m.Mood is not null;
+        MoodLabel.Text = Labels.Feeling(m);
+        MoodChip.IsVisible = MoodLabel.Text.Length > 0;
 
         if (m.Image is { } bytes)
         {
@@ -111,6 +111,12 @@ public partial class StoryPage : ContentPage
     {
         if (_index + 1 < _stories.Count) Show(_index + 1);
         else _ = Close();
+    }
+
+    protected override bool OnBackButtonPressed()
+    {
+        _ = Close();
+        return true;
     }
 
     void OnNext(object? sender, TappedEventArgs e) => Next();

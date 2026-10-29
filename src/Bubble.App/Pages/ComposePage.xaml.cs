@@ -10,7 +10,7 @@ public partial class ComposePage : ContentPage
     readonly AccountService _account;
     readonly FeedService _feed;
     readonly HashSet<string> _selected = [];
-    Mood _mood = Mood.Top;
+    string? _emoji;
     byte[]? _image;
     bool _initialized;
 
@@ -22,7 +22,7 @@ public partial class ComposePage : ContentPage
         InitializeComponent();
         _account = account;
         _feed = feed;
-        ShowMood();
+        BuildFeelings();
     }
 
     protected override void OnAppearing()
@@ -85,24 +85,50 @@ public partial class ComposePage : ContentPage
         ShareButton.Text = chosen.Count switch { 0 => "Wähle eine Bubble", 1 => "Teilen", var n => $"In {n} Bubbles teilen" };
     }
 
-    void OnTop(object? sender, TappedEventArgs e) { _mood = Mood.Top; ShowMood(); }
-
-    void OnFlop(object? sender, TappedEventArgs e) { _mood = Mood.Flop; ShowMood(); }
-
-    void ShowMood()
+    /// <summary>Emoji-Kacheln mit Beschriftung. Ein weiterer Tipp auf das gewählte Emoji nimmt die Auswahl zurück.</summary>
+    void BuildFeelings()
     {
-        ShowChoice(TopChoice, TopText, _mood == Mood.Top, "Top", "OnTop");
-        ShowChoice(FlopChoice, FlopText, _mood == Mood.Flop, "Flop", "OnFlop");
-    }
-
-    static void ShowChoice(Border choice, Label text, bool selected, string fill, string ink)
-    {
-        Color Res(string key) => Application.Current!.Resources.TryGetValue(key, out var c) ? (Color)c : Colors.Transparent;
-        choice.BackgroundColor = Res(selected ? fill : "Surface");
-        choice.Stroke = new SolidColorBrush(Res(selected ? ink : "Hairline"));
-        choice.StrokeThickness = selected ? 2 : 1;
-        text.TextColor = Res(selected ? ink : "InkSoft");
-        SemanticProperties.SetHint(choice, selected ? "ausgewählt" : "");
+        FeelingGrid.Children.Clear();
+        foreach (var (emoji, label) in Labels.Feelings)
+        {
+            var on = _emoji == emoji;
+            var tile = new Border
+            {
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 20 },
+                WidthRequest = 78, HeightRequest = 78, Margin = new Thickness(0, 0, 8, 8),
+                BackgroundColor = (Color)Application.Current!.Resources[on ? "SurfaceRaised" : "Surface"],
+                StrokeThickness = on ? 2.5 : 0,
+                Stroke = on ? (Brush)Application.Current.Resources["BubbleGradient"] : null,
+                Content = new VerticalStackLayout
+                {
+                    Spacing = 2, VerticalOptions = LayoutOptions.Center,
+                    Children =
+                    {
+                        new Label { Text = emoji, FontSize = on ? 32 : 28, HorizontalOptions = LayoutOptions.Center },
+                        new Label
+                        {
+                            Text = label, FontSize = 11, FontFamily = "BodyMedium", HorizontalOptions = LayoutOptions.Center,
+                            TextColor = (Color)Application.Current.Resources[on ? "Ink" : "InkSoft"],
+                        },
+                    },
+                },
+            };
+            SemanticProperties.SetDescription(tile, label);
+            SemanticProperties.SetHint(tile, on ? "ausgewählt" : "");
+            var picked = emoji;
+            tile.GestureRecognizers.Add(new TapGestureRecognizer
+            {
+                Command = new Command(() =>
+                {
+                    _emoji = _emoji == picked ? null : picked;
+                    BuildFeelings();
+                }),
+            });
+            FeelingGrid.Children.Add(tile);
+        }
+        FeelingHint.Text = _emoji is null
+            ? "Tippe ein Emoji, das zu deinem Tag passt."
+            : $"Du fühlst dich {Labels.Feelings.First(f => f.Emoji == _emoji).Label.ToLowerInvariant()}.";
     }
 
     async void OnPickPhoto(object? sender, EventArgs e)
@@ -147,7 +173,7 @@ public partial class ComposePage : ContentPage
         {
             foreach (var bubble in _account.Vault!.Bubbles.Where(b => _selected.Contains(b.MailboxId)))
             {
-                try { await _account.Client.PostAsync(bubble, _mood, TextEditor.Text, _image); }
+                try { await _account.Client.PostAsync(bubble, _emoji, TextEditor.Text, _image); }
                 catch (HttpRequestException ex) { failed.Add($"„{bubble.Name}“: {Labels.ConnectionError(bubble.RelayUrl, ex)}"); }
             }
             if (failed.Count > 0)

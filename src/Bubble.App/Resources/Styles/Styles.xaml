@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <!-- Komponenten aus DESIGN.md. Schriften: Display (Fraunces), Body/BodyMedium/BodySemibold/BodyBold (Inter), MonoFont. -->
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -258,12 +258,6 @@
         <Setter Property="HorizontalOptions" Value="Start" />
         <Setter Property="VerticalOptions" Value="Center" />
     </Style>
-    <Style x:Key="ChipTop" TargetType="Border" BasedOn="{StaticResource Pill}">
-        <Setter Property="BackgroundColor" Value="{StaticResource Top}" />
-    </Style>
-    <Style x:Key="ChipFlop" TargetType="Border" BasedOn="{StaticResource Pill}">
-        <Setter Property="BackgroundColor" Value="{StaticResource Flop}" />
-    </Style>
     <!-- halbtransparent über Fotos -->
     <Style x:Key="GlassPill" TargetType="Border" BasedOn="{StaticResource Pill}">
         <Setter Property="BackgroundColor" Value="{StaticResource Glass}" />
@@ -276,11 +270,9 @@
         <Setter Property="FontFamily" Value="BodySemibold" />
         <Setter Property="FontSize" Value="12" />
     </Style>
-    <Style x:Key="ChipTopText" TargetType="Label" BasedOn="{StaticResource PillText}">
-        <Setter Property="TextColor" Value="{StaticResource OnTop}" />
-    </Style>
-    <Style x:Key="ChipFlopText" TargetType="Label" BasedOn="{StaticResource PillText}">
-        <Setter Property="TextColor" Value="{StaticResource OnFlop}" />
+    <Style x:Key="FeelingText" TargetType="Label" BasedOn="{StaticResource PillText}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextColor" Value="{StaticResource Ink}" />
     </Style>
 
     <!-- ── Eingaben ───────────────────────────────────────── -->

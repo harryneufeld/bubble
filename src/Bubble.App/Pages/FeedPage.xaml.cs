@@ -74,7 +74,13 @@ public partial class FeedPage : ContentPage
         CoverFrame.Background = Gradients.For(bubble.MailboxId);
 
         Members.ItemsSource = (snapshot?.Members ?? []).Select(m => new MemberItem(m.Name, m.Avatar, m.IsMe)).ToList();
-        Posts.ItemsSource = posts.Select(p => new PostItem(p, showBubble: false)).ToList();
+        Posts.ItemsSource = posts.Select(p => new PostItem(p, _feed, showBubble: false)).ToList();
+    }
+
+    async void OnPostTapped(object? sender, TappedEventArgs e)
+    {
+        if (e.Parameter is PostItem post)
+            await Shell.Current.GoToAsync($"{nameof(PostPage)}?id={Uri.EscapeDataString(post.MailboxId)}&post={Uri.EscapeDataString(post.Id)}");
     }
 
     async void OnCompose(object? sender, EventArgs e) =>

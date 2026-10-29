@@ -75,7 +75,7 @@ public partial class HomePage : ContentPage
             .OrderByDescending(r => r.Ring == AvatarRing.New));
         Stories.ItemsSource = rings;
 
-        Feed.ItemsSource = _feed.AllPosts().Select(p => new PostItem(p, showBubble: true)).ToList();
+        Feed.ItemsSource = _feed.AllPosts().Select(p => new PostItem(p, _feed, showBubble: true)).ToList();
         FeedTitle.IsVisible = bubbles.Count > 0;
 
         if (bubbles.Count == 0)
@@ -112,7 +112,7 @@ public partial class HomePage : ContentPage
     async void OnPostTapped(object? sender, TappedEventArgs e)
     {
         if (e.Parameter is PostItem post)
-            await Shell.Current.GoToAsync($"{nameof(FeedPage)}?id={Uri.EscapeDataString(post.MailboxId)}");
+            await Shell.Current.GoToAsync($"{nameof(PostPage)}?id={Uri.EscapeDataString(post.MailboxId)}&post={Uri.EscapeDataString(post.Id)}");
     }
 
     async void OnCompose(object? sender, EventArgs e) => await Compose();

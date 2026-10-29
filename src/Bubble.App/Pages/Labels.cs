@@ -27,12 +27,23 @@ static class Labels
         return left.TotalHours >= 1 ? $"⏳ noch {(int)left.TotalHours} h" : $"⏳ noch {Math.Max(1, (int)left.TotalMinutes)} min";
     }
 
-    public static string Mood(Mood? mood) => mood switch
+    /// <summary>Emojis zur Auswahl bei „Wie fühlst du dich?“.</summary>
+    public static readonly (string Emoji, string Label)[] Feelings =
+    [
+        ("😄", "Glücklich"), ("😍", "Verliebt"), ("🥳", "Feierlaune"), ("😎", "Cool"),
+        ("😌", "Entspannt"), ("🤩", "Begeistert"), ("🥹", "Gerührt"), ("😋", "Lecker"),
+        ("💪", "Stark"), ("😊", "Zufrieden"), ("😴", "Müde"), ("😢", "Traurig"),
+        ("😤", "Genervt"), ("😩", "Erschöpft"), ("🤯", "Überfordert"), ("😕", "Naja"),
+    ];
+
+    /// <summary>Gefühl eines Posts als „😍 Verliebt“. Alte Top/Flop-Posts werden übersetzt. Leer, wenn keins gesetzt ist.</summary>
+    public static string Feeling(BubbleMessage message)
     {
-        Core.Mood.Top => "👍 Top",
-        Core.Mood.Flop => "👎 Flop",
-        _ => "",
-    };
+        var emoji = message.Emoji ?? message.Mood switch { Core.Mood.Top => "😊", Core.Mood.Flop => "😕", _ => null };
+        if (emoji is null) return "";
+        var label = message.Emoji is null ? (message.Mood == Core.Mood.Top ? "Top" : "Flop") : Feelings.FirstOrDefault(f => f.Emoji == emoji).Label;
+        return string.IsNullOrEmpty(label) ? emoji : $"{emoji} {label}";
+    }
 
     /// <summary>Unterscheidet „Server nicht erreichbar“ von „Server hat abgelehnt“.</summary>
     public static string ConnectionError(string relayUrl, HttpRequestException ex) => ex.StatusCode is { } status
