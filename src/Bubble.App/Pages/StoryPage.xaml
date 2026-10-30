@@ -14,7 +14,7 @@
             <Label x:Name="StoryText" FontFamily="BodyBold" FontSize="32" LineHeight="1.15" TextColor="White"
                    HorizontalTextAlignment="Center" VerticalOptions="Center" Margin="32,0" />
         </Grid>
-        <Image x:Name="StoryImage" Aspect="AspectFit" IsVisible="False" />
+        <controls:FadeImage x:Name="StoryImage" Aspect="AspectFit" IsVisible="False" />
 
         <!-- Lesbarkeit oben und unten -->
         <BoxView HeightRequest="160" VerticalOptions="Start" InputTransparent="True">
