@@ -6,6 +6,22 @@
 	<string>Für dein Profilbild, Fotos und um Einladungs-QR-Codes zu scannen.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Um ein Foto für dein Highlight oder Profilbild auszuwählen.</string>
+	<!-- Images from other apps can be opened in Bubble as a new highlight. -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.image</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIDeviceFamily</key>

@@ -35,6 +35,12 @@ public partial class ComposePage : ContentPage
         if (_account.FindBubble(MailboxId) is { } preset) _selected.Add(preset.MailboxId);
         else if (bubbles.Count == 1) _selected.Add(bubbles[0].MailboxId);
         BuildChips();
+
+        if (ShareInbox.Take() is { } shared)
+        {
+            if (!string.IsNullOrWhiteSpace(shared.Text)) TextEditor.Text = shared.Text;
+            if (shared.Image is { } image) _ = SetImageAsync(new MemoryStream(image));
+        }
     }
 
     void BuildChips()
@@ -135,9 +141,14 @@ public partial class ComposePage : ContentPage
     {
         var photo = await PhotoPicker.PickAsync(this, "Add photo");
         if (photo is null) return;
+        await using var stream = await photo.OpenReadAsync();
+        await SetImageAsync(stream);
+    }
+
+    async Task SetImageAsync(Stream stream)
+    {
         try
         {
-            await using var stream = await photo.OpenReadAsync();
             _image = await ImageSanitizer.SanitizeAsync(stream);
             var bytes = _image;
             Preview.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
