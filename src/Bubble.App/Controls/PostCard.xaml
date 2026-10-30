@@ -23,7 +23,7 @@
             <Grid x:Name="Media">
                 <!-- Foto -->
                 <Grid x:Name="PhotoArea" IsVisible="{Binding HasImage}" HeightRequest="460">
-                    <Image x:Name="PhotoImage" Source="{Binding Image}" Aspect="AspectFill" IsOpaque="True" Opacity="0" SemanticProperties.Description="{Binding ImageDescription}" />
+                    <controls:FadeImage Source="{Binding Image}" Aspect="AspectFill" IsOpaque="True" SemanticProperties.Description="{Binding ImageDescription}" />
                     <Border Style="{StaticResource GlassPill}" HorizontalOptions="End" VerticalOptions="Start" Margin="12">
                         <Label Text="{Binding Remaining}" Style="{StaticResource PillText}" TextColor="White" />
                     </Border>

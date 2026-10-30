@@ -489,3 +489,9 @@ $RECYCLE.BIN/
 *.db
 *.db-wal
 *.db-shm
+
+# Signaturschlüssel und fertige App-Pakete nie einchecken
+*.keystore
+*.jks
+signing.props
+dist/

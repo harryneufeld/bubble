@@ -38,6 +38,10 @@
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
 
+	<!-- Release-Signatur: Liegt außerhalb des Repos (Schlüssel und Passwort). Ohne diese Datei wird mit dem Debug-Schlüssel signiert. -->
+	<Import Project="$([System.Environment]::GetFolderPath(SpecialFolder.UserProfile))\.bubble-signing\signing.props"
+	        Condition="'$(Configuration)' == 'Release' And Exists('$([System.Environment]::GetFolderPath(SpecialFolder.UserProfile))\.bubble-signing\signing.props')" />
+
 	<ItemGroup>
 		<!-- App Icon -->
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#0B0A10" />

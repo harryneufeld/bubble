@@ -76,6 +76,7 @@ public sealed record BubbleMessage
     public DateTimeOffset? TargetExpiresAt { get; init; }
 
     /// <summary>JPEG, already stripped of metadata on the device. For Profile: the profile picture.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public byte[]? Image { get; init; }
 
     /// <summary>For Profile: a short sentence about themselves.</summary>

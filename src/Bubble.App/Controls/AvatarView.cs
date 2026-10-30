@@ -49,10 +49,11 @@ public sealed class AvatarView : ContentView
 
     readonly Border _ring = new() { StrokeShape = new Ellipse(), IsVisible = false, InputTransparent = true };
     readonly Border _circle = new() { StrokeShape = new Ellipse(), StrokeThickness = 0, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
-    readonly Image _photo = new() { Aspect = Aspect.AspectFill, IsVisible = false };
+    readonly Image _photo = new FadeImage { Aspect = Aspect.AspectFill, IsVisible = false };
     readonly Grid _initialsBackground = new();
     readonly Label _initials = new() { TextColor = Colors.White, FontFamily = "BodyBold", HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
     readonly Border _plus = new() { StrokeShape = new Ellipse(), StrokeThickness = 3, HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End, IsVisible = false };
+    readonly Image _plusIcon = new() { Source = "ic_plus.png" };
     readonly Grid _root = new();
 
     public AvatarView()
@@ -63,7 +64,7 @@ public sealed class AvatarView : ContentView
 
         _plus.Stroke = new SolidColorBrush((Color)resources["Canvas"]);
         _plus.Background = (Brush)resources["CtaGradient"];
-        _plus.Content = new Image { Source = "ic_plus.png" };
+        _plus.Content = _plusIcon;
         _plus.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => PlusTapped?.Invoke(this, EventArgs.Empty)) });
         SemanticProperties.SetDescription(_plus, "Share highlight");
 
@@ -113,7 +114,7 @@ public sealed class AvatarView : ContentView
         {
             var badge = size * 0.32;
             _plus.WidthRequest = _plus.HeightRequest = badge;
-            ((Image)_plus.Content).Margin = badge * 0.18;
+            _plusIcon.Margin = badge * 0.18;
         }
 
         SemanticProperties.SetDescription(this, string.IsNullOrEmpty(Name) ? "Profile picture" : $"Profile picture of {Name}");

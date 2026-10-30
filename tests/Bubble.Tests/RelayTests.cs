@@ -325,4 +325,15 @@ public class RelayTests : IDisposable
         Assert.DoesNotContain("Congratulations", raw);
         await Assert.ThrowsAsync<InvalidOperationException>(() => _relay.ClientFor(ben).CommentAsync(bubble, post, "too late"));
     }
+
+    [Fact]
+    public async Task TextOnlyPost_HasNoImage_NotAnEmptyOne()
+    {
+        var anna = Vault.Create("Anna");
+        var bubble = BubbleMembership.Create("WG", "http://relay/", PostLifetime.Persistent);
+        await _relay.ClientFor(anna).PostAsync(bubble, "😤", "Autopanne", null);
+
+        var post = (await _relay.ClientFor(anna).LoadFeedAsync(bubble)).Single().Message;
+        Assert.Null(post.Image); // ein leeres Array würde als Foto-Post mit leerem Rahmen gezeigt
+    }
 }

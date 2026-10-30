@@ -23,6 +23,24 @@ dotnet run --project src/Bubble.Relay
 
 The relay then runs on `http://localhost:5080`. Start the app from Visual Studio, e.g. as a Windows app or in the Android emulator; the emulator reaches the relay at `10.0.2.2:5080`. For a real phone, start the relay with `--urls http://0.0.0.0:5080` and enter your PC's IP address in the app under "Server".
 
+### Leistung prüfen
+
+Flüssigkeit beim Scrollen und Seitenwechseln lässt sich nur mit einem **Release-Build** beurteilen: Der Debug-Build wird zur Laufzeit übersetzt und ruckelt etwa dreimal so oft. Für Android:
+
+```bash
+dotnet build src/Bubble.App -f net10.0-android -c Release -p:AndroidPackageFormat=apk -p:RuntimeIdentifier=android-arm64
+```
+
+Messen lässt sich mit `adb shell dumpsys gfxinfo org.bubble.social` (ruckelnde Frames, Perzentile) nach einem Scrollen über mehrere Karten.
+
+### Signierter Release-Build (Android)
+
+App-ID ist `org.bubble.social`. Release-Builds werden mit einem eigenen Schlüssel signiert, der **nicht im Repo** liegt: `~/.bubble-signing/` enthält `bubble-release.keystore`, die Passwortdateien `storepass.txt` und `keypass.txt` und `signing.props`, die das Projekt automatisch einbindet (nur bei `-c Release`; ohne die Datei wird mit dem Debug-Schlüssel signiert). Den Ordner sichern, denn mit einem neuen Schlüssel lässt sich eine installierte App nicht mehr aktualisieren, und niemals einchecken.
+
+Fertige Pakete für Testgeräte liegen in `dist/` (nicht im Repo), z. B. `dist/Bubble-1.1.0-release-arm64.apk`. Installieren per `adb install <apk>` oder die Datei aufs Gerät kopieren und öffnen („Unbekannte Apps installieren“ erlauben). Das Paket ist für 64-Bit-ARM-Geräte, also praktisch jedes aktuelle Handy.
+
+Zertifikat-Fingerabdruck (SHA-256): `AA:A4:0F:25:48:41:80:66:88:83:51:55:DA:AB:DF:26:C5:71:19:E6:FD:56:FA:C6:B5:AE:9B:11:19:3A:FE:47`
+
 ### Relay via Docker
 
 ```bash
@@ -31,7 +49,18 @@ docker compose up -d --build
 
 The image builds for amd64 and arm64, and the database lives in the volume `relay-data`. In the app, enter the address during onboarding (also on the "I already have an account" screen) or later under "Server", e.g. `192.168.1.20:5080`.
 
-The live tests can be run against a running relay:
+### Relay auf einem Raspberry Pi
+
+Auf einem Pi mit 64-Bit-Betriebssystem richtet [scripts/setup-pi.sh](scripts/setup-pi.sh) alles ein: Es installiert bei Bedarf Git und Docker, holt den Code und startet den Relay per `docker compose`. Erneut ausführen aktualisiert.
+
+```bash
+scp scripts/setup-pi.sh pi@192.168.1.20:/tmp/bubble-setup.sh
+ssh -t pi@192.168.1.20 "bash /tmp/bubble-setup.sh"
+```
+
+Der erste Build auf dem Pi dauert ein paar Minuten. Der Relay hört auf HTTP, Port 5080; für Zugriff von außen gehört ein HTTPS-Proxy davor.
+
+Gegen einen laufenden Relay lassen sich die Live-Tests ausführen:
 
 ```bash
 BUBBLE_RELAY_URL=http://<server>:5080/ dotnet test --filter LiveRelayTests
