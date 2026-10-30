@@ -4,8 +4,8 @@ using Bubble.Core;
 namespace Bubble.App.Services;
 
 /// <summary>
-/// Hält den Vault (Identität + Bubble-Schlüssel) im sicheren Speicher des Geräts
-/// (Android Keystore, iOS Keychain, Windows DPAPI) und hält das Backup aktuell.
+/// Keeps the vault (identity + bubble keys) in the device's secure storage
+/// (Android Keystore, iOS Keychain, Windows DPAPI) and keeps the backup up to date.
 /// </summary>
 public sealed class AccountService
 {
@@ -16,12 +16,11 @@ public sealed class AccountService
 
     const string RelayUrlKey = "bubble.relay-url";
 
-    /// <summary>Lokaler Entwicklungs-Relay. Der Android-Emulator erreicht den PC über 10.0.2.2.</summary>
-    static string FallbackRelayUrl =>
-        DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:5080/" : "http://localhost:5080/";
+    /// <summary>Public relay. A different server (e.g. a local development relay) can be set under "Server".</summary>
+    const string FallbackRelayUrl = "https://connect.bubble-social.org/";
 
     /// <summary>
-    /// Relay für neue Bubbles und das Backup. Beigetretene Bubbles nutzen den Relay aus ihrer Einladung.
+    /// Relay for new bubbles and the backup. Joined bubbles use the relay from their invitation.
     /// </summary>
     public static string DefaultRelayUrl
     {
@@ -29,7 +28,7 @@ public sealed class AccountService
         set => Preferences.Default.Set(RelayUrlKey, value);
     }
 
-    /// <summary>Normalisiert eine eingegebene Server-Adresse, z. B. „192.168.1.20:5080“ → „http://192.168.1.20:5080/“.</summary>
+    /// <summary>Normalizes an entered server address, e.g. "192.168.1.20:5080" → "http://192.168.1.20:5080/".</summary>
     public static bool TryNormalizeRelayUrl(string? input, out string url)
     {
         url = "";
@@ -41,7 +40,7 @@ public sealed class AccountService
         return true;
     }
 
-    public BubbleClient Client => new(Vault ?? throw new InvalidOperationException("Kein Account."), RelayFor);
+    public BubbleClient Client => new(Vault ?? throw new InvalidOperationException("No account."), RelayFor);
 
     public async Task<bool> LoadAsync()
     {
@@ -60,10 +59,20 @@ public sealed class AccountService
         return SaveAsync();
     }
 
-    /// <summary>Speichert das Profil und schickt es an alle Bubbles. False, wenn mindestens eine Bubble nicht erreichbar war.</summary>
+    /// <summary>
+    /// Forgets the account on this device. The backup stays on the server, so without a backup code
+    /// the account (and every bubble key in it) is gone for good.
+    /// </summary>
+    public void LogOut()
+    {
+        SecureStorage.Default.Remove(VaultKey);
+        Vault = null;
+    }
+
+    /// <summary>Saves the profile and sends it to all bubbles. False if at least one bubble was unreachable.</summary>
     public async Task<bool> UpdateProfileAsync(string displayName, string? bio, byte[]? avatar)
     {
-        var vault = Vault ?? throw new InvalidOperationException("Kein Account.");
+        var vault = Vault ?? throw new InvalidOperationException("No account.");
         vault.DisplayName = displayName.Trim();
         vault.Bio = string.IsNullOrWhiteSpace(bio) ? null : bio.Trim();
         vault.Avatar = avatar;
@@ -72,17 +81,17 @@ public sealed class AccountService
         return results.All(ok => ok);
     }
 
-    /// <summary>Gründet eine Bubble und stellt sich darin vor.</summary>
+    /// <summary>Founds a bubble and introduces yourself in it. You become its owner.</summary>
     public async Task<BubbleMembership> CreateBubbleAsync(string name, PostLifetime lifetime)
     {
-        var bubble = BubbleMembership.Create(name.Trim(), DefaultRelayUrl, lifetime);
+        var bubble = BubbleMembership.Create(name.Trim(), DefaultRelayUrl, lifetime, Vault!.Identity.PublicKey);
         Vault!.Bubbles.Add(bubble);
         await SaveAsync();
         await TryPublishProfileAsync(bubble);
         return bubble;
     }
 
-    /// <summary>Tritt einer Bubble bei. Null, wenn man schon drin ist.</summary>
+    /// <summary>Joins a bubble. Null if you are already in it.</summary>
     public async Task<BubbleMembership?> JoinAsync(Invite invite)
     {
         var bubble = invite.ToMembership();
@@ -91,6 +100,21 @@ public sealed class AccountService
         await SaveAsync();
         await TryPublishProfileAsync(bubble);
         return bubble;
+    }
+
+    /// <summary>Leaves a bubble: tells the others (if the relay is reachable) and forgets its key on this device.</summary>
+    public async Task LeaveAsync(BubbleMembership bubble)
+    {
+        try { await Client.LeaveAsync(bubble); }
+        catch (HttpRequestException) { /* leaving works offline; the others just keep listing you */ }
+        await ForgetAsync(bubble);
+    }
+
+    /// <summary>Forgets a bubble on this device without telling anyone (e.g. after being removed).</summary>
+    public async Task ForgetAsync(BubbleMembership bubble)
+    {
+        Vault!.Bubbles.Remove(bubble);
+        await SaveAsync();
     }
 
     async Task<bool> TryPublishProfileAsync(BubbleMembership bubble)
@@ -102,10 +126,10 @@ public sealed class AccountService
     public BubbleMembership? FindBubble(string mailboxId) =>
         Vault?.Bubbles.FirstOrDefault(b => b.MailboxId == mailboxId);
 
-    /// <summary>Speichert lokal und aktualisiert – falls eingerichtet – das Backup. False, wenn das Backup nicht hochgeladen werden konnte.</summary>
+    /// <summary>Saves locally and – if set up – updates the backup. False if the backup could not be uploaded.</summary>
     public async Task<bool> SaveAsync()
     {
-        var vault = Vault ?? throw new InvalidOperationException("Kein Account.");
+        var vault = Vault ?? throw new InvalidOperationException("No account.");
         await SecureStorage.Default.SetAsync(VaultKey, JsonSerializer.Serialize(vault, CoreJson.Default.Vault));
         if (vault.Backup is null) return true;
         try
@@ -119,18 +143,18 @@ public sealed class AccountService
         }
     }
 
-    /// <summary>Richtet ein Backup ein und gibt den Code zurück, den der Nutzer sicher aufbewahren muss.</summary>
+    /// <summary>Sets up a backup and returns the code the user has to keep safe.</summary>
     public async Task<string> EnableBackupAsync()
     {
-        var vault = Vault ?? throw new InvalidOperationException("Kein Account.");
+        var vault = Vault ?? throw new InvalidOperationException("No account.");
         var code = Backup.GenerateCode();
         vault.Backup = await Task.Run(() => Backup.Create(code));
         if (!await SaveAsync())
-            throw new HttpRequestException("Backup konnte nicht hochgeladen werden.");
+            throw new HttpRequestException("The backup could not be uploaded.");
         return code;
     }
 
-    /// <summary>Stellt den Account auf diesem Gerät aus dem Backup wieder her. False bei unbekanntem Code.</summary>
+    /// <summary>Restores the account on this device from the backup. False for an unknown code.</summary>
     public async Task<bool> RestoreAsync(string code)
     {
         var secrets = await Task.Run(() => Backup.DeriveFromCode(code));
@@ -141,7 +165,7 @@ public sealed class AccountService
         return true;
     }
 
-    /// <summary>Prüft, ob unter der Adresse ein Relay antwortet.</summary>
+    /// <summary>Checks whether a relay answers at the address.</summary>
     public static async Task<bool> IsReachableAsync(string url)
     {
         try

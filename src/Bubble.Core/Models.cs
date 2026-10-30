@@ -3,21 +3,23 @@ using System.Text.Json.Serialization;
 
 namespace Bubble.Core;
 
-/// <summary>Wie lange Posts einer Bubble leben.</summary>
+/// <summary>How long the posts of a bubble live.</summary>
 public enum PostLifetime { Story24h, Persistent }
 
 public enum Mood { Top, Flop }
 
 /// <summary>
-/// Post = Highlight, LifetimeChanged = neue Lebensdauer, Profile = Name und Profilbild des Absenders,
-/// Like = Herz an einem Post (an/aus), Comment = Kommentar zu einem Post.
+/// Post = highlight, LifetimeChanged = new lifetime, Profile = name and picture of the sender,
+/// Like = heart on a post (on/off), Comment = comment on a post,
+/// KeyRotation = the owner moved the bubble to a new key (see <see cref="BubbleMessage.Wraps"/>),
+/// Left = the sender left the bubble.
 /// </summary>
-public enum MessageKind { Post, LifetimeChanged, Profile, Like, Comment }
+public enum MessageKind { Post, LifetimeChanged, Profile, Like, Comment, KeyRotation, Left }
 
 /// <summary>
-/// Eine Bubble aus Sicht eines Mitglieds. Der Root-Key ist das gemeinsame Geheimnis;
-/// Mailbox-ID und Inhaltsschlüssel werden daraus abgeleitet, sodass der Relay
-/// nur eine zufällig aussehende Mailbox-ID sieht.
+/// A bubble from a member's point of view. The root key is the shared secret;
+/// the mailbox ID and content key are derived from it, so the relay only
+/// sees a random-looking mailbox ID.
 /// </summary>
 public sealed class BubbleMembership
 {
@@ -26,19 +28,26 @@ public sealed class BubbleMembership
     public required string RelayUrl { get; set; }
     public PostLifetime Lifetime { get; set; }
 
+    /// <summary>
+    /// Public key of the member who created the bubble. Only the owner can remove members.
+    /// Null for bubbles created before owners existed.
+    /// </summary>
+    public string? OwnerKey { get; set; }
+
     [JsonIgnore] public string MailboxId => Base64Url.Encode(Crypto.Derive(Base64Url.Decode(Key), "bubble/v1/mailbox"));
     [JsonIgnore] internal byte[] ContentKey => Crypto.Derive(Base64Url.Decode(Key), "bubble/v1/content");
 
-    public static BubbleMembership Create(string name, string relayUrl, PostLifetime lifetime) => new()
+    public static BubbleMembership Create(string name, string relayUrl, PostLifetime lifetime, string? ownerKey = null) => new()
     {
         Name = name,
         Key = Base64Url.Encode(Crypto.NewKey()),
         RelayUrl = relayUrl,
         Lifetime = lifetime,
+        OwnerKey = ownerKey,
     };
 }
 
-/// <summary>Klartext-Inhalt einer Nachricht. Liegt nur verschlüsselt auf dem Relay.</summary>
+/// <summary>Plaintext content of a message. Only ever stored encrypted on the relay.</summary>
 public sealed record BubbleMessage
 {
     public required MessageKind Kind { get; init; }
@@ -46,31 +55,34 @@ public sealed record BubbleMessage
     public required string AuthorName { get; init; }
     public required DateTimeOffset CreatedAt { get; init; }
 
-    /// <summary>Bei Posts: die Lebensdauer, unter der geteilt wurde. Bei LifetimeChanged: die neue Einstellung.</summary>
+    /// <summary>For posts: the lifetime they were shared under. For LifetimeChanged: the new setting.</summary>
     public required PostLifetime Lifetime { get; init; }
 
-    /// <summary>Alte Posts: Top oder Flop. Neue Posts nutzen <see cref="Emoji"/>.</summary>
+    /// <summary>Old posts: top or flop. New posts use <see cref="Emoji"/>.</summary>
     public Mood? Mood { get; init; }
 
-    /// <summary>Wie sich der Absender fühlt, ein einzelnes Emoji (nur bei Posts).</summary>
+    /// <summary>How the sender feels, a single emoji (posts only).</summary>
     public string? Emoji { get; init; }
 
     public string? Text { get; init; }
 
-    /// <summary>Bei Like und Comment: die Nachrichten-ID des Posts.</summary>
+    /// <summary>For Like and Comment: the message ID of the post.</summary>
     public string? TargetId { get; init; }
 
-    /// <summary>Bei Like: true = Herz gesetzt, false = Herz zurückgenommen. Es zählt die jeweils neueste Nachricht.</summary>
+    /// <summary>For Like: true = heart set, false = heart taken back. The newest message counts.</summary>
     public bool? Active { get; init; }
 
-    /// <summary>Bei Like und Comment: wann der Post verschwindet – dann verschwinden auch Herzen und Kommentare.</summary>
+    /// <summary>For Like and Comment: when the post disappears – hearts and comments disappear with it.</summary>
     public DateTimeOffset? TargetExpiresAt { get; init; }
 
-    /// <summary>JPEG, bereits auf dem Gerät von Metadaten befreit. Bei Profile: das Profilbild.</summary>
+    /// <summary>JPEG, already stripped of metadata on the device. For Profile: the profile picture.</summary>
     public byte[]? Image { get; init; }
 
-    /// <summary>Bei Profile: kurzer Satz über sich.</summary>
+    /// <summary>For Profile: a short sentence about themselves.</summary>
     public string? Bio { get; init; }
+
+    /// <summary>For KeyRotation: the new bubble key, sealed separately for each remaining member (member key → sealed key).</summary>
+    public Dictionary<string, string>? Wraps { get; init; }
 
     public DateTimeOffset? ExpiresAt => Kind switch
     {
@@ -80,20 +92,20 @@ public sealed record BubbleMessage
     };
 }
 
-/// <summary>Lokaler Account-Zustand. Liegt im sicheren Speicher des Geräts und (verschlüsselt) im Backup.</summary>
+/// <summary>Local account state. Lives in the device's secure storage and (encrypted) in the backup.</summary>
 public sealed class Vault
 {
     public int Version { get; set; } = 1;
     public required string IdentitySeed { get; set; }
     public required string DisplayName { get; set; }
 
-    /// <summary>Quadratisches JPEG ohne Metadaten. Wird verschlüsselt an jede Bubble geschickt.</summary>
+    /// <summary>Square JPEG without metadata. Sent encrypted to every bubble.</summary>
     public byte[]? Avatar { get; set; }
     public string? Bio { get; set; }
 
     public List<BubbleMembership> Bubbles { get; set; } = [];
 
-    /// <summary>Gesetzt, sobald ein Backup eingerichtet wurde; damit wird es bei Änderungen automatisch aktualisiert.</summary>
+    /// <summary>Set once a backup has been set up; from then on it is updated automatically on changes.</summary>
     public BackupState? Backup { get; set; }
 
     [JsonIgnore] public Identity Identity => Identity.FromSeed(Base64Url.Decode(IdentitySeed));
@@ -105,7 +117,7 @@ public sealed class Vault
     };
 }
 
-// --- Relay-Protokoll (gemeinsam für Server und Client) ---
+// --- Relay protocol (shared by server and client) ---
 
 public sealed record RelayMessageIn(string Id, string Ciphertext, long? ExpiresAt);
 

@@ -6,9 +6,9 @@
              Title="Backup">
     <ScrollView>
         <VerticalStackLayout Style="{StaticResource Column}" Padding="20,8,20,32" Spacing="14">
-            <Label Text="Auf einem neuen Gerät weitermachen" Style="{StaticResource TitleText}" />
+            <Label Text="Continue on a new device" Style="{StaticResource TitleText}" />
             <Label Style="{StaticResource SoftText}"
-                   Text="Deine Schlüssel liegen nur auf diesem Gerät. Mit einem Backup-Code holst du sie auf ein neues Gerät. Der Server speichert das Backup nur verschlüsselt und kann es ohne deinen Code nicht öffnen." />
+                   Text="Your keys only live on this device. A backup code brings them to a new device. The server only stores the backup encrypted and cannot open it without your code." />
 
             <Border Style="{StaticResource InfoBar}">
                 <Label x:Name="StatusLabel" Style="{StaticResource SmallText}" />
@@ -16,11 +16,11 @@
 
             <Border x:Name="CodeBox" IsVisible="False" Style="{StaticResource SecretBox}" Margin="0,8,0,0">
                 <VerticalStackLayout Spacing="14">
-                    <Label Text="Dein Backup-Code" Style="{StaticResource SectionText}" HorizontalTextAlignment="Center" />
+                    <Label Text="Your backup code" Style="{StaticResource SectionText}" HorizontalTextAlignment="Center" />
                     <Label x:Name="CodeLabel" Style="{StaticResource CodeText}" FontSize="20" LineBreakMode="WordWrap" />
-                    <Button Text="Code kopieren" ImageSource="ic_copy.png" Clicked="OnCopy" Style="{StaticResource SecondaryButton}" />
+                    <Button Text="Copy code" ImageSource="ic_copy.png" Clicked="OnCopy" Style="{StaticResource SecondaryButton}" />
                     <Label Style="{StaticResource SmallText}"
-                           Text="Speichere den Code jetzt in deinem Passwortmanager, z. B. Bitwarden, 1Password, Apple Passwörter oder Google Passwortmanager. Er wird nur dieses eine Mal angezeigt. Ohne ihn kann niemand dein Backup öffnen, auch du nicht." />
+                           Text="Save the code in your password manager now, e.g. Bitwarden, 1Password, Apple Passwords or Google Password Manager. It is only shown this once. Without it nobody can open your backup, not even you." />
                 </VerticalStackLayout>
             </Border>
 
@@ -29,9 +29,9 @@
 
             <BoxView Style="{StaticResource Divider}" Margin="0,16" />
 
-            <Label Text="Passkey (bald)" Style="{StaticResource HeadingText}" />
+            <Label Text="Passkey (soon)" Style="{StaticResource HeadingText}" />
             <Label Style="{StaticResource CaptionText}" FontSize="14"
-                   Text="Später entsperrst du das Backup auch mit einem Passkey, also per Face ID oder Fingerabdruck, synchronisiert über deinen Passwortmanager. Der Backup-Code bleibt als Alternative." />
+                   Text="Later you will also unlock the backup with a passkey, i.e. with Face ID or a fingerprint, synced through your password manager. The backup code stays as an alternative." />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

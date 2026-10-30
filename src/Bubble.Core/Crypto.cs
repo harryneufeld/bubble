@@ -6,8 +6,8 @@ using Org.BouncyCastle.Crypto.Parameters;
 namespace Bubble.Core;
 
 /// <summary>
-/// Symmetrische Krypto-Grundbausteine. Alles läuft über BouncyCastle (rein managed),
-/// damit es auf Android, iOS und Windows identisch funktioniert.
+/// Symmetric crypto building blocks. Everything runs through BouncyCastle (pure managed),
+/// so it behaves identically on Android, iOS and Windows.
 /// </summary>
 public static class Crypto
 {
@@ -32,11 +32,11 @@ public static class Crypto
         return output;
     }
 
-    /// <summary>Entschlüsselt <see cref="Seal"/>-Ausgaben. Wirft <see cref="CryptographicException"/> bei Manipulation oder falschem Schlüssel.</summary>
+    /// <summary>Decrypts <see cref="Seal"/> output. Throws <see cref="CryptographicException"/> on tampering or a wrong key.</summary>
     public static byte[] Open(byte[] key, byte[] sealedData, string associatedData)
     {
         if (sealedData.Length < NonceSize + TagBits / 8)
-            throw new CryptographicException("Ciphertext zu kurz.");
+            throw new CryptographicException("Ciphertext too short.");
         var nonce = sealedData.AsSpan(0, NonceSize).ToArray();
         var cipher = new BcChaCha20Poly1305();
         cipher.Init(false, new AeadParameters(new KeyParameter(key), TagBits, nonce, Encoding.UTF8.GetBytes(associatedData)));
@@ -48,12 +48,12 @@ public static class Crypto
         }
         catch (Org.BouncyCastle.Crypto.InvalidCipherTextException e)
         {
-            throw new CryptographicException("Entschlüsselung fehlgeschlagen.", e);
+            throw new CryptographicException("Decryption failed.", e);
         }
         return output;
     }
 
-    /// <summary>Leitet aus einem Schlüssel einen Unterschlüssel für einen bestimmten Zweck ab.</summary>
+    /// <summary>Derives a subkey for a specific purpose from a key.</summary>
     public static byte[] Derive(byte[] key, string purpose, int length = KeySize) =>
         HKDF.DeriveKey(HashAlgorithmName.SHA256, key, length, info: Encoding.UTF8.GetBytes(purpose));
 

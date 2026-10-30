@@ -8,12 +8,12 @@ using ScrollView = Microsoft.Maui.Controls.ScrollView;
 
 namespace Bubble.App.Controls;
 
-/// <summary>Eine Zeile in einem Auswahl-Sheet: Emoji-Symbol, Titel, optional Erklärung.</summary>
+/// <summary>One row in a selection sheet: emoji icon, title, optional explanation.</summary>
 public sealed record SheetOption(string Title, string? Description = null, string? Icon = null, bool Selected = false, bool Destructive = false);
 
 /// <summary>
-/// Bottom Sheet statt System-Dialog (DESIGN.md §6): dunkle Fläche mit Griff, Abdunklung dahinter,
-/// große Auswahlzeilen oder ein Eingabefeld. Wird als transparente Modal-Seite gezeigt.
+/// Bottom sheet instead of a system dialog (DESIGN.md §6): dark surface with a handle, scrim behind it,
+/// large option rows or an input field. Shown as a transparent modal page.
 /// </summary>
 public sealed class SheetPage : ContentPage
 {
@@ -61,17 +61,17 @@ public sealed class SheetPage : ContentPage
         _root.Children.Add(_sheet);
         Content = _root;
 
-        // Von Anfang an unten außerhalb des Bildes: Setzt man das erst in OnAppearing, blitzt das Sheet für ein Bild an seinem Platz auf.
+        // Start below the screen: if this is only set in OnAppearing, the sheet flashes in place for one frame.
         _sheet.TranslationY = 2000;
 
-        // auf breiten Fenstern höchstens 560 breit
+        // at most 560 wide on wide windows
         SizeChanged += (_, _) => _sheet.WidthRequest = Math.Min(560, Width);
     }
 
     static T Res<T>(string key) => (T)Application.Current!.Resources[key];
 
-    /// <summary>Auswahl: Index der gewählten Option oder null bei Abbruch.</summary>
-    public static async Task<int?> ChooseAsync(Page host, string title, string? message, IReadOnlyList<SheetOption> options, string? cancelText = "Abbrechen")
+    /// <summary>Choice: index of the chosen option, or null if cancelled.</summary>
+    public static async Task<int?> ChooseAsync(Page host, string title, string? message, IReadOnlyList<SheetOption> options, string? cancelText = "Cancel")
     {
         SheetPage? sheet = null;
         var list = new VerticalStackLayout { Spacing = 10, Margin = new Thickness(0, 8, 0, 0) };
@@ -88,7 +88,7 @@ public sealed class SheetPage : ContentPage
         return await sheet.Result as int?;
     }
 
-    /// <summary>Texteingabe: der eingegebene Text oder null bei Abbruch.</summary>
+    /// <summary>Text input: the entered text, or null if cancelled.</summary>
     public static async Task<string?> PromptAsync(Page host, string title, string? message, string confirmText,
         string? placeholder = null, string? initialValue = null, int maxLength = 80, Keyboard? keyboard = null)
     {
@@ -111,7 +111,7 @@ public sealed class SheetPage : ContentPage
         var body = new VerticalStackLayout { Spacing = 10 };
         body.Add(field);
         body.Add(confirm);
-        body.Add(Ghost("Abbrechen", () => _ = sheet!.CloseAsync(null)));
+        body.Add(Ghost("Cancel", () => _ = sheet!.CloseAsync(null)));
 
         sheet = new SheetPage(title, message, body, entry);
         await host.Navigation.PushModalAsync(sheet, false);
@@ -160,7 +160,7 @@ public sealed class SheetPage : ContentPage
             Content = grid,
         };
         SemanticProperties.SetDescription(row, option.Description is null ? option.Title : $"{option.Title}. {option.Description}");
-        SemanticProperties.SetHint(row, selected ? "ausgewählt" : "");
+        SemanticProperties.SetHint(row, selected ? "selected" : "");
         row.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () =>

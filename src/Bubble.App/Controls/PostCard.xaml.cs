@@ -4,7 +4,7 @@ namespace Bubble.App.Controls;
 
 public partial class PostCard : ContentView
 {
-    /// <summary>Doppeltippen auf das Bild gibt ein Herz. Nur auf der Post-Seite, wo Tippen nichts anderes öffnet.</summary>
+    /// <summary>Double-tapping the image gives a heart. Only on the post page, where tapping opens nothing else.</summary>
     public static readonly BindableProperty DoubleTapToLikeProperty =
         BindableProperty.Create(nameof(DoubleTapToLike), typeof(bool), typeof(PostCard), false, propertyChanged: (b, _, n) => ((PostCard)b).EnableDoubleTap((bool)n));
 
@@ -21,8 +21,8 @@ public partial class PostCard : ContentView
 
     ImageSource? _shown;
 
-    // Das Bild wird erst nach dem Aufbau der Seite dekodiert. Ohne Einblenden sieht man erst einen leeren Rahmen und dann
-    // ein Aufpoppen (Flackern); so blendet es weich ein. Zeigt die Karte schon dasselbe Bild, bleibt es stehen.
+    // The image is only decoded after the page is built. Without a fade you would see an empty frame and then a
+    // pop-in (flicker); this fades it in softly. If the card already shows the same image, it stays put.
     protected override void OnBindingContextChanged()
     {
         base.OnBindingContextChanged();

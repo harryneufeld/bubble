@@ -4,10 +4,10 @@ using System.Text.Json;
 namespace Bubble.Core;
 
 /// <summary>
-/// Kurzer Einladungscode zum Abtippen, z. B. „7KQ2M-9XH4T“ (50 Bit Zufall, 24 h gültig).
-/// Aus dem Code werden per Argon2id eine Mailbox-ID und ein Schlüssel abgeleitet; unter dieser
-/// Mailbox liegt die vollständige <see cref="Invite"/> verschlüsselt als 24h-Nachricht auf dem Relay.
-/// Der Relay sieht weder Code noch Bubble. Gegen Raten schützen die kurze Gültigkeit und Argon2id.
+/// Short invitation code to type in, e.g. "7KQ2M-9XH4T" (50 bits of randomness, valid for 24 h).
+/// A mailbox ID and a key are derived from the code with Argon2id; in that mailbox the full
+/// <see cref="Invite"/> sits encrypted on the relay as a 24h message.
+/// The relay sees neither the code nor the bubble. The short validity and Argon2id protect against guessing.
 /// </summary>
 public static class ShortInvite
 {
@@ -22,7 +22,7 @@ public static class ShortInvite
         return $"{new string(chars, 0, 5)}-{new string(chars, 5, 5)}";
     }
 
-    /// <summary>Großschreibung, Verwechsler (O→0, I/L→1) und Trennzeichen werden toleriert.</summary>
+    /// <summary>Capitalization, look-alikes (O→0, I/L→1) and separators are tolerated.</summary>
     public static bool TryNormalize(string? input, out string code)
     {
         var sb = new StringBuilder();
@@ -35,16 +35,16 @@ public static class ShortInvite
         return code.Length > 0;
     }
 
-    /// <summary>Langsam (Argon2id) – auf einem Hintergrund-Thread aufrufen.</summary>
+    /// <summary>Slow (Argon2id) – call on a background thread.</summary>
     public static (string MailboxId, byte[] Key) Derive(string code)
     {
         if (!TryNormalize(code, out var normalized))
-            throw new FormatException("Der Einladungscode hat nicht das richtige Format.");
+            throw new FormatException("The invitation code does not have the right format.");
         var output = Backup.Argon2(Encoding.UTF8.GetBytes(normalized.Replace("-", "")), Salt, 64);
         return (Base64Url.Encode(output[..32]), output[32..]);
     }
 
-    /// <summary>Legt die Einladung unter einem neuen Code ab und gibt den Code zurück.</summary>
+    /// <summary>Stores the invitation under a new code and returns the code.</summary>
     public static async Task<string> PublishAsync(Invite invite, RelayClient relay, TimeProvider? time = null, CancellationToken ct = default)
     {
         var code = GenerateCode();
@@ -57,7 +57,7 @@ public static class ShortInvite
         return code;
     }
 
-    /// <summary>Löst einen Code auf. Null, wenn es ihn (nicht mehr) gibt.</summary>
+    /// <summary>Resolves a code. Null if it does not (or no longer) exist.</summary>
     public static async Task<Invite?> ResolveAsync(string code, RelayClient relay, CancellationToken ct = default)
     {
         var (mailbox, key) = await Task.Run(() => Derive(code), ct);
@@ -70,7 +70,7 @@ public static class ShortInvite
             }
             catch (Exception e) when (e is System.Security.Cryptography.CryptographicException or JsonException or FormatException)
             {
-                // fremder oder kaputter Eintrag: ignorieren
+                // foreign or broken entry: ignore
             }
         }
         return null;

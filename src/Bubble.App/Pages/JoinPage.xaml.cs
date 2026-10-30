@@ -5,7 +5,7 @@ using ZXing.Net.Maui.Controls;
 
 namespace Bubble.App.Pages;
 
-/// <summary>Beitreten per QR-Code, kurzem Code oder Link. Die Kamera läuft nur, solange der Scan-Tab offen ist.</summary>
+/// <summary>Join via QR code, short code or link. The camera only runs while the scan tab is open.</summary>
 public partial class JoinPage : ContentPage
 {
     readonly AccountService _account;
@@ -55,7 +55,7 @@ public partial class JoinPage : ContentPage
 
         if (await Permissions.RequestAsync<Permissions.Camera>() != PermissionStatus.Granted)
         {
-            CameraMessage.Text = "Ohne Kamera-Zugriff kein Scannen. Du kannst den Code auch eingeben.";
+            CameraMessage.Text = "Scanning needs camera access. You can also enter the code.";
             return;
         }
         try
@@ -70,7 +70,7 @@ public partial class JoinPage : ContentPage
         }
         catch (Exception ex) when (ex is NotSupportedException or NotImplementedException or InvalidOperationException)
         {
-            CameraMessage.Text = "Auf diesem Gerät gibt es keine Kamera zum Scannen. Gib stattdessen den Code ein.";
+            CameraMessage.Text = "This device has no camera to scan with. Enter the code instead.";
             _camera = null;
         }
     }
@@ -100,7 +100,7 @@ public partial class JoinPage : ContentPage
         {
             if (_invite is not null) return;
             StopCamera();
-            CameraMessage.Text = "✓ QR-Code erkannt";
+            CameraMessage.Text = "✓ QR code recognized";
             ShowPreview(invite!);
         });
     }
@@ -110,14 +110,14 @@ public partial class JoinPage : ContentPage
         var text = Clipboard.Default.HasText ? await Clipboard.Default.GetTextAsync() : null;
         if (text is not null && Invite.TryParse(text, out var invite)) ShowPreview(invite!);
         else if (text is not null && ShortInvite.TryNormalize(text, out var code)) { CodeEntry.Text = code; OnRedeem(null, EventArgs.Empty); }
-        else CodeHint.Text = "In der Zwischenablage ist keine Bubble-Einladung.";
+        else CodeHint.Text = "There is no bubble invitation on the clipboard.";
     }
 
     async void OnRedeem(object? sender, EventArgs e)
     {
         if (!ShortInvite.TryNormalize(CodeEntry.Text, out var code))
         {
-            CodeHint.Text = "Der Code hat 10 Zeichen, z. B. 7KQ2M-9XH4T.";
+            CodeHint.Text = "The code has 10 characters, e.g. 7KQ2M-9XH4T.";
             return;
         }
         CodeEntry.Text = code;
@@ -128,7 +128,7 @@ public partial class JoinPage : ContentPage
         try
         {
             if (await ShortInvite.ResolveAsync(code, _account.RelayFor(relay)) is { } invite) ShowPreview(invite);
-            else CodeHint.Text = $"Diesen Code gibt es auf {Labels.Host(relay)} nicht (mehr). Codes gelten 24 Stunden.";
+            else CodeHint.Text = $"This code does not exist (any more) on {Labels.Host(relay)}. Codes are valid for 24 hours.";
         }
         catch (HttpRequestException ex)
         {
@@ -155,7 +155,7 @@ public partial class JoinPage : ContentPage
         var bubble = await _account.JoinAsync(_invite);
         if (bubble is null)
         {
-            await DisplayAlertAsync("Schon dabei", $"Du bist bereits in „{_invite.Name}“.", "OK");
+            await DisplayAlertAsync("Already in", $"You are already in “{_invite.Name}”.", "OK");
             return;
         }
         await Shell.Current.GoToAsync($"../{nameof(FeedPage)}?id={Uri.EscapeDataString(bubble.MailboxId)}");

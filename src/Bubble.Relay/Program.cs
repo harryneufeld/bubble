@@ -14,21 +14,21 @@ builder.Services.AddHostedService<ExpiryCleanup>();
 
 var app = builder.Build();
 
-app.MapGet("/", () => "Bubble Relay – speichert nur verschlüsselte Daten.");
+app.MapGet("/", () => "Bubble Relay – only stores encrypted data.");
 
 var messages = app.MapGroup("/v1/mailboxes/{mailbox}/messages");
 
 messages.MapPost("/", (string mailbox, RelayMessageIn body, RelayStore store, TimeProvider time) =>
 {
     if (!Ids.IsKeyId(mailbox) || !Ids.IsMessageId(body.Id))
-        return Results.BadRequest("Ungültige ID.");
+        return Results.BadRequest("Invalid ID.");
 
     var now = time.GetUtcNow();
     if (body.ExpiresAt is { } exp && (exp <= now.ToUnixTimeSeconds() || exp > now.Add(RelayLimits.MaxStoryLifetime).ToUnixTimeSeconds()))
-        return Results.BadRequest("Ungültiges Ablaufdatum.");
+        return Results.BadRequest("Invalid expiry date.");
 
     if (!TryDecode(body.Ciphertext, RelayLimits.MaxCiphertextBytes, out var ciphertext))
-        return Results.BadRequest("Ungültiger oder zu großer Inhalt.");
+        return Results.BadRequest("Invalid or too large content.");
 
     return store.AddMessage(mailbox, body.Id, ciphertext, body.ExpiresAt)
         ? Results.Created()
@@ -38,14 +38,14 @@ messages.MapPost("/", (string mailbox, RelayMessageIn body, RelayStore store, Ti
 messages.MapGet("/", (string mailbox, long? after, RelayStore store) =>
     Ids.IsKeyId(mailbox)
         ? Results.Ok(store.GetMessages(mailbox, after ?? 0))
-        : Results.BadRequest("Ungültige ID."));
+        : Results.BadRequest("Invalid ID."));
 
 app.MapPut("/v1/backups/{backupId}", (string backupId, BackupBody body, HttpRequest request, RelayStore store) =>
 {
     if (!Ids.IsKeyId(backupId) || BearerToken(request) is not { } token)
         return Results.BadRequest();
     if (!TryDecode(body.Ciphertext, RelayLimits.MaxBackupBytes, out var ciphertext))
-        return Results.BadRequest("Ungültiger oder zu großer Inhalt.");
+        return Results.BadRequest("Invalid or too large content.");
 
     return store.PutBackup(backupId, token, ciphertext) switch
     {
@@ -83,7 +83,7 @@ static string? BearerToken(HttpRequest request)
 
 static partial class Ids
 {
-    /// <summary>Mailbox-, Backup-IDs und Tokens: 32 Byte als Base64Url.</summary>
+    /// <summary>Mailbox and backup IDs and tokens: 32 bytes as Base64Url.</summary>
     public static bool IsKeyId(string s) => KeyId().IsMatch(s);
 
     public static bool IsMessageId(string s) => MessageId().IsMatch(s);

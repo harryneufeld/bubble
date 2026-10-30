@@ -28,7 +28,7 @@ public partial class ProfileEditPage : ContentPage
 
     async void OnPickAvatar(object? sender, TappedEventArgs e)
     {
-        var photo = await PhotoPicker.PickAsync(this, "Profilbild", _avatar is not null, () =>
+        var photo = await PhotoPicker.PickAsync(this, "Profile picture", _avatar is not null, () =>
         {
             _avatar = null;
             AvatarPreview.Image = null;
@@ -42,7 +42,7 @@ public partial class ProfileEditPage : ContentPage
         }
         catch (InvalidDataException)
         {
-            await DisplayAlertAsync("Foto nicht lesbar", "Dieses Bildformat wird leider nicht unterstützt.", "OK");
+            await DisplayAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
         }
     }
 
@@ -50,14 +50,14 @@ public partial class ProfileEditPage : ContentPage
     {
         if (string.IsNullOrWhiteSpace(NameEntry.Text))
         {
-            await DisplayAlertAsync("Name fehlt", "Wie sollen dich deine Leute nennen?", "OK");
+            await DisplayAlertAsync("Name missing", "What should your people call you?", "OK");
             return;
         }
         SaveButton.IsEnabled = false;
         try
         {
             if (!await _account.UpdateProfileAsync(NameEntry.Text, BioEntry.Text, _avatar))
-                await DisplayAlertAsync("Nicht überall angekommen", "Mindestens eine Bubble war nicht erreichbar. Sie sieht dein neues Profil, sobald du dort das nächste Mal etwas teilst.", "OK");
+                await DisplayAlertAsync("Not delivered everywhere", "At least one bubble was not reachable. It will see your new profile the next time you share something there.", "OK");
             await Shell.Current.GoToAsync("..");
         }
         finally

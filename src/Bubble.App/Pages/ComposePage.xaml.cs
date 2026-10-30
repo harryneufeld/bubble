@@ -14,7 +14,7 @@ public partial class ComposePage : ContentPage
     byte[]? _image;
     bool _initialized;
 
-    /// <summary>Optional: vorausgewählte Bubble.</summary>
+    /// <summary>Optional: preselected bubble.</summary>
     public string MailboxId { get; set; } = "";
 
     public ComposePage(AccountService account, FeedService feed)
@@ -55,7 +55,7 @@ public partial class ComposePage : ContentPage
                 },
             };
             SemanticProperties.SetDescription(chip, bubble.Name);
-            SemanticProperties.SetHint(chip, on ? "ausgewählt" : "");
+            SemanticProperties.SetHint(chip, on ? "selected" : "");
             var id = bubble.MailboxId;
             chip.GestureRecognizers.Add(new TapGestureRecognizer
             {
@@ -75,17 +75,17 @@ public partial class ComposePage : ContentPage
         var chosen = _account.Vault!.Bubbles.Where(b => _selected.Contains(b.MailboxId)).ToList();
         LifetimeLabel.Text = chosen.Count switch
         {
-            0 => "Wähle, wo du dein Highlight teilen möchtest.",
+            0 => "Choose where you want to share your highlight.",
             1 => chosen[0].Lifetime == PostLifetime.Story24h
-                ? $"⏳ Dein Highlight verschwindet nach 24 Stunden aus „{chosen[0].Name}“."
-                : $"📌 Dein Highlight bleibt dauerhaft in „{chosen[0].Name}“.",
-            var n => $"Geht an {n} Bubbles. ⏳ Je nach Bubble verschwindet es nach 24 Stunden oder bleibt dauerhaft.",
+                ? $"⏳ Your highlight disappears from “{chosen[0].Name}” after 24 hours."
+                : $"📌 Your highlight stays in “{chosen[0].Name}” permanently.",
+            var n => $"Goes to {n} bubbles. ⏳ Depending on the bubble it disappears after 24 hours or stays permanently.",
         };
         ShareButton.IsEnabled = chosen.Count > 0;
-        ShareButton.Text = chosen.Count switch { 0 => "Wähle eine Bubble", 1 => "Teilen", var n => $"In {n} Bubbles teilen" };
+        ShareButton.Text = chosen.Count switch { 0 => "Choose a bubble", 1 => "Share", var n => $"Share in {n} bubbles" };
     }
 
-    /// <summary>Emoji-Kacheln mit Beschriftung. Ein weiterer Tipp auf das gewählte Emoji nimmt die Auswahl zurück.</summary>
+    /// <summary>Emoji tiles with labels. Tapping the chosen emoji again clears the selection.</summary>
     void BuildFeelings()
     {
         FeelingGrid.Children.Clear();
@@ -114,7 +114,7 @@ public partial class ComposePage : ContentPage
                 },
             };
             SemanticProperties.SetDescription(tile, label);
-            SemanticProperties.SetHint(tile, on ? "ausgewählt" : "");
+            SemanticProperties.SetHint(tile, on ? "selected" : "");
             var picked = emoji;
             tile.GestureRecognizers.Add(new TapGestureRecognizer
             {
@@ -127,13 +127,13 @@ public partial class ComposePage : ContentPage
             FeelingGrid.Children.Add(tile);
         }
         FeelingHint.Text = _emoji is null
-            ? "Tippe ein Emoji, das zu deinem Tag passt."
-            : $"Du fühlst dich {Labels.Feelings.First(f => f.Emoji == _emoji).Label.ToLowerInvariant()}.";
+            ? "Tap an emoji that fits your day."
+            : $"You feel {Labels.Feelings.First(f => f.Emoji == _emoji).Label.ToLowerInvariant()}.";
     }
 
     async void OnPickPhoto(object? sender, EventArgs e)
     {
-        var photo = await PhotoPicker.PickAsync(this, "Foto hinzufügen");
+        var photo = await PhotoPicker.PickAsync(this, "Add photo");
         if (photo is null) return;
         try
         {
@@ -142,11 +142,11 @@ public partial class ComposePage : ContentPage
             var bytes = _image;
             Preview.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
             PreviewFrame.IsVisible = RemovePhotoButton.IsVisible = true;
-            PhotoButton.Text = "Foto ändern";
+            PhotoButton.Text = "Change photo";
         }
         catch (InvalidDataException)
         {
-            await DisplayAlertAsync("Foto nicht lesbar", "Dieses Bildformat wird leider nicht unterstützt.", "OK");
+            await DisplayAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
         }
     }
 
@@ -155,14 +155,14 @@ public partial class ComposePage : ContentPage
         _image = null;
         Preview.Source = null;
         PreviewFrame.IsVisible = RemovePhotoButton.IsVisible = false;
-        PhotoButton.Text = "Foto hinzufügen";
+        PhotoButton.Text = "Add photo";
     }
 
     async void OnShare(object? sender, EventArgs e)
     {
         if (string.IsNullOrWhiteSpace(TextEditor.Text) && _image is null)
         {
-            await DisplayAlertAsync("Noch leer", "Schreib etwas oder füge ein Foto hinzu.", "OK");
+            await DisplayAlertAsync("Nothing yet", "Write something or add a photo.", "OK");
             return;
         }
 
@@ -174,10 +174,10 @@ public partial class ComposePage : ContentPage
             foreach (var bubble in _account.Vault!.Bubbles.Where(b => _selected.Contains(b.MailboxId)))
             {
                 try { await _account.Client.PostAsync(bubble, _emoji, TextEditor.Text, _image); }
-                catch (HttpRequestException ex) { failed.Add($"„{bubble.Name}“: {Labels.ConnectionError(bubble.RelayUrl, ex)}"); }
+                catch (HttpRequestException ex) { failed.Add($"“{bubble.Name}”: {Labels.ConnectionError(bubble.RelayUrl, ex)}"); }
             }
             if (failed.Count > 0)
-                await DisplayAlertAsync("Nicht überall geteilt", string.Join("\n", failed), "OK");
+                await DisplayAlertAsync("Not shared everywhere", string.Join("\n", failed), "OK");
             await _feed.RefreshAsync();
             if (failed.Count < _selected.Count) await Shell.Current.GoToAsync("..");
         }

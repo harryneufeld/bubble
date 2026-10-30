@@ -8,9 +8,9 @@
     Title="Bubble">
 
     <TabBar>
-        <ShellContent Title="Heute" Icon="ic_home.png" Route="home" ContentTemplate="{DataTemplate pages:HomePage}" />
+        <ShellContent Title="Today" Icon="ic_home.png" Route="home" ContentTemplate="{DataTemplate pages:HomePage}" />
         <ShellContent Title="Bubbles" Icon="ic_bubbles.png" Route="bubbles" ContentTemplate="{DataTemplate pages:BubblesPage}" />
-        <ShellContent Title="Profil" Icon="ic_user.png" Route="profile" ContentTemplate="{DataTemplate pages:ProfilePage}" />
+        <ShellContent Title="Profile" Icon="ic_user.png" Route="profile" ContentTemplate="{DataTemplate pages:ProfilePage}" />
     </TabBar>
 
 </Shell>

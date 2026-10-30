@@ -2,13 +2,13 @@ using Bubble.Core;
 
 namespace Bubble.App.Services;
 
-/// <summary>Ein Post zusammen mit seiner Bubble und dem Profil des Absenders.</summary>
+/// <summary>A post together with its bubble and the sender's profile.</summary>
 public sealed record HomePost(BubbleMembership Bubble, FeedPost Post, Member? Author, BubbleSnapshot Snapshot);
 
 /// <summary>
-/// Lädt alle Bubbles parallel und hält das Ergebnis bis zum nächsten Laden im Speicher,
-/// damit Home, Bubble-Seite und Story-Ansicht dieselben Daten zeigen. Merkt sich lokal,
-/// welche Stories schon angesehen wurden (nur Nachrichten-IDs, keine Inhalte).
+/// Loads all bubbles in parallel and keeps the result in memory until the next load,
+/// so home, bubble page and story view show the same data. Remembers locally
+/// which stories have been seen (message IDs only, no content).
 /// </summary>
 public sealed class FeedService(AccountService account)
 {
@@ -16,16 +16,34 @@ public sealed class FeedService(AccountService account)
     readonly Dictionary<string, BubbleSnapshot> _snapshots = [];
     HashSet<string>? _seen;
 
-    /// <summary>Bubbles, deren Relay beim letzten Laden nicht erreichbar war.</summary>
+    /// <summary>Bubbles whose relay was not reachable on the last load.</summary>
     public List<BubbleMembership> Unreachable { get; } = [];
+
+    /// <summary>Names of bubbles the owner removed me from since the last call to <see cref="TakeRemoved"/>.</summary>
+    readonly List<string> _removed = [];
+
+    public IReadOnlyList<string> TakeRemoved()
+    {
+        var names = _removed.ToList();
+        _removed.Clear();
+        return names;
+    }
+
+    /// <summary>Drops everything that was loaded, e.g. after logging out.</summary>
+    public void Reset()
+    {
+        _snapshots.Clear();
+        _removed.Clear();
+        Unreachable.Clear();
+    }
 
     public BubbleSnapshot? SnapshotFor(BubbleMembership bubble) => _snapshots.GetValueOrDefault(bubble.MailboxId);
 
     public async Task RefreshAsync()
     {
-        var vault = account.Vault ?? throw new InvalidOperationException("Kein Account.");
-        var lifetimes = vault.Bubbles.ToDictionary(b => b.MailboxId, b => b.Lifetime);
-        var results = await Task.WhenAll(vault.Bubbles.Select(async b =>
+        var vault = account.Vault ?? throw new InvalidOperationException("No account.");
+        var before = vault.Bubbles.ToDictionary(b => b, b => (b.Key, b.Lifetime));
+        var results = await Task.WhenAll(vault.Bubbles.ToList().Select(async b =>
         {
             try { return (Bubble: b, Snapshot: (BubbleSnapshot?)await account.Client.LoadAsync(b)); }
             catch (HttpRequestException) { return (Bubble: b, Snapshot: (BubbleSnapshot?)null); }
@@ -35,17 +53,34 @@ public sealed class FeedService(AccountService account)
         foreach (var (bubble, snapshot) in results)
         {
             if (snapshot is null) Unreachable.Add(bubble);
+            else if (snapshot.Removed) await ForgetRemovedAsync(bubble);
             else _snapshots[bubble.MailboxId] = snapshot;
         }
-        // Ein anderes Mitglied hat die Lebensdauer geändert
-        if (vault.Bubbles.Any(b => lifetimes[b.MailboxId] != b.Lifetime)) await account.SaveAsync();
+        // Another member changed the lifetime, or the owner moved the bubble to a new key
+        if (vault.Bubbles.Any(b => before[b] != (b.Key, b.Lifetime))) await account.SaveAsync();
     }
 
     public async Task RefreshAsync(BubbleMembership bubble)
     {
-        var before = bubble.Lifetime;
-        _snapshots[bubble.MailboxId] = await account.Client.LoadAsync(bubble);
-        if (bubble.Lifetime != before) await account.SaveAsync();
+        var before = (bubble.Key, bubble.Lifetime);
+        var snapshot = await account.Client.LoadAsync(bubble);
+        if (snapshot.Removed)
+        {
+            await ForgetRemovedAsync(bubble);
+            return;
+        }
+        _snapshots[bubble.MailboxId] = snapshot;
+        if (before != (bubble.Key, bubble.Lifetime)) await account.SaveAsync();
+    }
+
+    /// <summary>True if the bubble is gone because the owner removed me from it.</summary>
+    public bool WasRemoved(BubbleMembership bubble) => account.FindBubble(bubble.MailboxId) is null;
+
+    async Task ForgetRemovedAsync(BubbleMembership bubble)
+    {
+        _removed.Add(bubble.Name);
+        _snapshots.Remove(bubble.MailboxId);
+        await account.ForgetAsync(bubble);
     }
 
     /// <summary>Alle Posts aller Bubbles, neueste zuerst.</summary>
@@ -58,13 +93,13 @@ public sealed class FeedService(AccountService account)
         ? s.Posts.Select(p => new HomePost(bubble, p, s.MemberFor(p.Message.AuthorKey), s)).ToList()
         : [];
 
-    /// <summary>Was andere geteilt haben, neueste zuerst. Eigene Posts stehen nur im „Du“-Kreis, nicht in der Timeline.</summary>
+    /// <summary>What others have shared, newest first. Own posts only appear in the "You" circle, not in the timeline.</summary>
     public IReadOnlyList<HomePost> TimelinePosts() => AllPosts().Where(p => !p.Post.IsMine).ToList();
 
-    /// <summary>Stories anderer aus einer Bubble (Posts der letzten 24 Stunden), älteste zuerst.</summary>
+    /// <summary>Stories of others from a bubble (posts of the last 24 hours), oldest first.</summary>
     public IReadOnlyList<HomePost> StoriesOf(BubbleMembership bubble) => LastDay(PostsOf(bubble).Where(p => !p.Post.IsMine));
 
-    /// <summary>Meine eigenen Stories aus allen Bubbles, älteste zuerst.</summary>
+    /// <summary>My own stories from all bubbles, oldest first.</summary>
     public IReadOnlyList<HomePost> MyStories() => LastDay(AllPosts().Where(p => p.Post.IsMine));
 
     static IReadOnlyList<HomePost> LastDay(IEnumerable<HomePost> posts)
@@ -77,8 +112,8 @@ public sealed class FeedService(AccountService account)
         PostsOf(bubble).FirstOrDefault(p => p.Post.Id == postId);
 
     /// <summary>
-    /// Setzt oder nimmt das Herz zurück. Die Oberfläche reagiert sofort; schlägt das Senden fehl,
-    /// wird zurückgesetzt und die Ausnahme weitergereicht.
+    /// Sets or takes back the heart. The UI reacts immediately; if sending fails,
+    /// it is rolled back and the exception is passed on.
     /// </summary>
     public async Task ToggleLikeAsync(HomePost item)
     {
@@ -93,7 +128,7 @@ public sealed class FeedService(AccountService account)
         }
     }
 
-    /// <summary>Kommentiert und zeigt den Kommentar sofort an.</summary>
+    /// <summary>Comments and shows the comment immediately.</summary>
     public async Task CommentAsync(HomePost item, string text)
     {
         var comment = await account.Client.CommentAsync(item.Bubble, item.Post, text);
@@ -105,7 +140,7 @@ public sealed class FeedService(AccountService account)
     public void MarkSeen(string postId)
     {
         if (!Seen.Add(postId)) return;
-        // Begrenzen: Story-IDs sind nach 24 h ohnehin wertlos
+        // Limit the size: story IDs are worthless after 24 h anyway
         Preferences.Default.Set(SeenKey, string.Join(',', Seen.TakeLast(500)));
     }
 

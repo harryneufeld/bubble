@@ -5,19 +5,19 @@ using Org.BouncyCastle.Crypto.Parameters;
 
 namespace Bubble.Core;
 
-/// <summary>Was das Gerät braucht, um sein Backup ohne erneute Code-Eingabe zu aktualisieren.</summary>
+/// <summary>What the device needs to update its backup without entering the code again.</summary>
 public sealed record BackupState(string BackupId, string AuthToken, string DataKey, string CodeWrap);
 
 /// <summary>
-/// Inhalt auf dem Relay. Der Vault ist mit einem zufälligen Daten-Schlüssel verschlüsselt;
-/// dieser Daten-Schlüssel ist pro Entsperr-Methode „eingepackt“ (aktuell: Backup-Code).
-/// Ein Passkey (WebAuthn PRF) kommt später als weiterer Eintrag in <see cref="Wraps"/> dazu.
+/// Content on the relay. The vault is encrypted with a random data key;
+/// this data key is "wrapped" per unlock method (currently: backup code).
+/// A passkey (WebAuthn PRF) will be added later as another entry in <see cref="Wraps"/>.
 /// </summary>
 public sealed record BackupBlob(int V, Dictionary<string, string> Wraps, string Data);
 
 public static class Backup
 {
-    // Crockford-Base32: ohne I, L, O, U – gut abzutippen und für Passwortmanager geeignet.
+    // Crockford Base32: without I, L, O, U – easy to type and suitable for password managers.
     const string Alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
     const int CodeChars = 25; // 125 Bit Zufall
     static readonly byte[] Salt = Encoding.UTF8.GetBytes("bubble/v1/backup-code");
@@ -42,11 +42,11 @@ public static class Backup
             if (Alphabet.Contains(mapped)) sb.Append(mapped);
         }
         if (sb.Length != CodeChars)
-            throw new FormatException("Der Backup-Code hat nicht das richtige Format.");
+            throw new FormatException("The backup code does not have the right format.");
         return sb.ToString();
     }
 
-    /// <summary>Richtet ein neues Backup ein. Gibt den Zustand zurück, den das Gerät im Vault ablegt.</summary>
+    /// <summary>Sets up a new backup. Returns the state the device stores in the vault.</summary>
     public static BackupState Create(string code)
     {
         var secrets = DeriveFromCode(code);
@@ -63,24 +63,24 @@ public static class Backup
         return JsonSerializer.SerializeToUtf8Bytes(blob, CoreJson.Default.BackupBlob);
     }
 
-    /// <summary>Öffnet ein Backup mit dem Code. Wirft bei falschem Code eine CryptographicException.</summary>
+    /// <summary>Opens a backup with the code. Throws a CryptographicException for a wrong code.</summary>
     public static Vault Open(string code, byte[] blobBytes) => Open(DeriveFromCode(code), blobBytes);
 
-    /// <summary>Wie <see cref="Open(string, byte[])"/>, aber mit bereits abgeleiteten Werten (spart einen Argon2-Durchlauf).</summary>
+    /// <summary>Like <see cref="Open(string, byte[])"/>, but with already derived values (saves an Argon2 run).</summary>
     public static Vault Open(CodeSecrets secrets, byte[] blobBytes)
     {
         var blob = JsonSerializer.Deserialize(blobBytes, CoreJson.Default.BackupBlob)
-                   ?? throw new FormatException("Backup ist leer.");
+                   ?? throw new FormatException("Backup is empty.");
         var dataKey = Crypto.Open(secrets.WrapKey, Base64Url.Decode(blob.Wraps["code"]), "bubble/v1/backup-wrap|code");
         var json = Crypto.Open(dataKey, Base64Url.Decode(blob.Data), "bubble/v1/backup-data");
-        var vault = JsonSerializer.Deserialize(json, CoreJson.Default.Vault) ?? throw new FormatException("Vault ist leer.");
+        var vault = JsonSerializer.Deserialize(json, CoreJson.Default.Vault) ?? throw new FormatException("Vault is empty.");
         vault.Backup = new BackupState(secrets.BackupId, secrets.AuthToken, Base64Url.Encode(dataKey), blob.Wraps["code"]);
         return vault;
     }
 
     public sealed record CodeSecrets(byte[] WrapKey, string BackupId, string AuthToken);
 
-    /// <summary>Aus dem Code werden drei unabhängige Werte abgeleitet: Schlüssel, Speicher-ID und Schreib-Token.</summary>
+    /// <summary>Three independent values are derived from the code: key, storage ID and write token.</summary>
     public static CodeSecrets DeriveFromCode(string code)
     {
         var output = Argon2(Encoding.UTF8.GetBytes(NormalizeCode(code)), Salt, 96);
@@ -90,7 +90,7 @@ public static class Backup
             Base64Url.Encode(output[64..96]));
     }
 
-    /// <summary>Argon2id mit den oben eingestellten Kosten. Auch für kurze Einladungscodes genutzt.</summary>
+    /// <summary>Argon2id with the cost settings above. Also used for short invitation codes.</summary>
     internal static byte[] Argon2(byte[] password, byte[] salt, int length)
     {
         var parameters = new Argon2Parameters.Builder(Argon2Parameters.Argon2id)

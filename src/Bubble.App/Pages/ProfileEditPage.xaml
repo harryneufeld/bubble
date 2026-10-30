@@ -4,7 +4,7 @@
              xmlns:controls="clr-namespace:Bubble.App.Controls"
              x:Class="Bubble.App.Pages.ProfileEditPage"
              Shell.TabBarIsVisible="False"
-             Title="Profil bearbeiten">
+             Title="Edit profile">
     <ScrollView>
         <VerticalStackLayout Style="{StaticResource Column}" Padding="20,8,20,32" Spacing="14">
             <Grid HorizontalOptions="Center" Margin="0,8">
@@ -12,18 +12,18 @@
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnPickAvatar" />
                 </Grid.GestureRecognizers>
-                <SemanticProperties.Description>Profilbild ändern</SemanticProperties.Description>
+                <SemanticProperties.Description>Change profile picture</SemanticProperties.Description>
             </Grid>
             <Label Text="Name" Style="{StaticResource SectionText}" />
             <Border Style="{StaticResource Field}">
-                <Entry x:Name="NameEntry" MaxLength="40" TextChanged="OnNameChanged" SemanticProperties.Description="Dein Name" />
+                <Entry x:Name="NameEntry" MaxLength="40" TextChanged="OnNameChanged" SemanticProperties.Description="Your name" />
             </Border>
-            <Label Text="Über dich" Style="{StaticResource SectionText}" Margin="0,6,0,0" />
+            <Label Text="About you" Style="{StaticResource SectionText}" Margin="0,6,0,0" />
             <Border Style="{StaticResource Field}">
-                <Entry x:Name="BioEntry" Placeholder="z. B. Kaffee zuerst, dann reden" MaxLength="80" SemanticProperties.Description="Über dich" />
+                <Entry x:Name="BioEntry" Placeholder="e.g. Coffee first, then talk" MaxLength="80" SemanticProperties.Description="About you" />
             </Border>
-            <Label Style="{StaticResource CaptionText}" Text="Änderungen gehen verschlüsselt an alle deine Bubbles." />
-            <Button x:Name="SaveButton" Text="Speichern" Clicked="OnSave" Margin="0,12,0,0" />
+            <Label Style="{StaticResource CaptionText}" Text="Changes go, encrypted, to all your bubbles." />
+            <Button x:Name="SaveButton" Text="Save" Clicked="OnSave" Margin="0,12,0,0" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

@@ -15,12 +15,12 @@ public partial class AppShell : Shell
 	DateTime _lastBackOnHome = DateTime.MinValue;
 
 	/// <summary>
-	/// Zurück-Taste: Seiten schließen sich der Reihe nach, ein anderer Tab führt zurück zu „Heute“.
-	/// Auf „Heute“ beendet erst zweimal Zurück innerhalb von zwei Sekunden die App.
+	/// Back button: pages close one after another, another tab leads back to "Today".
+	/// On "Today" the app only exits after pressing back twice within two seconds.
 	/// </summary>
 	protected override bool OnBackButtonPressed() => HandleBack() || base.OnBackButtonPressed();
 
-	/// <summary>True, wenn Zurück verarbeitet wurde; false, wenn die App jetzt beendet werden darf.</summary>
+	/// <summary>True if back was handled; false if the app may exit now.</summary>
 	public bool HandleBack()
 	{
 		var location = (CurrentState?.Location?.OriginalString ?? "").Split('?')[0];
@@ -37,10 +37,10 @@ public partial class AppShell : Shell
 		}
 
 		if (DateTime.UtcNow - _lastBackOnHome < TimeSpan.FromSeconds(2))
-			return false; // zweites Zurück: App beenden
+			return false; // second back: exit the app
 
 		_lastBackOnHome = DateTime.UtcNow;
-		ShowHint("Nochmal zurück, um Bubble zu schließen");
+		ShowHint("Press back again to close Bubble");
 		return true;
 	}
 

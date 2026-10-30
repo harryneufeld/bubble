@@ -15,7 +15,7 @@ public partial class OnboardingPage : ContentPage
         ShowServer();
     }
 
-    // Ohne Account gibt es kein Zurück.
+    // Without an account there is no way back.
     protected override bool OnBackButtonPressed()
     {
         if (!WelcomeStep.IsVisible) OnShowWelcome(null, EventArgs.Empty);
@@ -38,7 +38,7 @@ public partial class OnboardingPage : ContentPage
 
     async void OnPickAvatar(object? sender, TappedEventArgs e)
     {
-        var photo = await PhotoPicker.PickAsync(this, "Profilbild", _avatar is not null, () =>
+        var photo = await PhotoPicker.PickAsync(this, "Profile picture", _avatar is not null, () =>
         {
             _avatar = null;
             AvatarPreview.Image = null;
@@ -52,17 +52,17 @@ public partial class OnboardingPage : ContentPage
         }
         catch (InvalidDataException)
         {
-            await DisplayAlertAsync("Foto nicht lesbar", "Dieses Bildformat wird leider nicht unterstützt.", "OK");
+            await DisplayAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
         }
     }
 
-    void ShowServer() => ServerLabel.Text = $"Server: {Labels.Host(AccountService.DefaultRelayUrl)}";
+    void ShowServer() => ServerLabel.Text = RestoreServerLabel.Text = $"Server: {Labels.Host(AccountService.DefaultRelayUrl)}";
 
     async void OnChangeServer(object? sender, EventArgs e)
     {
         var input = await SheetPage.PromptAsync(this, "Server",
-            "Adresse des Relays, z. B. eines Rechners in deinem Netzwerk. Er speichert nur verschlüsselte Daten.",
-            "Speichern", "192.168.1.20:5080", Labels.Host(AccountService.DefaultRelayUrl), 100, Keyboard.Url);
+            "Address of the relay, e.g. a computer on your network. It only stores encrypted data.",
+            "Save", "192.168.1.20:5080", Labels.Host(AccountService.DefaultRelayUrl), 100, Keyboard.Url);
         if (input is null) return;
         if (await CheckServerAsync(input)) ShowServer();
     }
@@ -71,12 +71,12 @@ public partial class OnboardingPage : ContentPage
     {
         if (!AccountService.TryNormalizeRelayUrl(input, out var url))
         {
-            await DisplayAlertAsync("Ungültige Server-Adresse", "Beispiel: 192.168.1.20:5080", "OK");
+            await DisplayAlertAsync("Invalid server address", "Example: 192.168.1.20:5080", "OK");
             return false;
         }
         if (!await AccountService.IsReachableAsync(url))
         {
-            await DisplayAlertAsync("Server nicht erreichbar", $"Unter {Labels.Host(url)} antwortet kein Bubble-Relay. Prüfe die Adresse über „Server ändern“.", "OK");
+            await DisplayAlertAsync("Server not reachable", $"No Bubble relay answers at {Labels.Host(url)}. Check the address under “Change server”.", "OK");
             return false;
         }
         AccountService.DefaultRelayUrl = url;
@@ -87,7 +87,7 @@ public partial class OnboardingPage : ContentPage
     {
         if (string.IsNullOrWhiteSpace(NameEntry.Text))
         {
-            await DisplayAlertAsync("Name fehlt", "Wie sollen dich deine Leute nennen?", "OK");
+            await DisplayAlertAsync("Name missing", "What should your people call you?", "OK");
             NameEntry.Focus();
             return;
         }
@@ -109,15 +109,15 @@ public partial class OnboardingPage : ContentPage
                 if (await _account.RestoreAsync(CodeEntry.Text ?? ""))
                     await Shell.Current.GoToAsync("..");
                 else
-                    await DisplayAlertAsync("Nicht gefunden", "Zu diesem Code gibt es kein Backup.", "OK");
+                    await DisplayAlertAsync("Not found", $"There is no backup for this code on {Labels.Host(AccountService.DefaultRelayUrl)}. If your account was on another server, change the server first.", "OK");
             }
             catch (FormatException)
             {
-                await DisplayAlertAsync("Ungültiger Code", "Der Code besteht aus 25 Zeichen, z. B. ABCDE-12345-…", "OK");
+                await DisplayAlertAsync("Invalid code", "The code has 25 characters, e.g. ABCDE-12345-…", "OK");
             }
             catch (HttpRequestException)
             {
-                await DisplayAlertAsync("Keine Verbindung", $"{Labels.Host(AccountService.DefaultRelayUrl)} ist gerade nicht erreichbar.", "OK");
+                await DisplayAlertAsync("No connection", $"{Labels.Host(AccountService.DefaultRelayUrl)} is not reachable right now.", "OK");
             }
         });
     }

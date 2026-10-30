@@ -2,18 +2,18 @@ using Bubble.Core;
 
 namespace Bubble.Tests;
 
-/// <summary>Läuft nur, wenn BUBBLE_RELAY_URL gesetzt ist, z. B. http://192.168.1.20:5080/</summary>
+/// <summary>Only runs if BUBBLE_RELAY_URL is set, e.g. http://192.168.1.20:5080/</summary>
 public sealed class LiveRelayFactAttribute : FactAttribute
 {
     public static string? Url => Environment.GetEnvironmentVariable("BUBBLE_RELAY_URL");
 
     public LiveRelayFactAttribute()
     {
-        if (string.IsNullOrWhiteSpace(Url)) Skip = "BUBBLE_RELAY_URL nicht gesetzt.";
+        if (string.IsNullOrWhiteSpace(Url)) Skip = "BUBBLE_RELAY_URL not set.";
     }
 }
 
-/// <summary>Ende-zu-Ende gegen einen echten Relay. Nutzt 24h-Posts, damit auf dem Server nichts liegen bleibt.</summary>
+/// <summary>End-to-end against a real relay. Uses 24h posts so nothing stays on the server.</summary>
 public class LiveRelayTests
 {
     static readonly string Url = LiveRelayFactAttribute.Url?.TrimEnd('/') + "/";

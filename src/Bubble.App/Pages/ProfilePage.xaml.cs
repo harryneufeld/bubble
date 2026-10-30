@@ -6,11 +6,13 @@ namespace Bubble.App.Pages;
 public partial class ProfilePage : ContentPage
 {
     readonly AccountService _account;
+    readonly FeedService _feed;
 
-    public ProfilePage(AccountService account)
+    public ProfilePage(AccountService account, FeedService feed)
     {
         InitializeComponent();
         _account = account;
+        _feed = feed;
     }
 
     protected override async void OnAppearing()
@@ -23,8 +25,8 @@ public partial class ProfilePage : ContentPage
         NameLabel.Text = vault.DisplayName;
         BioLabel.Text = vault.Bio ?? "";
         BioLabel.IsVisible = vault.Bio is not null;
-        StatsLabel.Text = vault.Bubbles.Count == 1 ? "In 1 Bubble" : $"In {vault.Bubbles.Count} Bubbles";
-        BackupLabel.Text = vault.Backup is null ? "Noch nicht eingerichtet" : "Aktiv, wird automatisch aktualisiert";
+        StatsLabel.Text = vault.Bubbles.Count == 1 ? "In 1 bubble" : $"In {vault.Bubbles.Count} bubbles";
+        BackupLabel.Text = vault.Backup is null ? "Not set up yet" : "Active, updated automatically";
         ServerLabel.Text = Labels.Host(AccountService.DefaultRelayUrl);
         VersionLabel.Text = $"Version {AppInfo.Current.VersionString} ({AppInfo.Current.BuildString})";
     }
@@ -38,12 +40,12 @@ public partial class ProfilePage : ContentPage
         try
         {
             if (!await Launcher.Default.OpenAsync(new Uri(url)))
-                await DisplayAlertAsync("Link nicht geöffnet", $"Öffne {url} bitte selbst im Browser.", "OK");
+                await DisplayAlertAsync("Link not opened", $"Please open {url} in your browser yourself.", "OK");
         }
         catch (Exception)
         {
-            // kein Browser gefunden oder nicht erlaubt
-            await DisplayAlertAsync("Link nicht geöffnet", $"Öffne {url} bitte selbst im Browser.", "OK");
+            // no browser found or not allowed
+            await DisplayAlertAsync("Link not opened", $"Please open {url} in your browser yourself.", "OK");
         }
     }
 
@@ -54,23 +56,37 @@ public partial class ProfilePage : ContentPage
     async void OnServer(object? sender, TappedEventArgs e)
     {
         var input = await SheetPage.PromptAsync(this, "Server",
-            "Gilt für neue Bubbles und dein Backup. Bestehende Bubbles bleiben auf ihrem Server.",
-            "Speichern", "192.168.1.20:5080", Labels.Host(AccountService.DefaultRelayUrl), 100, Keyboard.Url);
+            "Applies to new bubbles and your backup. Existing bubbles stay on their server.",
+            "Save", "192.168.1.20:5080", Labels.Host(AccountService.DefaultRelayUrl), 100, Keyboard.Url);
         if (input is null) return;
         if (!AccountService.TryNormalizeRelayUrl(input, out var url))
         {
-            await DisplayAlertAsync("Ungültige Server-Adresse", "Beispiel: 192.168.1.20:5080", "OK");
+            await DisplayAlertAsync("Invalid server address", "Example: 192.168.1.20:5080", "OK");
             return;
         }
         if (!await AccountService.IsReachableAsync(url))
         {
-            await DisplayAlertAsync("Server nicht erreichbar", $"Unter {Labels.Host(url)} antwortet kein Bubble-Relay.", "OK");
+            await DisplayAlertAsync("Server not reachable", $"No Bubble relay answers at {Labels.Host(url)}.", "OK");
             return;
         }
         AccountService.DefaultRelayUrl = url;
-        var backupOk = await _account.SaveAsync(); // lädt ein eingerichtetes Backup auf den neuen Server
+        var backupOk = await _account.SaveAsync(); // uploads an existing backup to the new server
         ServerLabel.Text = Labels.Host(url);
         if (!backupOk)
-            await DisplayAlertAsync("Backup nicht aktualisiert", "Der Server ist nicht erreichbar. Das Backup wird beim nächsten Speichern aktualisiert.", "OK");
+            await DisplayAlertAsync("Backup not updated", "The server is not reachable. The backup will be updated on the next save.", "OK");
+    }
+
+    async void OnLogOut(object? sender, TappedEventArgs e)
+    {
+        var vault = _account.Vault;
+        if (vault is null) return;
+        var message = vault.Backup is null
+            ? "You have not set up a backup. Logging out deletes your identity and all bubble keys from this device for good – you will lose access to your bubbles."
+            : "Your identity and bubble keys are removed from this device. You can restore everything later with your backup code, so make sure you still have it.";
+        if (!await DisplayAlertAsync("Log out?", message, "Log out", "Cancel")) return;
+
+        _account.LogOut();
+        _feed.Reset();
+        await Shell.Current.GoToAsync("//home"); // the home page notices there is no account and shows onboarding
     }
 }

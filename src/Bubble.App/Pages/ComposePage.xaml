@@ -3,32 +3,32 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Bubble.App.Pages.ComposePage"
              Shell.TabBarIsVisible="False"
-             Title="Highlight teilen">
+             Title="Share highlight">
     <Grid Style="{StaticResource Column}" RowDefinitions="*,Auto" Padding="16,8,16,16">
         <ScrollView>
             <VerticalStackLayout Spacing="14" Padding="0,0,0,12">
-                <Label Text="Wie fühlst du dich?" Style="{StaticResource TitleText}" />
-                <Label x:Name="FeelingHint" Style="{StaticResource CaptionText}" Text="Tippe ein Emoji, das zu deinem Tag passt." />
+                <Label Text="How are you feeling?" Style="{StaticResource TitleText}" />
+                <Label x:Name="FeelingHint" Style="{StaticResource CaptionText}" Text="Tap an emoji that fits your day." />
 
-                <!-- Gefühl: ein Emoji, optional -->
+                <!-- Feeling: one emoji, optional -->
                 <FlexLayout x:Name="FeelingGrid" Wrap="Wrap" JustifyContent="Start" />
 
                 <Border Style="{StaticResource Field}" Padding="12,6">
-                    <Editor x:Name="TextEditor" Placeholder="Was war heute besonders?" AutoSize="TextChanges" MaxLength="1000"
-                            MinimumHeightRequest="120" SemanticProperties.Description="Dein Highlight" />
+                    <Editor x:Name="TextEditor" Placeholder="What was special today?" AutoSize="TextChanges" MaxLength="1000"
+                            MinimumHeightRequest="120" SemanticProperties.Description="Your highlight" />
                 </Border>
 
                 <Border x:Name="PreviewFrame" Style="{StaticResource Photo}" IsVisible="False">
-                    <Image x:Name="Preview" Aspect="AspectFill" HeightRequest="320" SemanticProperties.Description="Gewähltes Foto" />
+                    <Image x:Name="Preview" Aspect="AspectFill" HeightRequest="320" SemanticProperties.Description="Chosen photo" />
                 </Border>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                    <Button x:Name="PhotoButton" Text="Foto hinzufügen" ImageSource="ic_camera.png" Clicked="OnPickPhoto" Style="{StaticResource SecondaryButton}" />
-                    <Button x:Name="RemovePhotoButton" Grid.Column="1" Text="Entfernen" Clicked="OnRemovePhoto" IsVisible="False" Style="{StaticResource GhostButton}" />
+                    <Button x:Name="PhotoButton" Text="Add photo" ImageSource="ic_camera.png" Clicked="OnPickPhoto" Style="{StaticResource SecondaryButton}" />
+                    <Button x:Name="RemovePhotoButton" Grid.Column="1" Text="Remove" Clicked="OnRemovePhoto" IsVisible="False" Style="{StaticResource GhostButton}" />
                 </Grid>
-                <Label Text="Standort- und Kameradaten werden entfernt." Style="{StaticResource CaptionText}" />
+                <Label Text="Location and camera data are removed." Style="{StaticResource CaptionText}" />
 
-                <!-- Bubble wählen -->
-                <Label Text="Teilen in" Style="{StaticResource SectionText}" Margin="0,8,0,0" />
+                <!-- Choose bubble -->
+                <Label Text="Share in" Style="{StaticResource SectionText}" Margin="0,8,0,0" />
                 <FlexLayout x:Name="BubbleChips" Wrap="Wrap" JustifyContent="Start" />
 
                 <Border Style="{StaticResource InfoBar}">
@@ -38,7 +38,7 @@
         </ScrollView>
 
         <Grid Grid.Row="1">
-            <Button x:Name="ShareButton" Text="Teilen" Clicked="OnShare" />
+            <Button x:Name="ShareButton" Text="Share" Clicked="OnShare" />
             <ActivityIndicator x:Name="Busy" IsRunning="False" IsVisible="{Binding IsRunning, Source={x:Reference Busy}}"
                                Color="White" HorizontalOptions="End" Margin="0,0,20,0" HeightRequest="24" WidthRequest="24" />
         </Grid>

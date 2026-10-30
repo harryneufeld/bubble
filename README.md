@@ -1,17 +1,17 @@
 # 🫧 Bubble
 
-Highlights mit einem Gefühl (Emoji) in privaten Gruppen teilen, mit Herzen und Kommentaren, Ende-zu-Ende-verschlüsselt. Ziel und Roadmap stehen in [PLAN.md](PLAN.md), die Gestaltungsregeln in [DESIGN.md](DESIGN.md).
+Share highlights with a feeling (emoji) in private groups, with hearts and comments, end-to-end encrypted. Goals and roadmap are in [PLAN.md](PLAN.md), the design rules in [DESIGN.md](DESIGN.md).
 
-## Projekte
+## Projects
 
-| Projekt | Inhalt |
+| Project | Contents |
 |---|---|
-| `src/Bubble.Core` | Krypto, Nachrichtenformat, Einladungen, Backup, Relay-Client, Feed-Logik. Plattformunabhängig. |
-| `src/Bubble.Relay` | ASP.NET-Core-Relay mit SQLite. Speichert nur verschlüsselte Blobs. |
-| `src/Bubble.App` | .NET-MAUI-App (Android, iOS, Windows). |
-| `tests/Bubble.Tests` | Tests für Core und Relay, inklusive End-to-End über einen In-Memory-Relay. |
+| `src/Bubble.Core` | Crypto, message format, invitations, backup, relay client, feed logic. Platform independent. |
+| `src/Bubble.Relay` | ASP.NET Core relay with SQLite. Only stores encrypted blobs. |
+| `src/Bubble.App` | .NET MAUI app (Android, iOS, Windows). |
+| `tests/Bubble.Tests` | Tests for core and relay, including end-to-end through an in-memory relay. |
 
-## Loslegen
+## Getting started
 
 ```bash
 dotnet test
@@ -21,59 +21,68 @@ dotnet test
 dotnet run --project src/Bubble.Relay
 ```
 
-Der Relay läuft danach auf `http://localhost:5080`. Die App startest du aus Visual Studio, z. B. als Windows-App oder im Android-Emulator; der Emulator erreicht den Relay über `10.0.2.2:5080`. Für ein echtes Handy startest du den Relay mit `--urls http://0.0.0.0:5080` und trägst in `AccountService.DefaultRelayUrl` die IP-Adresse deines PCs ein.
+The relay then runs on `http://localhost:5080`. Start the app from Visual Studio, e.g. as a Windows app or in the Android emulator; the emulator reaches the relay at `10.0.2.2:5080`. For a real phone, start the relay with `--urls http://0.0.0.0:5080` and enter your PC's IP address in the app under "Server".
 
-### Relay per Docker
+### Relay via Docker
 
 ```bash
 docker compose up -d --build
 ```
 
-Das Image baut für amd64 und arm64, und die Datenbank liegt im Volume `relay-data`. In der App trägst du beim Onboarding oder später unter „Server“ die Adresse ein, z. B. `192.168.1.20:5080`.
+The image builds for amd64 and arm64, and the database lives in the volume `relay-data`. In the app, enter the address during onboarding (also on the "I already have an account" screen) or later under "Server", e.g. `192.168.1.20:5080`.
 
-Gegen einen laufenden Relay lassen sich die Live-Tests ausführen:
+The live tests can be run against a running relay:
 
 ```bash
 BUBBLE_RELAY_URL=http://<server>:5080/ dotnet test --filter LiveRelayTests
 ```
 
-## So funktioniert die Verschlüsselung
+## How the encryption works
 
-- **Identität:** Ed25519-Schlüsselpaar auf dem Gerät, ohne E-Mail oder Telefonnummer. Jede Nachricht wird damit signiert.
-- **Bubble:** ein zufälliger 32-Byte-Root-Key. Per HKDF werden daraus abgeleitet:
-  - die **Mailbox-ID**, die der Relay sieht (zufällig aussehend, ohne Bezug zum Namen),
-  - der **Inhaltsschlüssel** für ChaCha20-Poly1305.
-- **Einladung:** `bubble://join#…`. Der Schlüssel steht im Fragment. Die App zeigt ihn als **QR-Code** (wird lokal erzeugt und mit der Kamera gescannt) oder als **kurzen Code** wie `7KQ2M-9XH4T` (50 Bit, 24 h gültig): Aus dem Code leitet die App per Argon2id eine Mailbox-ID und einen Schlüssel ab, unter der die Einladung verschlüsselt als 24h-Nachricht auf dem Relay liegt. Der Relay sieht weder Code noch Bubble.
-- **Herzen und Kommentare:** eigene signierte, verschlüsselte Nachrichten (`Like`, `Comment`) mit der ID des Posts. Beim Herz zählt pro Person die neueste Nachricht. Beide laufen mit dem Post ab: Auf dem Relay stehen sie mit demselben Ablaufzeitpunkt wie der Post und werden mit ihm gelöscht.
-- **Profil:** Name, Profilbild (512 × 512, ohne Metadaten) und Bio gehen als signierte, verschlüsselte `Profile`-Nachricht an jede Bubble des Mitglieds. Der Relay weiß davon nichts.
-- **Nachricht:** JSON → signieren → verschlüsseln. Mailbox und Nachrichten-ID sind als Associated Data gebunden, sodass der Server Nachrichten weder verändern noch unter neuer ID wieder einspielen kann.
-- **Lebensdauer:** 24h-Posts bekommen ein `expiresAt`. Der Relay löscht sie endgültig, und der Client blendet sie zusätzlich selbst aus. Ändert jemand die Lebensdauer, wird eine signierte `LifetimeChanged`-Nachricht verschickt; sie gilt nur für neue Posts.
-- **Fotos:** werden auf dem Gerät gedreht, auf maximal 1600 px verkleinert und neu als JPEG kodiert. Dabei fallen EXIF- und GPS-Daten weg.
-- **Lokale Speicherung:** im `SecureStorage` der Plattform (Keystore, Keychain, DPAPI). Android-Cloud-Backups sind deaktiviert.
+- **Identity:** an Ed25519 key pair on the device, no email or phone number. Every message is signed with it.
+- **Bubble:** a random 32-byte root key. HKDF derives from it:
+  - the **mailbox ID** the relay sees (random-looking, unrelated to the name),
+  - the **content key** for ChaCha20-Poly1305.
+- **Invitation:** `bubble://join#…`. The key is in the fragment. The app shows it as a **QR code** (generated locally and scanned with the camera) or as a **short code** like `7KQ2M-9XH4T` (50 bits, valid for 24 h): the app derives a mailbox ID and a key from the code with Argon2id, and the invitation sits there on the relay, encrypted, as a 24h message. The relay sees neither the code nor the bubble.
+- **Hearts and comments:** their own signed, encrypted messages (`Like`, `Comment`) carrying the post ID. For hearts, the newest message per person counts. Both expire with the post: on the relay they carry the same expiry time as the post and are deleted with it.
+- **Profile:** name, profile picture (512 × 512, no metadata) and bio go as a signed, encrypted `Profile` message to every bubble of the member. The relay knows nothing about it.
+- **Message:** JSON → sign → encrypt. Mailbox and message ID are bound as associated data, so the server can neither modify messages nor replay them under a new ID.
+- **Lifetime:** 24h posts get an `expiresAt`. The relay deletes them for good, and the client hides them itself as well. If someone changes the lifetime, a signed `LifetimeChanged` message is sent; it only applies to new posts.
+- **Photos:** are rotated on the device, downscaled to at most 1600 px and re-encoded as JPEG. EXIF and GPS data are dropped in the process.
+- **Local storage:** in the platform's `SecureStorage` (Keystore, Keychain, DPAPI). Android cloud backups are disabled.
 
-## Backup und neues Gerät
+## Leaving, removing members and logging out
 
-1. Beim Einrichten erzeugt die App einen **Backup-Code** mit 25 Zeichen (125 Bit), z. B. `7KQ2M-…`. Die App rät dazu, ihn im Passwortmanager zu speichern.
-2. Per **Argon2id** werden aus dem Code drei Werte abgeleitet: Schlüssel, Backup-ID und Schreib-Token.
-3. Der Vault (Identität und alle Bubble-Schlüssel) wird mit einem zufälligen Daten-Schlüssel verschlüsselt. Dieser Daten-Schlüssel ist pro Entsperr-Methode „eingepackt“ (`BackupBlob.Wraps`).
-4. Ändert sich etwas, z. B. weil man einer Bubble beitritt, aktualisiert die App das Backup automatisch.
-5. Auf einem neuen Gerät genügt der Code, um alles wiederherzustellen.
+- **Leaving:** any member can leave a bubble (bubble page → "Leave bubble"). The app sends a signed `Left` message so the others stop listing you, and forgets the bubble key on the device.
+- **Owner:** whoever creates a bubble is its owner; their public key travels in the invitation. Bubbles created before owners existed have no owner and members cannot be removed from them.
+- **Removing a member:** the owner taps a member on the bubble page. Because everyone in a bubble shares one key, removal is a **key rotation**: the owner generates a new root key and posts a signed `KeyRotation` message to the old mailbox that contains the new key sealed separately for each remaining member (X25519 Diffie-Hellman between the owner's and the member's identity, converted from their Ed25519 keys, then ChaCha20-Poly1305). Remaining members pick the new key up the next time they load the bubble and move over automatically. The removed member finds no sealed key for themselves, sees that they were removed and drops the bubble. They can neither read nor write anything new.
+  - Earlier highlights stay behind under the old key; the new mailbox starts empty.
+  - Only members who have published a profile or shared something receive the new key.
+- **Logging out:** Profile → "Log out" deletes the identity and bubble keys from the device. The app warns if no backup exists. With a backup, "I already have an account" and the backup code restore everything.
 
-**Passkey (vorbereitet):** Ein Passkey kommt als zweiter Eintrag in `Wraps` dazu. Den Schlüssel liefert dabei die WebAuthn-PRF-Erweiterung; am Datenformat ändert sich nichts.
+## Backup and new device
 
-## Was der Relay weiß und was nicht
+1. During setup the app creates a **backup code** with 25 characters (125 bits), e.g. `7KQ2M-…`. The app recommends saving it in a password manager.
+2. **Argon2id** derives three values from the code: key, backup ID and write token.
+3. The vault (identity and all bubble keys) is encrypted with a random data key. This data key is "wrapped" per unlock method (`BackupBlob.Wraps`).
+4. When something changes, e.g. you join a bubble, the app updates the backup automatically.
+5. On a new device the code is enough to restore everything. **The backup lives on the server (relay) you used when you created it, so choose that server first** – the "I already have an account" screen has a "Change server" button for this.
 
-| weiß | weiß nicht |
+**Passkey (prepared):** a passkey will be added as a second entry in `Wraps`. The WebAuthn PRF extension supplies the key; the data format does not change.
+
+## What the relay knows and what it doesn't
+
+| knows | doesn't know |
 |---|---|
-| Mailbox-IDs, Anzahl und Größe der Nachrichten | Namen von Bubbles oder Personen, Inhalte, Fotos |
-| Ablaufzeitpunkt von 24h-Posts | wer in welcher Bubble ist (keine Accounts) |
-| IP-Adressen während der Anfrage (werden nicht geloggt oder gespeichert) | Inhalt der Backups |
+| Mailbox IDs, number and size of messages | Names of bubbles or people, content, photos |
+| Expiry time of 24h posts | who is in which bubble (no accounts) |
+| IP addresses during the request (not logged or stored) | contents of backups |
 
-## Bewusste Lücken im MVP
+## Deliberate gaps in the MVP
 
-- **Kein Mitglieder-Management:** Wer den Einladungslink hat, ist drin. Jemanden zu entfernen erfordert Schlüsselrotation (später, idealerweise mit MLS).
-- **Kein Rate-Limiting** und keine Speicherquoten auf dem Relay.
-- **Daten-Laden:** Der Feed wird bei jedem Öffnen komplett geladen, es gibt keinen lokalen Cache.
-- **Kurze Einladungscodes sind erratbar:** 50 Bit, aber nur 24 h gültig und per Argon2id gebremst. Bei Bedarf lieber den QR-Code oder Link nutzen.
-- **Noch nicht enthalten:** Push-Benachrichtigungen, Editor wie Canva, Passkey, Emoji-Reaktionen.
-- **Nur Entwicklung:** HTTP ist für den lokalen Relay erlaubt (Android `usesCleartextTraffic`, iOS `NSAllowsLocalNetworking`). Für Produktion braucht es HTTPS und einen Relay in der EU.
+- **Member management is basic:** removal needs the owner online and only reaches members the owner has seen in the bubble; there is no admin transfer and no way for others to veto. Ideally this moves to MLS later.
+- **No rate limiting** and no storage quotas on the relay.
+- **Data loading:** the feed is loaded completely every time it opens, there is no local cache.
+- **Short invitation codes are guessable:** 50 bits, but only valid for 24 h and slowed down by Argon2id. Prefer the QR code or link if in doubt.
+- **Not included yet:** push notifications, Canva-like editor, passkey, emoji reactions.
+- **Development only:** HTTP is allowed for the local relay (Android `usesCleartextTraffic`, iOS `NSAllowsLocalNetworking`). Production needs HTTPS and a relay in the EU.

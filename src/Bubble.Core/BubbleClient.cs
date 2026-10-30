@@ -1,17 +1,19 @@
+using System.Security.Cryptography;
+
 namespace Bubble.Core;
 
-/// <summary>Ein entschlüsselter Post, wie ihn der Feed anzeigt. <see cref="Id"/> ist die Nachrichten-ID auf dem Relay.</summary>
+/// <summary>A decrypted post as the feed shows it. <see cref="Id"/> is the message ID on the relay.</summary>
 public sealed record FeedPost(string Id, BubbleMessage Message, bool IsMine);
 
-/// <summary>Ein Mitglied, wie es sich selbst zuletzt per Profile-Nachricht beschrieben hat.</summary>
+/// <summary>A member as they last described themselves in a Profile message.</summary>
 public sealed record Member(string Key, string Name, byte[]? Avatar, string? Bio, bool IsMe);
 
-/// <summary>Ein Kommentar unter einem Post.</summary>
+/// <summary>A comment under a post.</summary>
 public sealed record Comment(string Id, string AuthorKey, string AuthorName, DateTimeOffset CreatedAt, string Text);
 
 /// <summary>
-/// Alles, was eine Bubble gerade zeigt: Posts (neueste zuerst), Mitglieder, Herzen und Kommentare.
-/// Herzen und Kommentare lassen sich lokal ergänzen, damit die Oberfläche sofort reagiert.
+/// Everything a bubble currently shows: posts (newest first), members, hearts and comments.
+/// Hearts and comments can be added locally so the UI reacts immediately.
 /// </summary>
 public sealed class BubbleSnapshot(
     IReadOnlyList<FeedPost> posts,
@@ -23,9 +25,12 @@ public sealed class BubbleSnapshot(
     public IReadOnlyList<FeedPost> Posts => posts;
     public IReadOnlyList<Member> Members => members;
 
+    /// <summary>True if the owner removed me from this bubble (the key was rotated without me).</summary>
+    public bool Removed { get; init; }
+
     public Member? MemberFor(string key) => members.FirstOrDefault(m => m.Key == key);
 
-    /// <summary>Wer ein Herz gesetzt hat, in der Reihenfolge der Herzen.</summary>
+    /// <summary>Who set a heart, in the order of the hearts.</summary>
     public IReadOnlyList<Member> LikersOf(string postId) => likes.GetValueOrDefault(postId) is { } keys
         ? keys.Select(k => MemberFor(k) ?? new Member(k, "?", null, null, k == myKey)).ToList()
         : [];
@@ -49,21 +54,35 @@ public sealed class BubbleSnapshot(
 }
 
 /// <summary>
-/// Fachlogik einer Bubble: Feed laden, posten, Herzen und Kommentare, Lebensdauer ändern, Profil verteilen.
-/// Plattformunabhängig, damit App und Tests denselben Code nutzen.
+/// The logic of a bubble: load the feed, post, hearts and comments, change the lifetime, share the profile,
+/// remove members. Platform independent so the app and the tests use the same code.
 /// </summary>
 public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor, TimeProvider? time = null)
 {
     public const int MaxCommentLength = 500;
+    const int MaxRotationHops = 8;
 
     readonly TimeProvider _time = time ?? TimeProvider.System;
     readonly Identity _identity = vault.Identity;
 
     /// <summary>
-    /// Lädt alle Nachrichten der Bubble. Übernimmt dabei die zuletzt gesetzte Lebensdauer
-    /// in <paramref name="bubble"/> (der Aufrufer speichert danach den Vault).
+    /// Loads all messages of the bubble. Adopts the most recent lifetime setting into
+    /// <paramref name="bubble"/>, and follows a key rotation by the owner (the caller saves the vault afterwards).
     /// </summary>
     public async Task<BubbleSnapshot> LoadAsync(BubbleMembership bubble, CancellationToken ct = default)
+    {
+        for (var hop = 0; ; hop++)
+        {
+            var (snapshot, newKey) = await LoadOnceAsync(bubble, ct);
+            if (newKey is null || hop >= MaxRotationHops) return snapshot!;
+            bubble.Key = Base64Url.Encode(newKey);
+            // The new mailbox starts empty: introduce myself again so I stay in the member list.
+            try { await PublishProfileAsync(bubble, ct); }
+            catch (HttpRequestException) { /* retried implicitly the next time I share something */ }
+        }
+    }
+
+    async Task<(BubbleSnapshot? Snapshot, byte[]? NewKey)> LoadOnceAsync(BubbleMembership bubble, CancellationToken ct)
     {
         var raw = await relayFor(bubble.RelayUrl).GetMessagesAsync(bubble.MailboxId, ct: ct);
         var messages = raw
@@ -71,6 +90,21 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
             .Where(x => x.Message is not null)
             .Select(x => (x.Id, Message: x.Message!))
             .ToList();
+
+        // The owner moved the bubble to a new key: follow it if the new key was sealed for me, otherwise I was removed.
+        var removed = false;
+        if (bubble.OwnerKey is { } owner)
+        {
+            var rotation = messages.Select(m => m.Message)
+                .Where(m => m.Kind == MessageKind.KeyRotation && m.AuthorKey == owner)
+                .MaxBy(m => m.CreatedAt);
+            if (rotation is not null)
+            {
+                var newKey = TryUnwrapKey(bubble, owner, rotation);
+                if (newKey is not null) return (null, newKey);
+                removed = true;
+            }
+        }
 
         var lastSetting = messages.Select(m => m.Message).Where(m => m.Kind == MessageKind.LifetimeChanged).MaxBy(m => m.CreatedAt);
         if (lastSetting is not null) bubble.Lifetime = lastSetting.Lifetime;
@@ -83,9 +117,10 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
             .ToList();
         var postIds = posts.Select(p => p.Id).ToHashSet();
 
-        // Mitglieder: wer ein Profil geschickt oder etwas geteilt hat; die jeweils neueste Angabe gewinnt.
+        // Members: whoever sent a profile or shared something, unless their latest message says they left; the newest details win.
         var members = messages
             .GroupBy(m => m.Message.AuthorKey)
+            .Where(g => !HasLeft(g.Select(m => m.Message).ToList()))
             .Select(g =>
             {
                 var profile = g.Select(m => m.Message).Where(m => m.Kind == MessageKind.Profile).MaxBy(m => m.CreatedAt);
@@ -95,7 +130,7 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
             .OrderByDescending(m => m.IsMe).ThenBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
-        // Herzen: pro Person und Post zählt die neueste Nachricht
+        // Hearts: per person and post, the newest message counts
         var likes = messages
             .Where(m => m.Message.Kind == MessageKind.Like && m.Message.TargetId is { } t && postIds.Contains(t))
             .GroupBy(m => (Post: m.Message.TargetId!, m.Message.AuthorKey))
@@ -113,17 +148,23 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
                 .Select(m => new Comment(m.Id, m.Message.AuthorKey, m.Message.AuthorName, m.Message.CreatedAt, m.Message.Text!))
                 .ToList());
 
-        return new BubbleSnapshot(posts, members, _identity.PublicKey, likes, comments);
+        return (new BubbleSnapshot(posts, members, _identity.PublicKey, likes, comments) { Removed = removed }, null);
+    }
+
+    static bool HasLeft(List<BubbleMessage> byAuthor)
+    {
+        var left = byAuthor.Where(m => m.Kind == MessageKind.Left).Select(m => m.CreatedAt).DefaultIfEmpty().Max();
+        return left != default && left >= byAuthor.Max(m => m.CreatedAt);
     }
 
     public async Task<IReadOnlyList<FeedPost>> LoadFeedAsync(BubbleMembership bubble, CancellationToken ct = default) =>
         (await LoadAsync(bubble, ct)).Posts;
 
-    /// <summary>Teilt ein Highlight mit einem Emoji für das Gefühl. Es gibt kein Tageslimit.</summary>
+    /// <summary>Shares a highlight with an emoji for the feeling. There is no daily limit.</summary>
     public async Task PostAsync(BubbleMembership bubble, string? emoji, string? text, byte[]? image, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(text) && image is null)
-            throw new ArgumentException("Ein Post braucht Text oder ein Bild.");
+            throw new ArgumentException("A post needs text or an image.");
 
         await SendAsync(bubble, new BubbleMessage
         {
@@ -138,7 +179,7 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
         }, ct);
     }
 
-    /// <summary>Setzt oder nimmt das Herz an einem Post zurück. Wirft, wenn der Post schon abgelaufen ist.</summary>
+    /// <summary>Sets or takes back the heart on a post. Throws if the post has already expired.</summary>
     public async Task LikeAsync(BubbleMembership bubble, FeedPost post, bool liked, CancellationToken ct = default)
     {
         EnsureOpen(post);
@@ -155,11 +196,11 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
         }, ct);
     }
 
-    /// <summary>Kommentiert einen Post. Der Kommentar verschwindet zusammen mit dem Post.</summary>
+    /// <summary>Comments on a post. The comment disappears together with the post.</summary>
     public async Task<Comment> CommentAsync(BubbleMembership bubble, FeedPost post, string text, CancellationToken ct = default)
     {
         text = text.Trim();
-        if (text.Length == 0) throw new ArgumentException("Ein Kommentar braucht Text.", nameof(text));
+        if (text.Length == 0) throw new ArgumentException("A comment needs text.", nameof(text));
         if (text.Length > MaxCommentLength) text = text[..MaxCommentLength];
         EnsureOpen(post);
 
@@ -181,10 +222,10 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
     void EnsureOpen(FeedPost post)
     {
         if (post.Message.ExpiresAt is { } expires && expires <= _time.GetUtcNow())
-            throw new InvalidOperationException("Dieses Highlight ist schon verschwunden.");
+            throw new InvalidOperationException("This highlight has already disappeared.");
     }
 
-    /// <summary>Ändert die Lebensdauer für künftige Posts. Bestehende Posts behalten ihre Regel.</summary>
+    /// <summary>Changes the lifetime for future posts. Existing posts keep their rule.</summary>
     public async Task SetLifetimeAsync(BubbleMembership bubble, PostLifetime lifetime, CancellationToken ct = default)
     {
         await SendAsync(bubble, new BubbleMessage
@@ -198,7 +239,7 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
         bubble.Lifetime = lifetime;
     }
 
-    /// <summary>Schickt Name, Profilbild und Bio an die Bubble. Nach dem Beitreten und nach jeder Profiländerung.</summary>
+    /// <summary>Sends name, picture and bio to the bubble. After joining and after every profile change.</summary>
     public Task PublishProfileAsync(BubbleMembership bubble, CancellationToken ct = default) =>
         SendAsync(bubble, new BubbleMessage
         {
@@ -210,6 +251,73 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
             Image = vault.Avatar,
             Bio = vault.Bio,
         }, ct);
+
+    /// <summary>Tells the bubble that I am leaving, so I disappear from the member list. The caller forgets the bubble locally.</summary>
+    public Task LeaveAsync(BubbleMembership bubble, CancellationToken ct = default) =>
+        SendAsync(bubble, new BubbleMessage
+        {
+            Kind = MessageKind.Left,
+            AuthorKey = _identity.PublicKey,
+            AuthorName = vault.DisplayName,
+            CreatedAt = _time.GetUtcNow(),
+            Lifetime = PostLifetime.Persistent,
+        }, ct);
+
+    public bool IsOwner(BubbleMembership bubble) => bubble.OwnerKey == _identity.PublicKey;
+
+    /// <summary>
+    /// Removes a member (owner only). The bubble moves to a fresh key that is sealed for each remaining
+    /// member, so the removed member can neither read nor write anything new. Earlier posts stay under the old key.
+    /// The remaining members pick up the new key the next time they load the bubble.
+    /// </summary>
+    public async Task RemoveMemberAsync(BubbleMembership bubble, string memberKey, CancellationToken ct = default)
+    {
+        if (!IsOwner(bubble)) throw new InvalidOperationException("Only the person who created the bubble can remove members.");
+        if (memberKey == _identity.PublicKey) throw new ArgumentException("You cannot remove yourself – leave the bubble instead.", nameof(memberKey));
+
+        var snapshot = await LoadAsync(bubble, ct);
+        var recipients = snapshot.Members.Select(m => m.Key)
+            .Where(k => k != memberKey)
+            .Append(_identity.PublicKey)
+            .Distinct()
+            .ToList();
+
+        var newKey = Crypto.NewKey();
+        var wraps = recipients.ToDictionary(
+            k => k,
+            k => Convert.ToBase64String(Crypto.Seal(WrapKey(k), newKey, WrapAad(bubble, k))));
+
+        await SendAsync(bubble, new BubbleMessage
+        {
+            Kind = MessageKind.KeyRotation,
+            AuthorKey = _identity.PublicKey,
+            AuthorName = vault.DisplayName,
+            CreatedAt = _time.GetUtcNow(),
+            Lifetime = PostLifetime.Persistent,
+            Wraps = wraps,
+        }, ct);
+
+        bubble.Key = Base64Url.Encode(newKey);
+        await PublishProfileAsync(bubble, ct);
+    }
+
+    byte[] WrapKey(string otherPublicKey) => Crypto.Derive(_identity.SharedSecretWith(otherPublicKey), "bubble/v1/rotation");
+
+    static string WrapAad(BubbleMembership bubble, string recipient) => $"bubble/v1/rotation|{bubble.MailboxId}|{recipient}";
+
+    byte[]? TryUnwrapKey(BubbleMembership bubble, string ownerKey, BubbleMessage rotation)
+    {
+        if (rotation.Wraps?.GetValueOrDefault(_identity.PublicKey) is not { } wrapped) return null;
+        try
+        {
+            var key = Crypto.Open(WrapKey(ownerKey), Convert.FromBase64String(wrapped), WrapAad(bubble, _identity.PublicKey));
+            return key.Length == Crypto.KeySize ? key : null;
+        }
+        catch (Exception e) when (e is CryptographicException or FormatException)
+        {
+            return null;
+        }
+    }
 
     async Task<string> SendAsync(BubbleMembership bubble, BubbleMessage message, CancellationToken ct)
     {

@@ -4,14 +4,14 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-/// <summary>Ein Kreis in der Story-Leiste: „Du“ (teilen) oder eine Bubble mit Stories der letzten 24 h.</summary>
+/// <summary>A circle in the story bar: "You" (share) or a bubble with stories from the last 24 h.</summary>
 public sealed record StoryRing(string Title, string Name, byte[]? Image, AvatarRing Ring, bool ShowPlus, BubbleMembership? Bubble)
 {
     public bool IsMe => Bubble is null;
     public Color TitleColor => Ring == AvatarRing.New || IsMe ? Colors.White : Color.FromArgb("#8F89A0");
     public string Description => IsMe
-        ? (Ring == AvatarRing.None ? "Dein Highlight teilen" : "Deine Stories ansehen")
-        : $"Stories aus {Title}";
+        ? (Ring == AvatarRing.None ? "Share your highlight" : "View your stories")
+        : $"Stories from {Title}";
 }
 
 public partial class HomePage : ContentPage
@@ -36,7 +36,7 @@ public partial class HomePage : ContentPage
             await Shell.Current.GoToAsync(nameof(OnboardingPage));
             return;
         }
-        Render(); // sofort mit dem, was schon geladen ist
+        Render(); // immediately, with whatever is already loaded
         await LoadAsync();
     }
 
@@ -50,6 +50,8 @@ public partial class HomePage : ContentPage
         {
             if (_account.Vault!.Bubbles.Count > 0) await _feed.RefreshAsync();
             Render();
+            foreach (var name in _feed.TakeRemoved())
+                await DisplayAlertAsync("Removed from bubble", $"The creator removed you from “{name}”.", "OK");
         }
         finally
         {
@@ -63,11 +65,11 @@ public partial class HomePage : ContentPage
         var vault = _account.Vault!;
         var bubbles = vault.Bubbles;
 
-        // Stories: zuerst „Du“ (meine eigenen Posts der letzten 24 Stunden), dann Bubbles mit ungesehenen Stories, dann gesehene
+        // Stories: first "You" (my own posts of the last 24 hours), then bubbles with unseen stories, then seen ones
         var rings = new List<StoryRing>();
         var mine = _feed.MyStories();
         var myRing = mine.Count == 0 ? AvatarRing.None : mine.Any(s => !_feed.IsSeen(s.Post.Id)) ? AvatarRing.New : AvatarRing.Seen;
-        rings.Add(new StoryRing("Du", vault.DisplayName, vault.Avatar, myRing, true, null));
+        rings.Add(new StoryRing("You", vault.DisplayName, vault.Avatar, myRing, true, null));
         rings.AddRange(bubbles
             .Select(b => (Bubble: b, Stories: _feed.StoriesOf(b)))
             .Where(x => x.Stories.Count > 0)
@@ -80,7 +82,7 @@ public partial class HomePage : ContentPage
             })
             .OrderByDescending(r => r.Ring == AvatarRing.New));
 
-        // Listen nur ersetzen, wenn sich etwas geändert hat: Beim Ersetzen laden alle Bilder neu und flackern.
+        // Only replace lists if something changed: replacing reloads all images and flickers.
         var ringSig = string.Join('|', rings.Select(r => $"{r.Title}:{r.Ring}:{r.Image?.Length}:{r.ShowPlus}"));
         if (ringSig != _ringSig)
         {
@@ -99,16 +101,16 @@ public partial class HomePage : ContentPage
 
         if (bubbles.Count == 0)
         {
-            EmptyTitle.Text = "Starte deine erste Bubble";
-            EmptyText.Text = "Eine Bubble ist ein kleiner, privater Kreis – Familie, WG, beste Freunde. Gründe eine oder tritt per QR-Code bei.";
-            EmptyAction.Text = "Bubble gründen";
+            EmptyTitle.Text = "Start your first bubble";
+            EmptyText.Text = "A bubble is a small, private circle – family, flatmates, best friends. Create one or join with a QR code.";
+            EmptyAction.Text = "Create bubble";
             EmptySecondary.IsVisible = true;
         }
         else
         {
-            EmptyTitle.Text = "Noch ganz still hier";
-            EmptyText.Text = "Von deinen Leuten gibt es noch nichts Neues. Deine eigenen Highlights findest du oben im Kreis „Du“.";
-            EmptyAction.Text = "Mein Highlight teilen";
+            EmptyTitle.Text = "Still quiet here";
+            EmptyText.Text = "Nothing new from your people yet. You'll find your own highlights at the top, in the “You” circle.";
+            EmptyAction.Text = "Share my highlight";
             EmptySecondary.IsVisible = false;
         }
 
@@ -116,8 +118,8 @@ public partial class HomePage : ContentPage
         OfflineLabel.Text = _feed.Unreachable.Count switch
         {
             0 => "",
-            1 => $"„{_feed.Unreachable[0].Name}“ ist gerade nicht erreichbar ({Labels.Host(_feed.Unreachable[0].RelayUrl)}).",
-            var n => $"{n} Bubbles sind gerade nicht erreichbar.",
+            1 => $"“{_feed.Unreachable[0].Name}” is not reachable right now ({Labels.Host(_feed.Unreachable[0].RelayUrl)}).",
+            var n => $"{n} bubbles are not reachable right now.",
         };
     }
 
@@ -129,7 +131,7 @@ public partial class HomePage : ContentPage
         if (e.Parameter is not StoryRing ring) return;
         if (ring.IsMe)
         {
-            // Eigene Stories ansehen; ohne welche gleich teilen
+            // View own stories; share right away if there are none
             if (ring.Ring == AvatarRing.None) await Compose();
             else await Shell.Current.GoToAsync($"{nameof(StoryPage)}?id={StoryPage.Mine}");
         }
@@ -150,7 +152,7 @@ public partial class HomePage : ContentPage
     {
         if (_account.Vault!.Bubbles.Count == 0)
         {
-            await DisplayAlertAsync("Noch keine Bubble", "Gründe zuerst eine Bubble oder tritt einer bei.", "OK");
+            await DisplayAlertAsync("No bubble yet", "Create a bubble first or join one.", "OK");
             return;
         }
         await Shell.Current.GoToAsync(nameof(ComposePage));
