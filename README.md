@@ -31,7 +31,15 @@ Flüssigkeit beim Scrollen und Seitenwechseln lässt sich nur mit einem **Releas
 dotnet build src/Bubble.App -f net10.0-android -c Release -p:AndroidPackageFormat=apk -p:RuntimeIdentifier=android-arm64
 ```
 
-Messen lässt sich mit `adb shell dumpsys gfxinfo com.companyname.bubble.app` (ruckelnde Frames, Perzentile) nach einem Scrollen über mehrere Karten.
+Messen lässt sich mit `adb shell dumpsys gfxinfo org.bubble.social` (ruckelnde Frames, Perzentile) nach einem Scrollen über mehrere Karten.
+
+### Signierter Release-Build (Android)
+
+App-ID ist `org.bubble.social`. Release-Builds werden mit einem eigenen Schlüssel signiert, der **nicht im Repo** liegt: `~/.bubble-signing/` enthält `bubble-release.keystore`, die Passwortdateien `storepass.txt` und `keypass.txt` und `signing.props`, die das Projekt automatisch einbindet (nur bei `-c Release`; ohne die Datei wird mit dem Debug-Schlüssel signiert). Den Ordner sichern, denn mit einem neuen Schlüssel lässt sich eine installierte App nicht mehr aktualisieren, und niemals einchecken.
+
+Fertige Pakete für Testgeräte liegen in `dist/` (nicht im Repo), z. B. `dist/Bubble-1.1.0-release-arm64.apk`. Installieren per `adb install <apk>` oder die Datei aufs Gerät kopieren und öffnen („Unbekannte Apps installieren“ erlauben). Das Paket ist für 64-Bit-ARM-Geräte, also praktisch jedes aktuelle Handy.
+
+Zertifikat-Fingerabdruck (SHA-256): `AA:A4:0F:25:48:41:80:66:88:83:51:55:DA:AB:DF:26:C5:71:19:E6:FD:56:FA:C6:B5:AE:9B:11:19:3A:FE:47`
 
 ### Relay per Docker
 
