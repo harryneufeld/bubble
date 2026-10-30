@@ -31,6 +31,17 @@ docker compose up -d --build
 
 Das Image baut für amd64 und arm64, und die Datenbank liegt im Volume `relay-data`. In der App trägst du beim Onboarding oder später unter „Server“ die Adresse ein, z. B. `192.168.1.20:5080`.
 
+### Relay auf einem Raspberry Pi
+
+Auf einem Pi mit 64-Bit-Betriebssystem richtet [scripts/setup-pi.sh](scripts/setup-pi.sh) alles ein: Es installiert bei Bedarf Git und Docker, holt den Code und startet den Relay per `docker compose`. Erneut ausführen aktualisiert.
+
+```bash
+scp scripts/setup-pi.sh pi@192.168.1.20:/tmp/bubble-setup.sh
+ssh -t pi@192.168.1.20 "bash /tmp/bubble-setup.sh"
+```
+
+Der erste Build auf dem Pi dauert ein paar Minuten. Der Relay hört auf HTTP, Port 5080; für Zugriff von außen gehört ein HTTPS-Proxy davor.
+
 Gegen einen laufenden Relay lassen sich die Live-Tests ausführen:
 
 ```bash
