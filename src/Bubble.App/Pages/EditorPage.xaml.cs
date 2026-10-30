@@ -14,6 +14,7 @@ namespace Bubble.App.Pages;
 public partial class EditorPage : ContentPage
 {
     enum Panel { None, Font, Color, Style, Background }
+    enum Grip { None, Left, Right, Top, Bottom }
 
     const int MaxHistory = 60;
 
@@ -32,6 +33,11 @@ public partial class EditorPage : ContentPage
     (float X, float Y, float Scale, float Rotation) _gestureLayer;
     bool _moved, _wasSelected, _onEmpty, _guideV, _guideH;
     DateTime _lastWheel;
+
+    // Crop mode: gestures move and zoom the photo inside its frame, edges resize the frame
+    bool _crop;
+    Grip _grip;
+    (float Zoom, float CropX, float CropY, float Width, float Height) _gestureCrop;
 
     // Text overlay
     TextLayer? _editingText;
@@ -61,6 +67,8 @@ public partial class EditorPage : ContentPage
 
     Layer? Selected => _selectedId is { } id ? _design.Layers.FirstOrDefault(l => l.Id == id) : null;
 
+    ImageLayer? CropLayer => _crop && Selected is ImageLayer { Image: not null } image ? image : null;
+
     void Redraw() => CanvasView.InvalidateSurface();
 
     // ---------- History ----------
@@ -85,6 +93,7 @@ public partial class EditorPage : ContentPage
         _design = from[^1];
         from.RemoveAt(from.Count - 1);
         if (Selected is null) _selectedId = null;
+        if (CropLayer is null) _crop = false;
         if (_design.Format != formatBefore) { BuildFormatToggle(); LayoutCanvas(); }
         UpdateHistoryButtons();
         RefreshTools();
@@ -123,7 +132,8 @@ public partial class EditorPage : ContentPage
         DesignRenderer.Draw(canvas, _design);
         var unit = 1 / _viewScale;
         DesignRenderer.DrawGuides(canvas, _design, _guideV, _guideH, unit);
-        if (Selected is { } selected) DesignRenderer.DrawSelection(canvas, selected, unit);
+        if (CropLayer is { } crop) DesignRenderer.DrawCropOverlay(canvas, crop, unit);
+        else if (Selected is { } selected) DesignRenderer.DrawSelection(canvas, selected, unit);
     }
 
     void OnTouch(object? sender, SKTouchEventArgs e)
@@ -134,7 +144,13 @@ public partial class EditorPage : ContentPage
         {
             case SKTouchAction.Pressed:
                 _touches[e.Id] = point;
-                if (_touches.Count == 1)
+                if (_touches.Count == 1 && CropLayer is { } crop)
+                {
+                    _grip = GripAt(crop, point);
+                    _onEmpty = false;
+                    _moved = false;
+                }
+                else if (_touches.Count == 1)
                 {
                     // On empty space the selection stays for a pinch with two fingers; a tap clears it
                     var hit = DesignRenderer.HitTest(_design, point, 24 / _viewScale);
@@ -155,6 +171,7 @@ public partial class EditorPage : ContentPage
             case SKTouchAction.Released or SKTouchAction.Cancelled when _touches.Remove(e.Id):
                 if (_touches.Count > 0) { BeginGesture(); break; }
                 _guideV = _guideH = false;
+                if (_moved && _crop) RefreshOptions(); // the aspect ratio may have changed
                 if (!_moved && e.ActionType == SKTouchAction.Released) OnTap();
                 Redraw();
                 break;
@@ -162,7 +179,12 @@ public partial class EditorPage : ContentPage
             case SKTouchAction.WheelChanged when Selected is { } layer:
                 if (DateTime.UtcNow - _lastWheel > TimeSpan.FromMilliseconds(600)) Checkpoint();
                 _lastWheel = DateTime.UtcNow;
-                layer.Scale = Math.Clamp(layer.Scale * (1 + e.WheelDelta / 1200f), 0.05f, 20);
+                if (CropLayer is { } cropped)
+                {
+                    cropped.CropZoom *= 1 + e.WheelDelta / 1200f;
+                    DesignRenderer.ClampCrop(cropped);
+                }
+                else layer.Scale = Math.Clamp(layer.Scale * (1 + e.WheelDelta / 1200f), 0.05f, 20);
                 Redraw();
                 break;
         }
@@ -174,6 +196,7 @@ public partial class EditorPage : ContentPage
         _gestureTouches.Clear();
         foreach (var (id, p) in _touches.Take(2)) _gestureTouches[id] = p;
         if (Selected is { } layer) _gestureLayer = (layer.X, layer.Y, layer.Scale, layer.Rotation);
+        if (Selected is ImageLayer image) _gestureCrop = (image.CropZoom, image.CropX, image.CropY, image.FrameWidth, image.FrameHeight);
     }
 
     void MoveGesture()
@@ -192,6 +215,12 @@ public partial class EditorPage : ContentPage
             if (ids.Count == 1 && SKPoint.Distance(start0, now0) < 8 / _viewScale) return;
             Checkpoint();
             _moved = true;
+        }
+
+        if (CropLayer is { } crop)
+        {
+            MoveCrop(crop, ids, start0, now0);
+            return;
         }
 
         var (x, y, scale, rotation) = _gestureLayer;
@@ -224,8 +253,101 @@ public partial class EditorPage : ContentPage
         Redraw();
     }
 
+    /// <summary>Which frame edge is under the point; edges can be grabbed along their whole length.</summary>
+    Grip GripAt(ImageLayer layer, SKPoint point)
+    {
+        var local = DesignRenderer.ToLocal(layer, point);
+        var slop = 28 / _viewScale / layer.Scale;
+        float halfW = layer.FrameWidth / 2, halfH = layer.FrameHeight / 2;
+        var alongX = Math.Abs(local.X) <= halfW + slop;
+        var alongY = Math.Abs(local.Y) <= halfH + slop;
+        if (alongY && Math.Abs(local.X + halfW) < slop) return Grip.Left;
+        if (alongY && Math.Abs(local.X - halfW) < slop) return Grip.Right;
+        if (alongX && Math.Abs(local.Y + halfH) < slop) return Grip.Top;
+        if (alongX && Math.Abs(local.Y - halfH) < slop) return Grip.Bottom;
+        return Grip.None;
+    }
+
+    /// <summary>A canvas movement in the layer's own axes (rotation and scale undone).</summary>
+    static SKPoint LocalDelta(Layer layer, SKPoint delta)
+    {
+        var rad = -layer.Rotation * Math.PI / 180;
+        var (sin, cos) = ((float)Math.Sin(rad), (float)Math.Cos(rad));
+        return new SKPoint((delta.X * cos - delta.Y * sin) / layer.Scale, (delta.X * sin + delta.Y * cos) / layer.Scale);
+    }
+
+    void MoveCrop(ImageLayer layer, List<long> ids, SKPoint start0, SKPoint now0)
+    {
+        var (zoom, cropX, cropY, width, height) = _gestureCrop;
+        var image = DesignRenderer.ImageSize(layer.Image!);
+        // Frame units per photo pixel at gesture start, so the photo stays put while the frame changes
+        var startScale = Math.Max(width / image.Width, height / image.Height) * zoom;
+        var (x, y, _, _) = _gestureLayer;
+
+        if (ids.Count == 2)
+        {
+            var start1 = _gestureTouches[ids[1]];
+            var now1 = _touches[ids[1]];
+            var ratio = (now1 - now0).Length / Math.Max(1, (start1 - start0).Length);
+            var pan = LocalDelta(layer, new SKPoint((now0.X + now1.X - start0.X - start1.X) / 2, (now0.Y + now1.Y - start0.Y - start1.Y) / 2));
+            layer.CropZoom = zoom * ratio;
+            var scale = startScale * ratio;
+            layer.CropX = cropX - pan.X / scale / image.Width;
+            layer.CropY = cropY - pan.Y / scale / image.Height;
+        }
+        else if (_grip == Grip.None)
+        {
+            var pan = LocalDelta(layer, now0 - start0);
+            layer.CropX = cropX - pan.X / startScale / image.Width;
+            layer.CropY = cropY - pan.Y / startScale / image.Height;
+        }
+        else
+        {
+            const float min = 80;
+            var d = LocalDelta(layer, now0 - start0);
+            float newW = width, newH = height, shiftX = 0, shiftY = 0;
+            switch (_grip)
+            {
+                case Grip.Right: newW = Math.Max(min, width + d.X); shiftX = (newW - width) / 2; break;
+                case Grip.Left: newW = Math.Max(min, width - d.X); shiftX = -(newW - width) / 2; break;
+                case Grip.Bottom: newH = Math.Max(min, height + d.Y); shiftY = (newH - height) / 2; break;
+                case Grip.Top: newH = Math.Max(min, height - d.Y); shiftY = -(newH - height) / 2; break;
+            }
+            layer.FrameWidth = newW;
+            layer.FrameHeight = newH;
+            // The frame grows on one side only: move its center there, and the visible part of the photo with it
+            var rad = layer.Rotation * Math.PI / 180;
+            var (sin, cos) = ((float)Math.Sin(rad), (float)Math.Cos(rad));
+            layer.X = x + (shiftX * cos - shiftY * sin) * layer.Scale;
+            layer.Y = y + (shiftX * sin + shiftY * cos) * layer.Scale;
+            layer.CropX = cropX + shiftX / startScale / image.Width;
+            layer.CropY = cropY + shiftY / startScale / image.Height;
+            layer.CropZoom = startScale / Math.Max(newW / image.Width, newH / image.Height);
+        }
+        DesignRenderer.ClampCrop(layer);
+        Redraw();
+    }
+
+    void SetCrop(bool on)
+    {
+        _crop = on;
+        _panel = Panel.None;
+        RefreshTools();
+        Redraw();
+    }
+
+    /// <summary>New frame shape with about the same area; the crop stays centered where it was.</summary>
+    void SetAspect(ImageLayer layer, float ratio) => Change(() =>
+    {
+        var area = layer.FrameWidth * layer.FrameHeight;
+        layer.FrameWidth = MathF.Sqrt(area * ratio);
+        layer.FrameHeight = layer.FrameWidth / ratio;
+        DesignRenderer.ClampCrop(layer);
+    });
+
     async void OnTap()
     {
+        if (_crop) return;
         if (_onEmpty)
         {
             if (Selected is not null) Select(null);
@@ -247,6 +369,15 @@ public partial class EditorPage : ContentPage
     void RefreshTools()
     {
         Tools.Children.Clear();
+        if (CropLayer is { } crop)
+        {
+            Tool("✅", "Done", () => SetCrop(false));
+            Tool("↺", "Reset", () => Change(crop.ResetCrop));
+            RefreshOptions();
+            return;
+        }
+        _crop = false;
+        if (Selected is not null) Tool("✖️", "Deselect", () => Select(null));
         switch (Selected)
         {
             case null:
@@ -270,6 +401,7 @@ public partial class EditorPage : ContentPage
                 CommonTools(shape);
                 break;
             case ImageLayer image:
+                if (image.Image is not null) Tool("✂️", "Crop", () => SetCrop(true));
                 Tool("🔁", "Replace", () => _ = FillPhotoAsync(image));
                 Tool(image.CornerRadius switch { 0 => "◻️", >= 9999 => "⚪", _ => "▢" }, "Corners", () => Change(() =>
                     image.CornerRadius = image.CornerRadius switch { 0 => 40, >= 9999 => 0, _ => 9999 }));
@@ -343,6 +475,7 @@ public partial class EditorPage : ContentPage
     void Select(Layer? layer)
     {
         _selectedId = layer?.Id;
+        _crop = false;
         _panel = Panel.None;
         RefreshTools();
         Redraw();
@@ -366,6 +499,15 @@ public partial class EditorPage : ContentPage
     {
         Options.Children.Clear();
         var selected = Selected;
+        if (CropLayer is { } crop)
+        {
+            var size = DesignRenderer.ImageSize(crop.Image!);
+            var current = crop.FrameWidth / crop.FrameHeight;
+            foreach (var (name, ratio) in new[] { ("Original", (float)size.Width / size.Height), ("1:1", 1f), ("4:5", 0.8f), ("3:4", 0.75f), ("16:9", 16 / 9f), ("9:16", 9 / 16f) })
+                Chip(name, "BodySemibold", Math.Abs(current - ratio) < 0.01f, () => SetAspect(crop, ratio));
+            OptionsScroller.IsVisible = true;
+            return;
+        }
         switch (_panel)
         {
             case Panel.Font when selected is TextLayer text:
@@ -518,7 +660,11 @@ public partial class EditorPage : ContentPage
     async Task FillPhotoAsync(ImageLayer layer)
     {
         if (await PickPhotoAsync(layer.Image is null ? "Add photo" : "Replace photo") is not { } bytes) return;
-        Change(() => layer.Image = bytes);
+        Change(() =>
+        {
+            layer.Image = bytes;
+            layer.ResetCrop();
+        });
     }
 
     async Task PickBackgroundPhotoAsync()

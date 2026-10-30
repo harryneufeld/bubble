@@ -143,7 +143,7 @@ public static class DesignRenderer
         if (layer.Image is { } bytes)
         {
             var image = Image(bytes);
-            canvas.DrawImage(image, CoverSource(image.Width, image.Height, frame.Width, frame.Height), frame, Sampling);
+            canvas.DrawImage(image, CropSource(layer, image), frame, Sampling);
         }
         else
         {
@@ -155,6 +155,80 @@ public static class DesignRenderer
             canvas.DrawLine(-arm, 0, arm, 0, plus);
             canvas.DrawLine(0, -arm, 0, arm, plus);
         }
+        canvas.Restore();
+    }
+
+    // ---------- Crop ----------
+
+    public static SKSizeI ImageSize(byte[] bytes)
+    {
+        var image = Image(bytes);
+        return new SKSizeI(image.Width, image.Height);
+    }
+
+    /// <summary>Frame units per photo pixel: just covering the frame, times the crop zoom.</summary>
+    public static float CropScale(ImageLayer layer, SKSizeI image) =>
+        Math.Max(layer.FrameWidth / image.Width, layer.FrameHeight / image.Height) * layer.CropZoom;
+
+    /// <summary>Keeps the crop inside the photo, so the frame is always filled.</summary>
+    public static void ClampCrop(ImageLayer layer)
+    {
+        if (layer.Image is not { } bytes) return;
+        var image = ImageSize(bytes);
+        layer.CropZoom = Math.Clamp(layer.CropZoom, 1, 8);
+        var scale = CropScale(layer, image);
+        var halfW = Math.Min(0.5f, layer.FrameWidth / scale / image.Width / 2);
+        var halfH = Math.Min(0.5f, layer.FrameHeight / scale / image.Height / 2);
+        layer.CropX = Math.Clamp(layer.CropX, halfW, 1 - halfW);
+        layer.CropY = Math.Clamp(layer.CropY, halfH, 1 - halfH);
+    }
+
+    static SKRect CropSource(ImageLayer layer, SKImage image)
+    {
+        var scale = CropScale(layer, new SKSizeI(image.Width, image.Height));
+        var w = layer.FrameWidth / scale;
+        var h = layer.FrameHeight / scale;
+        return SKRect.Create(layer.CropX * image.Width - w / 2, layer.CropY * image.Height - h / 2, w, h);
+    }
+
+    /// <summary>
+    /// Crop mode: the cut-away part of the photo shows dimmed around the frame,
+    /// with thirds lines and grips on the edges for resizing the frame.
+    /// </summary>
+    public static void DrawCropOverlay(SKCanvas canvas, ImageLayer layer, float unit)
+    {
+        if (layer.Image is not { } bytes) return;
+        var image = Image(bytes);
+        var scale = CropScale(layer, new SKSizeI(image.Width, image.Height));
+        var frame = SKRect.Create(-layer.FrameWidth / 2, -layer.FrameHeight / 2, layer.FrameWidth, layer.FrameHeight);
+        var whole = SKRect.Create(-layer.CropX * image.Width * scale, -layer.CropY * image.Height * scale, image.Width * scale, image.Height * scale);
+
+        canvas.Save();
+        ApplyTransform(canvas, layer);
+        var u = unit / layer.Scale; // one screen pixel in layer units
+
+        canvas.Save();
+        canvas.ClipRect(frame, SKClipOperation.Difference);
+        using (var ghost = new SKPaint { Color = SKColors.White.WithAlpha(90) })
+            canvas.DrawImage(image, whole, Sampling, ghost);
+        canvas.Restore();
+
+        using var line = new SKPaint { Style = SKPaintStyle.Stroke, StrokeWidth = 1 * u, Color = SKColors.White.WithAlpha(140), IsAntialias = true };
+        for (var i = 1; i < 3; i++)
+        {
+            canvas.DrawLine(frame.Left + frame.Width * i / 3, frame.Top, frame.Left + frame.Width * i / 3, frame.Bottom, line);
+            canvas.DrawLine(frame.Left, frame.Top + frame.Height * i / 3, frame.Right, frame.Top + frame.Height * i / 3, line);
+        }
+        line.StrokeWidth = 2 * u;
+        line.Color = SKColors.White;
+        canvas.DrawRect(frame, line);
+
+        using var grip = new SKPaint { Color = SKColors.White, IsAntialias = true };
+        float len = 36 * u, thick = 6 * u;
+        canvas.DrawRoundRect(SKRect.Create(-len / 2, frame.Top - thick / 2, len, thick), thick / 2, thick / 2, grip);
+        canvas.DrawRoundRect(SKRect.Create(-len / 2, frame.Bottom - thick / 2, len, thick), thick / 2, thick / 2, grip);
+        canvas.DrawRoundRect(SKRect.Create(frame.Left - thick / 2, -len / 2, thick, len), thick / 2, thick / 2, grip);
+        canvas.DrawRoundRect(SKRect.Create(frame.Right - thick / 2, -len / 2, thick, len), thick / 2, thick / 2, grip);
         canvas.Restore();
     }
 
@@ -368,7 +442,8 @@ public static class DesignRenderer
         return null;
     }
 
-    static SKPoint ToLocal(Layer layer, SKPoint point)
+    /// <summary>Point in the layer's own coordinates (center = 0, before its scale).</summary>
+    public static SKPoint ToLocal(Layer layer, SKPoint point)
     {
         var dx = point.X - layer.X;
         var dy = point.Y - layer.Y;

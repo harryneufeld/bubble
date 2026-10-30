@@ -74,6 +74,14 @@ public sealed class ImageLayer : Layer
     public float FrameHeight { get; set; }
     public float CornerRadius { get; set; }
 
+    /// <summary>Crop: 1 = the photo just covers the frame, more = zoomed in.</summary>
+    public float CropZoom { get; set; } = 1;
+    /// <summary>Crop: center of the visible part, as a fraction of the photo's width and height.</summary>
+    public float CropX { get; set; } = 0.5f;
+    public float CropY { get; set; } = 0.5f;
+
+    public void ResetCrop() => (CropZoom, CropX, CropY) = (1, 0.5f, 0.5f);
+
     public override float BaseWidth => FrameWidth;
     public override float BaseHeight => FrameHeight;
 }
