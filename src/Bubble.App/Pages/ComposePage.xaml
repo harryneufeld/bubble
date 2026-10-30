@@ -21,9 +21,11 @@
                 <Border x:Name="PreviewFrame" Style="{StaticResource Photo}" IsVisible="False">
                     <Image x:Name="Preview" Aspect="AspectFill" HeightRequest="320" SemanticProperties.Description="Chosen photo" />
                 </Border>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="12">
                     <Button x:Name="PhotoButton" Text="Add photo" ImageSource="ic_camera.png" Clicked="OnPickPhoto" Style="{StaticResource SecondaryButton}" />
-                    <Button x:Name="RemovePhotoButton" Grid.Column="1" Text="Remove" Clicked="OnRemovePhoto" IsVisible="False" Style="{StaticResource GhostButton}" />
+                    <Button x:Name="DesignButton" Grid.Column="1" Text="Design" ImageSource="ic_edit.png" Clicked="OnDesign" Style="{StaticResource SecondaryButton}"
+                            SemanticProperties.Hint="Opens the editor for photos, text and shapes" />
+                    <Button x:Name="RemovePhotoButton" Grid.Column="2" Text="Remove" Clicked="OnRemovePhoto" IsVisible="False" Style="{StaticResource GhostButton}" />
                 </Grid>
                 <Label Text="Location and camera data are removed." Style="{StaticResource CaptionText}" />
 

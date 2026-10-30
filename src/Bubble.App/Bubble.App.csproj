@@ -14,6 +14,8 @@
 		<OutputType>Exe</OutputType>
 		<RootNamespace>Bubble.App</RootNamespace>
 		<UseMaui>true</UseMaui>
+		<!-- SkiaSharp.Views.Maui 3.119.4 (the first build for .NET 10) needs at least MAUI 10.0.20 -->
+		<MauiVersion>10.0.20</MauiVersion>
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
@@ -54,6 +56,8 @@
 		
 		<!-- Custom Fonts -->
 		<MauiFont Include="Resources\Fonts\*" />
+		<!-- The editor draws with SkiaSharp and needs the font files themselves -->
+		<MauiAsset Include="Resources\Fonts\*" LogicalName="editorfonts\%(Filename)%(Extension)" />
 
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
@@ -64,6 +68,7 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 		<PackageReference Include="QRCoder" Version="1.8.1" />
 		<PackageReference Include="SkiaSharp" Version="3.119.4" />
+		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.4" />
 		<PackageReference Include="ZXing.Net.Maui.Controls" Version="0.10.4" />
 	</ItemGroup>
 

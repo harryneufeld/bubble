@@ -149,16 +149,29 @@ public partial class ComposePage : ContentPage
     {
         try
         {
-            _image = await ImageSanitizer.SanitizeAsync(stream);
-            var bytes = _image;
-            Preview.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
-            PreviewFrame.IsVisible = RemovePhotoButton.IsVisible = true;
-            PhotoButton.Text = "Change photo";
+            ShowImage(await ImageSanitizer.SanitizeAsync(stream), designed: false);
         }
         catch (InvalidDataException)
         {
             await DisplayAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
         }
+    }
+
+    /// <summary>A design is shown whole; a photo fills the preview like in the feed.</summary>
+    void ShowImage(byte[] bytes, bool designed)
+    {
+        _image = bytes;
+        Preview.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
+        Preview.Aspect = designed ? Aspect.AspectFit : Aspect.AspectFill;
+        PreviewFrame.IsVisible = RemovePhotoButton.IsVisible = true;
+        PhotoButton.Text = "Change photo";
+        DesignButton.Text = "Edit design";
+    }
+
+    /// <summary>Opens the editor; a chosen photo comes along as the starting point.</summary>
+    async void OnDesign(object? sender, EventArgs e)
+    {
+        if (await EditorPage.OpenAsync(this, _image) is { } jpeg) ShowImage(jpeg, designed: true);
     }
 
     void OnRemovePhoto(object? sender, EventArgs e)
@@ -167,6 +180,7 @@ public partial class ComposePage : ContentPage
         Preview.Source = null;
         PreviewFrame.IsVisible = RemovePhotoButton.IsVisible = false;
         PhotoButton.Text = "Add photo";
+        DesignButton.Text = "Design";
     }
 
     async void OnShare(object? sender, EventArgs e)
