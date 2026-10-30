@@ -54,6 +54,7 @@ public partial class EditorPage : ContentPage
         }
         BuildFormatToggle();
         RefreshTools();
+        UpdateHistoryButtons();
     }
 
     /// <summary>Opens the editor; returns the JPEG or null if closed without finishing.</summary>

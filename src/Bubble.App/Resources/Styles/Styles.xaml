@@ -17,6 +17,13 @@
         <Setter Property="BackgroundColor" Value="{StaticResource Canvas}" />
     </Style>
 
+    <!-- Since MAUI 10.0.20, pages on Android draw under the status bar by default; keep content out of the system bars -->
+    <Style TargetType="ContentPage" ApplyToDerivedTypes="True">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="BackgroundColor" Value="{StaticResource Canvas}" />
+        <Setter Property="SafeAreaEdges" Value="Container" />
+    </Style>
+
     <Style TargetType="Shell" ApplyToDerivedTypes="True">
         <Setter Property="Shell.BackgroundColor" Value="{StaticResource Canvas}" />
         <Setter Property="Shell.ForegroundColor" Value="{StaticResource Ink}" />
