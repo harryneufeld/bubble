@@ -3,7 +3,7 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-/// <summary>Einladen per QR-Code (vollständiger Link), kurzem Code (24 h, über den Relay) oder geteiltem Link.</summary>
+/// <summary>Invite via QR code (full link), short code (24 h, through the relay) or a shared link.</summary>
 [QueryProperty(nameof(MailboxId), "id")]
 public partial class InvitePage : ContentPage
 {
@@ -28,7 +28,7 @@ public partial class InvitePage : ContentPage
             await Shell.Current.GoToAsync("..");
             return;
         }
-        TitleLabel.Text = $"Wer soll in „{_bubble.Name}“?";
+        TitleLabel.Text = $"Who should be in “{_bubble.Name}”?";
         QrImage.Source = QrCodes.Create(Invite.For(_bubble).ToLink());
         if (_code is null) await CreateCodeAsync();
     }
@@ -41,12 +41,12 @@ public partial class InvitePage : ContentPage
         {
             _code = await ShortInvite.PublishAsync(Invite.For(bubble), _account.RelayFor(bubble.RelayUrl));
             CodeLabel.Text = _code;
-            CodeHint.Text = $"Gilt 24 Stunden · Server {Labels.Host(bubble.RelayUrl)}";
+            CodeHint.Text = $"Valid for 24 hours · Server {Labels.Host(bubble.RelayUrl)}";
             CopyButton.IsEnabled = true;
         }
         catch (HttpRequestException ex)
         {
-            CodeHint.Text = Labels.ConnectionError(bubble.RelayUrl, ex) + " QR-Code und Link funktionieren trotzdem.";
+            CodeHint.Text = Labels.ConnectionError(bubble.RelayUrl, ex) + " The QR code and link still work.";
         }
         finally
         {
@@ -58,7 +58,7 @@ public partial class InvitePage : ContentPage
     {
         if (_code is null) return;
         await Clipboard.Default.SetTextAsync(_code);
-        CopyButton.Text = "✓ Kopiert";
+        CopyButton.Text = "✓ Copied";
     }
 
     async void OnShare(object? sender, EventArgs e)
@@ -66,7 +66,7 @@ public partial class InvitePage : ContentPage
         if (_bubble is null) return;
         await Share.Default.RequestAsync(new ShareTextRequest
         {
-            Title = $"Einladung in „{_bubble.Name}“",
+            Title = $"Invitation to “{_bubble.Name}”",
             Text = Invite.For(_bubble).ToLink(),
         });
     }

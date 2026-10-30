@@ -3,8 +3,8 @@ using SkiaSharp;
 namespace Bubble.App.Services;
 
 /// <summary>
-/// Bereitet Fotos vor dem Verschlüsseln auf: richtig drehen, verkleinern und neu als JPEG
-/// kodieren. Durch das Neukodieren fallen alle Metadaten (EXIF, GPS, Kameramodell) weg.
+/// Prepares photos before encryption: rotate correctly, downscale and re-encode as JPEG.
+/// Re-encoding drops all metadata (EXIF, GPS, camera model).
 /// </summary>
 public static class ImageSanitizer
 {
@@ -45,7 +45,7 @@ public static class ImageSanitizer
 
     static SKBitmap DecodeOriented(Stream input)
     {
-        using var codec = SKCodec.Create(input) ?? throw new InvalidDataException("Bildformat wird nicht unterstützt.");
+        using var codec = SKCodec.Create(input) ?? throw new InvalidDataException("Image format is not supported.");
         using var decoded = SKBitmap.Decode(codec);
         return ApplyOrigin(decoded, codec.EncodedOrigin);
     }

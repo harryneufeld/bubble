@@ -5,7 +5,7 @@
     xmlns:maui="using:Microsoft.Maui"
     xmlns:local="using:Bubble.App.WinUI">
 
-    <!-- Entry/Editor sitzen in einem eigenen Rahmen (Style „Field“): kein nativer Rahmen, kein Hintergrund bei Hover/Fokus -->
+    <!-- Entry/Editor sit in their own frame (style "Field"): no native frame, no background on hover/focus -->
     <maui:MauiWinUIApplication.Resources>
         <ResourceDictionary>
             <SolidColorBrush x:Key="TextControlBackground" Color="Transparent" />

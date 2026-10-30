@@ -6,7 +6,7 @@
              x:Class="Bubble.App.Pages.HomePage"
              x:DataType="pages:HomePage"
              Shell.NavBarIsVisible="False"
-             Title="Heute">
+             Title="Today">
     <RefreshView x:Name="Refresher" Refreshing="OnRefreshing">
         <CollectionView x:Name="Feed" SelectionMode="None" MaximumWidthRequest="600">
             <CollectionView.Header>
@@ -18,10 +18,10 @@
                             <Ellipse WidthRequest="9" HeightRequest="9" Fill="{StaticResource BubbleGradient}" VerticalOptions="End" Margin="0,0,0,9" />
                         </HorizontalStackLayout>
                         <ImageButton Grid.Column="1" Source="ic_scan.png" Style="{StaticResource IconButton}" Clicked="OnJoin"
-                                     SemanticProperties.Description="Bubble beitreten" ToolTipProperties.Text="Bubble beitreten" />
+                                     SemanticProperties.Description="Join bubble" ToolTipProperties.Text="Join bubble" />
                         <ImageButton Grid.Column="2" Source="ic_plus.png" Style="{StaticResource IconButton}" Clicked="OnCompose"
                                      Background="{StaticResource CtaGradient}"
-                                     SemanticProperties.Description="Highlight teilen" ToolTipProperties.Text="Highlight teilen" />
+                                     SemanticProperties.Description="Share highlight" ToolTipProperties.Text="Share highlight" />
                     </Grid>
 
                     <!-- Stories -->
@@ -70,7 +70,7 @@
                     <Label x:Name="EmptyTitle" Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
                     <Label x:Name="EmptyText" Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
                     <Button x:Name="EmptyAction" Clicked="OnEmptyAction" Margin="0,12,0,0" />
-                    <Button x:Name="EmptySecondary" Text="Einladungscode eingeben" Clicked="OnJoin" Style="{StaticResource GhostButton}" />
+                    <Button x:Name="EmptySecondary" Text="Enter invitation code" Clicked="OnJoin" Style="{StaticResource GhostButton}" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
 

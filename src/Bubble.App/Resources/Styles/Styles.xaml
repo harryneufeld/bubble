@@ -10,7 +10,7 @@
         <On Platform="WinUI" Value="Cascadia Mono" />
     </OnPlatform>
 
-    <!-- ── Seiten und Navigation ─────────────────────────── -->
+    <!-- ── Pages and navigation ─────────────────────────── -->
 
     <Style TargetType="Page" ApplyToDerivedTypes="True">
         <Setter Property="Padding" Value="0" />
@@ -30,7 +30,7 @@
         <Setter Property="Shell.TabBarUnselectedColor" Value="{StaticResource Muted}" />
     </Style>
 
-    <!-- Inhalte: eine Spalte, auf breiten Fenstern höchstens 600 breit und zentriert -->
+    <!-- Content: one column, at most 600 wide and centered on wide windows -->
     <Style x:Key="Column" TargetType="Layout" ApplyToDerivedTypes="True">
         <Setter Property="MaximumWidthRequest" Value="600" />
         <Setter Property="HorizontalOptions" Value="Fill" />
@@ -202,7 +202,7 @@
         </Setter>
     </Style>
 
-    <!-- ── Flächen ────────────────────────────────────────── -->
+    <!-- ── Surfaces ────────────────────────────────────────── -->
 
     <Style TargetType="Border">
         <Setter Property="StrokeThickness" Value="0" />
@@ -250,7 +250,7 @@
         <Setter Property="Color" Value="{StaticResource Hairline}" />
     </Style>
 
-    <!-- ── Chips und Badges (Pille) ───────────────────────── -->
+    <!-- ── Chips and badges (pill) ───────────────────────── -->
 
     <Style x:Key="Pill" TargetType="Border">
         <Setter Property="StrokeShape" Value="RoundRectangle 999" />
@@ -258,7 +258,7 @@
         <Setter Property="HorizontalOptions" Value="Start" />
         <Setter Property="VerticalOptions" Value="Center" />
     </Style>
-    <!-- halbtransparent über Fotos -->
+    <!-- semi-transparent over photos -->
     <Style x:Key="GlassPill" TargetType="Border" BasedOn="{StaticResource Pill}">
         <Setter Property="BackgroundColor" Value="{StaticResource Glass}" />
     </Style>

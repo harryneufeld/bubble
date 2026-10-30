@@ -1,36 +1,37 @@
 # Bubble – Plan
 
-## Ziel
-Eine App, in der man in privaten Gruppen („Bubbles“) Highlights teilt – mit einem Emoji für das Gefühl, als Text oder als Bild. Datenschutz steht an erster Stelle: Ende-zu-Ende-verschlüsselt und datensparsam.
+## Goal
+An app for sharing highlights in private groups ("bubbles") – with an emoji for the feeling, as text or as an image. Privacy comes first: end-to-end encrypted and data-minimal.
 
-## Kernfunktionen
-- **Bubbles:** kleine private Gruppen, Beitritt per Einladungslink
-- **Highlights teilen**, so oft man mag, mit einem Gefühl als Emoji („Wie fühlst du dich?“)
-- **Herz-Blase und Kommentare** unter jedem Highlight; beide verschwinden mit dem Post
-- **Editor wie Canva:** Story-Leinwand (9:16) mit Fotos, Text, Stickern und Vorlagen; geteilt wird das fertige Bild
-- **Lebensdauer pro Bubble einstellbar:** ⏳ 24h (wie Stories) oder 📌 dauerhaft
-  - jeder Post zeigt ein Badge mit seiner Lebensdauer
-  - eine Änderung gilt nur für neue Posts, und die Bubble wird informiert
+## Core features
+- **Bubbles:** small private groups, joined via an invitation link
+- **Share highlights** as often as you like, with a feeling as an emoji ("How are you feeling?")
+- **Heart bubble and comments** under every highlight; both disappear with the post
+- **Members:** anyone can leave a bubble; the person who created it can remove members (the bubble moves to a new key)
+- **Editor like Canva:** story canvas (9:16) with photos, text, stickers and templates; the finished image is shared
+- **Lifetime configurable per bubble:** ⏳ 24h (like stories) or 📌 permanent
+  - every post shows a badge with its lifetime
+  - a change only applies to new posts, and the bubble is informed
 
-## Datenschutz
-- **Ende-zu-Ende-Verschlüsselung** (libsodium): ein Schlüssel pro Bubble, Rotation, wenn jemand entfernt wird
-- **„Blinder“ Relay-Server** in der EU: speichert nur verschlüsselte Blobs und löscht 24h-Posts automatisch
-- **Keine E-Mail und keine Telefonnummer:** die Identität ist ein Schlüsselpaar auf dem Gerät
-- **Bilder:** Metadaten (EXIF/GPS) werden vor dem Upload entfernt, das Bild wird komprimiert und verschlüsselt
-- **Inhaltsleere Push-Benachrichtigungen**, keine IP-Logs, keine externen Assets
+## Privacy
+- **End-to-end encryption** (ChaCha20-Poly1305): one key per bubble, rotated when someone is removed
+- **"Blind" relay server** in the EU: only stores encrypted blobs and deletes 24h posts automatically
+- **No email and no phone number:** the identity is a key pair on the device
+- **Images:** metadata (EXIF/GPS) is removed before upload, the image is compressed and encrypted
+- **Content-free push notifications**, no IP logs, no external assets
 
-## Neues Gerät / Wiederherstellung
-Ein verschlüsseltes Schlüssel-Backup liegt auf dem Server. Es enthält die Identität und alle Bubble-Schlüssel und lässt sich auf zwei Wegen öffnen:
-1. **Passkey** (WebAuthn PRF), synchronisiert über iCloud oder Google – der Standardweg
-2. **Backup-Code** mit dem Hinweis, ihn im Passwortmanager zu speichern – die Alternative
+## New device / recovery
+An encrypted key backup sits on the server. It contains the identity and all bubble keys and can be opened in two ways:
+1. **Passkey** (WebAuthn PRF), synced via iCloud or Google – the default path
+2. **Backup code**, with a hint to save it in a password manager – the alternative
 
-Fallback: Freunde laden einen erneut in die Bubble ein.
+Fallback: friends invite you into the bubble again.
 
 ## Stack
-.NET 10 · .NET MAUI (App) · ASP.NET Core + SQLite (Relay) · BouncyCastle (ChaCha20-Poly1305, Ed25519, Argon2id) · SkiaSharp (Bildbearbeitung, später Editor)
+.NET 10 · .NET MAUI (app) · ASP.NET Core + SQLite (relay) · BouncyCastle (ChaCha20-Poly1305, Ed25519, X25519, Argon2id) · SkiaSharp (image processing, editor later)
 
 ## Roadmap
-1. **MVP:** Bubbles, Text- und Foto-Posts, Ende-zu-Ende-Verschlüsselung, 24h/dauerhaft, Passkey- und Code-Backup
-2. **Editor:** Leinwand, Vorlagen, Sticker
-3. **Komfort:** Emoji-Reaktionen, Push, Mehrgeräte-Support
-4. **Härten:** MLS, Metadatenschutz, Option zum Self-Hosting
+1. **MVP:** bubbles, text and photo posts, end-to-end encryption, 24h/permanent, passkey and code backup
+2. **Editor:** canvas, templates, stickers
+3. **Comfort:** emoji reactions, push, multi-device support
+4. **Hardening:** MLS, metadata protection, option to self-host

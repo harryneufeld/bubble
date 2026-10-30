@@ -19,7 +19,7 @@ public sealed class BubbleTile(BubbleMembership bubble, BubbleSnapshot? snapshot
     public bool HasCover => _cover is not null;
     public ImageSource? Cover => _cover is { } bytes ? ImageSource.FromStream(() => new MemoryStream(bytes)) : null;
     public Brush Fallback { get; } = Gradients.For(bubble.MailboxId);
-    public string Description => $"{Name}, {Meta}{(hasNew ? ", Neues" : "")}";
+    public string Description => $"{Name}, {Meta}{(hasNew ? ", new" : "")}";
 }
 
 public partial class BubblesPage : ContentPage
@@ -56,7 +56,7 @@ public partial class BubblesPage : ContentPage
         var tiles = _account.Vault!.Bubbles
             .Select(b => new BubbleTile(b, _feed.SnapshotFor(b), _feed.StoriesOf(b).Any(s => !s.Post.IsMine && !_feed.IsSeen(s.Post.Id))))
             .ToList();
-        // nur ersetzen, wenn sich etwas geändert hat (sonst laden alle Cover-Bilder neu und flackern)
+        // only replace if something changed (otherwise all cover images reload and flicker)
         var sig = string.Join('|', tiles.Select(t => $"{t.MailboxId}:{t.Name}:{t.Meta}:{t.HasNew}:{t.Faces.Count}:{t.HasCover}"));
         if (sig == _sig) return;
         _sig = sig;
@@ -73,14 +73,14 @@ public partial class BubblesPage : ContentPage
 
     async void OnJoin(object? sender, EventArgs e) => await Shell.Current.GoToAsync(nameof(JoinPage));
 
-    /// <summary>Name und Lebensdauer abfragen, Bubble gründen und direkt zum Einladen wechseln.</summary>
+    /// <summary>Ask for name and lifetime, create the bubble and go straight to inviting.</summary>
     public static async Task CreateBubbleFlowAsync(Page page, AccountService account)
     {
-        var name = await SheetPage.PromptAsync(page, "Neue Bubble", "Wie soll sie heißen?", "Weiter", "z. B. Familie, WG, Laufgruppe", maxLength: 40);
+        var name = await SheetPage.PromptAsync(page, "New bubble", "What should it be called?", "Next", "e.g. Family, Flatmates, Running group", maxLength: 40);
         if (string.IsNullOrWhiteSpace(name)) return;
 
-        var choice = await SheetPage.ChooseAsync(page, "Wie lange sollen Highlights sichtbar sein?",
-            "Das gilt für neue Highlights und lässt sich später ändern.", Labels.LifetimeOptions(PostLifetime.Story24h));
+        var choice = await SheetPage.ChooseAsync(page, "How long should highlights stay visible?",
+            "This applies to new highlights and can be changed later.", Labels.LifetimeOptions(PostLifetime.Story24h));
         if (choice is not { } index) return;
 
         var bubble = await account.CreateBubbleAsync(name, Labels.LifetimeAt(index));

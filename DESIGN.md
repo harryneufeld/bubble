@@ -1,10 +1,10 @@
 ---
 version: 2
 name: Bubble
-description: Dunkle, lebendige Social-App für kleine private Kreise. Tiefes Schwarzviolett als Grund, Fotos und leuchtende Verläufe (Pink → Violett → Cyan, wie das Schillern einer Seifenblase) als Gestaltung. Stories-Leiste, Vollbild-Stories und Foto-Karten wie in sozialen Apps – aber ohne Streaks, Ranglisten oder endlosen Feed.
+description: A dark, vivid social app for small private circles. Deep black-violet as the base, photos and glowing gradients (pink → violet → cyan, like the shimmer of a soap bubble) as the visual language. Story bar, full-screen stories and photo cards like in social apps – but without streaks, leaderboards or endless feeds.
 
 colors:
-  # Flächen (dunkel)
+  # Surfaces (dark)
   canvas: "#0B0A10"
   surface: "#17151F"
   surface-raised: "#221F2C"
@@ -12,26 +12,26 @@ colors:
 
   # Text
   ink: "#F5F3FA"
-  ink-soft: "#C9C4D6"     # >= 4.5:1 auf canvas und surface
-  muted: "#8F89A0"        # nur Metadaten, >= 4.5:1 auf canvas
+  ink-soft: "#C9C4D6"     # >= 4.5:1 on canvas and surface
+  muted: "#8F89A0"        # metadata only, >= 4.5:1 on canvas
 
-  # Schillern – Akzentverlauf für Ringe, Cover, Deko
+  # Shimmer – accent gradient for rings, covers, decoration
   pink: "#FF4F9A"
   violet: "#8B5CF6"
   cyan: "#22D3EE"
-  accent: "#B9A2FF"       # Text-Links und Ghost-Buttons
+  accent: "#B9A2FF"       # text links and ghost buttons
 
-  # Hauptaktion: Verlauf cta-start → cta-end, weißer Text (>= 4.5:1)
+  # Primary action: gradient cta-start → cta-end, white text (>= 4.5:1)
   cta-start: "#D9246F"
   cta-end: "#6D3CF5"
   on-cta: "#FFFFFF"
 
-  # Semantik
+  # Semantics
   error: "#FF5A6E"
   success: "#4ADE80"
 
 typography:
-  # Display: Fraunces (nur Wortmarke) · UI: Inter (SIL OFL). Beide liegen als TTF in der App.
+  # Display: Fraunces (wordmark only) · UI: Inter (SIL OFL). Both ship as TTF inside the app.
   wordmark: { fontFamily: Fraunces, fontSize: 30, fontWeight: 400 }
   hero:     { fontFamily: Inter, fontSize: 36, fontWeight: 700, lineHeight: 1.05, letterSpacing: -1 }
   title:    { fontFamily: Inter, fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }
@@ -51,7 +51,7 @@ spacing:
   xxs: 4
   xs: 8
   sm: 12
-  md: 16     # Seitenrand
+  md: 16     # page margin
   lg: 24
   xl: 32
 
@@ -63,156 +63,161 @@ components:
   card:             { backgroundColor: "{colors.surface}", rounded: "{rounded.card}", padding: 0 }
   text-input:       { backgroundColor: "{colors.surface}", borderColor: "{colors.hairline}", rounded: "{rounded.field}", height: 54 }
   secret-box:       { backgroundColor: "{colors.surface}", border: "2px gradient(pink → violet → cyan)", rounded: "{rounded.card}" }
-  avatar:           { shape: circle, fallback: "Initialen auf Verlauf, stabil je Name" }
+  avatar:           { shape: circle, fallback: "initials on a gradient, stable per name" }
   story-ring:       { new: "gradient(pink → violet → cyan)", seen: "#3A3548" }
 ---
 
-# Bubble – Design-Guidelines
+# Bubble – Design Guidelines
 
-Diese Datei ist verbindlich für jede Oberfläche von Bubble. Menschen und KI-Agenten bauen danach. Die Vorlagen in [docs/design/references](docs/design/references/README.md) sind nur Inspiration.
+This file is binding for every Bubble surface. People and AI agents build against it. The templates in [docs/design/references](docs/design/references/README.md) are inspiration only.
 
-## 1. Stimmung
+## 1. Mood
 
-Bubble fühlt sich an wie **die Stories-Leiste einer sozialen App, nur für deine engsten Leute**: dunkel, lebendig, fotolastig. Die Oberfläche tritt zurück, Fotos und leuchtende Verläufe tragen die Gestaltung.
+Bubble feels like **the story bar of a social app, only for your closest people**: dark, vivid, photo-heavy. The interface steps back; photos and glowing gradients carry the design.
 
-- **Dunkler Grund.** Die App ist immer dunkel (`UserAppTheme = Dark`). Kein reines Schwarz, sondern `canvas` mit leichtem Violett.
-- **Schillern statt Flächenfarbe.** Pink → Violett → Cyan erscheint an wenigen Stellen: Story-Ringe, Cover, Hauptbutton, Deko. Nie als Text- oder Hintergrundfarbe für Fließtext.
-- **Fotos zuerst.** Karten laufen randlos bis an den Rand. Text-Posts bekommen einen leuchtenden Verlauf, damit sie sich wie Fotos anfühlen.
-- **Sozial, aber ruhig.** Siehe Abschnitt 7: keine Zähler, keine Streaks, kein Sog.
+- **Dark base.** The app is always dark (`UserAppTheme = Dark`). Not pure black, but `canvas` with a hint of violet.
+- **Shimmer instead of flat color.** Pink → violet → cyan appears in a few places: story rings, covers, the main button, decoration. Never as a text color or as a background for running text.
+- **Photos first.** Cards run edge to edge. Text posts get a glowing gradient so they feel like photos.
+- **Social, but calm.** See section 7: no counters, no streaks, no pull.
 
-## 2. Farben und ihre Rollen
+## 2. Colors and their roles
 
-| Rolle | Token | Regel |
+| Role | Token | Rule |
 |---|---|---|
-| Hauptaktion | `cta-start → cta-end` | **Genau eine** pro Ansicht („Teilen“, „Los geht's“, „Beitreten“). Dazu darf in Kopfzeilen ein runder `+`-Icon-Button im selben Verlauf stehen. |
-| Grund | `canvas` | Seitenhintergrund. |
-| Karten, Felder | `surface` (+ `hairline` bei Feldern) | Keine Rahmen um Karten, nur Fläche auf Grund. |
-| Hervorgehoben | `surface-raised` | Sekundärbuttons, Chips, Icon-Buttons. |
-| Fließtext | `ink`, `ink-soft` | `muted` nur für Metadaten wie Zeit und Server. |
-| Links, Ghost-Aktionen | `accent` | Nicht für Fließtext. |
-| Schillern | `pink`, `violet`, `cyan` | Ringe, Cover, Deko (siehe oben). |
-| Gefühl | `surface-raised` | Neutrale Pille mit Emoji und Wort („😍 Verliebt“). Keine Wertungsfarben: Ein schlechter Tag ist kein Fehler. |
-| Herz | `pink` | Nur das gesetzte Herz in der Herz-Blase. |
-| Fehler | `error` | Nur für echte Fehler, nie für ein Gefühl. |
+| Main action | `cta-start → cta-end` | **Exactly one** per view ("Share", "Get started", "Join"). A round `+` icon button in the same gradient may also appear in headers. |
+| Base | `canvas` | Page background. |
+| Cards, fields | `surface` (+ `hairline` for fields) | No borders around cards, just surface on base. |
+| Emphasis | `surface-raised` | Secondary buttons, chips, icon buttons. |
+| Running text | `ink`, `ink-soft` | `muted` only for metadata like time and server. |
+| Links, ghost actions | `accent` | Not for running text. |
+| Shimmer | `pink`, `violet`, `cyan` | Rings, covers, decoration (see above). |
+| Feeling | `surface-raised` | Neutral pill with emoji and word ("😍 In love"). No judgment colors: a bad day is not an error. |
+| Heart | `pink` | Only the set heart in the heart bubble. |
+| Error | `error` | Only for real errors, never for a feeling. |
 
-**Kontrast:** Text mindestens 4,5:1, große Schrift und Icons mindestens 3:1. Weißer Text auf Verläufen nutzt die dunkleren Stufen (`cta-*`, Avatar- und Post-Verläufe). Text auf Fotos steht immer auf einem Schatten-Verlauf (`PhotoShade`).
+**Contrast:** text at least 4.5:1, large type and icons at least 3:1. White text on gradients uses the darker shades (`cta-*`, avatar and post gradients). Text on photos always sits on a shadow gradient (`PhotoShade`).
 
-## 3. Typografie
+## 3. Typography
 
-- **Inter** für alles, Gewichte 400/500/600/700. Schlagzeilen sind fett und eng gesetzt (`hero`, `title`).
-- **Fraunces** (Serif) nur für die Wortmarke „bubble“. Sie bleibt als Wiedererkennung.
-- **Backup- und Einladungscodes** in Monospace, groß, mit Zeichenabstand.
-- Dynamic Type bzw. Systemschriftgrößen werden respektiert; Layouts müssen bei 200 % funktionieren.
-- **Schriften liegen in der App** (`Resources/Fonts`, Lizenzen in `docs/licenses`). Nie von einem CDN laden – das würde die IP der Nutzer an Dritte senden.
-- Statische TTFs, weil MAUI keine Achsen variabler Schriften ansteuert. Aliase: `Display`, `Body`, `BodyMedium`, `BodySemibold`, `BodyBold`.
+- **Inter** for everything, weights 400/500/600/700. Headlines are bold and tightly set (`hero`, `title`).
+- **Fraunces** (serif) only for the "bubble" wordmark. It stays as the recognizable mark.
+- **Backup and invitation codes** in monospace, large, with letter spacing.
+- Dynamic Type and system font sizes are respected; layouts must work at 200 %.
+- **Fonts ship inside the app** (`Resources/Fonts`, licenses in `docs/licenses`). Never load from a CDN – that would send users' IPs to third parties.
+- Static TTFs, because MAUI cannot drive the axes of variable fonts. Aliases: `Display`, `Body`, `BodyMedium`, `BodySemibold`, `BodyBold`.
 
-## 4. Komponenten
+## 4. Components
 
-**Navigation.** Zurück schließt Seiten der Reihe nach, von einem anderen Tab geht es zurück zu „Heute“. Auf „Heute“ beendet Zurück die App nicht. Drei Tabs unten: **Heute**, **Bubbles**, **Profil**, mit Linien-Icons (2 px, `ic_*.svg`). Ausgewählt = `ink`, sonst `muted`. Detailseiten (Bubble, Einladen, Beitreten, Teilen, Backup) blenden die Tab-Leiste aus.
+**Navigation.** Back closes pages one after another; from another tab it goes back to "Today". On "Today", back does not exit the app straight away. Three tabs at the bottom: **Today**, **Bubbles**, **Profile**, with line icons (2 px, `ic_*.svg`). Selected = `ink`, otherwise `muted`. Detail pages (bubble, invite, join, share, backup) hide the tab bar.
 
-**Avatar.** Rund. Ohne Foto: Initialen auf stabilem Verlauf je Name. Optional mit Story-Ring (`new` = Verlauf, `seen` = dezent) und Plus-Badge („Du“ in der Story-Leiste).
+**Avatar.** Round. Without a photo: initials on a stable gradient per name. Optionally with a story ring (`new` = gradient, `seen` = subtle) and a plus badge ("You" in the story bar).
 
-**Story-Leiste (Heute).** Horizontale Reihe: zuerst „Du“ (teilen), dann eine Bubble pro Kreis mit Highlights der letzten 24 h. Ungesehene zuerst mit Verlaufsring, gesehene dezent. Antippen öffnet die Vollbild-Ansicht.
+**Story bar (Today).** Horizontal row: first "You" (share), then one bubble per circle with highlights from the last 24 h. Unseen ones first with a gradient ring, seen ones subtle. Tapping opens the full-screen view.
 
-**Story-Ansicht.** Vollbild auf Schwarz: Fortschrittsbalken oben (6 s pro Story), Absender und Schließen-Button, Stimmungs-Pille und Bildunterschrift unten auf Schatten. Tippen rechts = weiter, links = zurück. Beginnt bei der ersten ungesehenen Story.
+**Story view.** Full screen on black: progress bars at the top (6 s per story), sender and close button, feeling pill and caption at the bottom on a shadow. Tap right = next, left = back. Starts at the first unseen story.
 
-**Post-Karte.**
+**Post card.**
 ```
 ┌──────────────────────────────────┐
-│ (Avatar) Anna       [😍 Verliebt]│  Kopf: Name, „Bubble · vor 2 h“, Gefühl
+│ (Avatar) Anna      [😍 In love]  │  Header: name, "Bubble · 2 h ago", feeling
 │ ┌──────────────────────────────┐ │
-│ │ Foto, randlos       [⏳ 14 h]│ │  Glas-Pille mit Lebensdauer
+│ │ Photo, edge to edge [⏳ 14 h]│ │  Glass pill with lifetime
 │ └──────────────────────────────┘ │
-│ Sonnenaufgang am See             │
-│ (♡) (Mia)(Tom) Mia und Tom   💬 2 │  Herz-Blase, wer ein Herz gab, Kommentare
+│ Sunrise at the lake              │
+│ (♡) (Mia)(Tom) Mia and Tom   💬 2 │  Heart bubble, who gave a heart, comments
 └──────────────────────────────────┘
 ```
-Die **Herz-Blase** ist ein Herz in einer Seifenblase (Linie; gesetzt: rosa gefüllt) und poppt beim Tippen kurz auf. Auf der Post-Seite gibt auch Doppeltippen aufs Bild ein Herz.
+The **heart bubble** is a heart in a soap bubble (outline; set: filled pink) and pops briefly when tapped. On the post page, double-tapping the image also gives a heart.
 
-**Post-Seite.** Tippen auf eine Karte öffnet nur diesen Post, groß, mit den Kommentaren darunter und der Eingabe unten fixiert. Kommentare sind runde Sprechblasen mit Avatar, Name und Zeit; Herz und Kommentare verschwinden mit dem Post.
-Nur-Text-Posts: großer weißer Text mittig auf leuchtendem Verlauf, gleiche Höhe wie ein Foto-Post.
+**Post page.** Tapping a card opens just that post, large, with the comments below and the input pinned at the bottom. Comments are round speech bubbles with avatar, name and time; hearts and comments disappear with the post.
+Text-only posts: large white text centered on a glowing gradient, the same height as a photo post.
 
-**Bubble-Kachel (Bubbles).** Zwei Spalten. Cover = neuestes Foto oder Verlauf, unten Schatten, Gesichter der Mitglieder, Name, „n Leute · Lebensdauer“. Ein Punkt oben rechts zeigt Neues – **kein Zähler**.
+**Bubble tile (Bubbles).** Two columns. Cover = newest photo or gradient, shadow at the bottom, faces of the members, name, "n people · lifetime". A dot at the top right shows something new – **no counter**.
 
-**Bubble-Seite.** Cover-Kopf mit Name, Lebensdauer- und Leute-Pille; Mitglieder-Reihe; „Leute einladen“ und „Lebensdauer“; darunter die Highlights. Teilen-Button unten.
+**Bubble page.** Cover header with name, lifetime and people pills; member row (the creator can tap a member to remove them); "Invite people" and "Lifetime"; "Leave bubble" as a quiet ghost action; the highlights below. Share button at the bottom.
 
-**Geheimnis-Box.** Rahmen im Schillern-Verlauf, enthält immer: den Wert, eine Kopieren-Aktion und einen Satz, wo man ihn sicher aufbewahrt.
+**Secret box.** Frame in the shimmer gradient, always contains: the value, a copy action and a sentence on where to keep it safe.
 
-**Leerzustände.** Deko aus drei Blasen im Verlauf, eine Titelzeile, ein Satz, die eine passende Aktion.
+**Empty states.** Decoration of three gradient bubbles, a headline, one sentence, the one fitting action.
 
 ## 5. Layout
 
-- Seitenrand 16 pt, Kartenabstand 16 pt. Eine Spalte auf dem Handy.
-- Auf Tablet und Desktop ist die Inhaltsspalte höchstens 600 pt breit und zentriert.
-- Die Hauptaktion sitzt unten und ist mit dem Daumen erreichbar.
-- Touch-Ziele mindestens 44×44 pt.
+- Page margin 16 pt, card spacing 16 pt. One column on phones.
+- On tablet and desktop the content column is at most 600 pt wide and centered.
+- The main action sits at the bottom, within thumb reach.
+- Touch targets at least 44×44 pt.
 
-## 6. Tiefe
+## 6. Depth
 
-- Tiefe entsteht über `surface` auf `canvas`, nicht über Schatten.
-- Auf Fotos liegen halbtransparente Glas-Pillen (`#8C0B0A10`) für Lebensdauer und Stimmung.
-- Gedrückte Buttons skalieren leicht (0,97). Seitenwechsel im Onboarding blenden ein und gleiten 24 pt hoch (250 ms). Animationen berücksichtigen „Bewegung reduzieren“.
+- Depth comes from `surface` on `canvas`, not from shadows.
+- On photos, semi-transparent glass pills (`#8C0B0A10`) show lifetime and feeling.
+- Pressed buttons scale slightly (0.97). Page changes in onboarding fade in and slide up 24 pt (250 ms). Animations respect "reduce motion".
 
-## 7. Bubble-spezifische Regeln
+## 7. Bubble-specific rules
 
-**Freunde hinzufügen = in eine Bubble einladen**
-- Einladen: QR-Code (enthält den vollständigen Link), kurzer Code (z. B. `7KQ2M-9XH4T`, 24 h gültig) oder geteilter Link. Der kurze Code liegt verschlüsselt als 24h-Nachricht auf dem Relay.
-- Beitreten: Kamera scannt den QR-Code, oder man gibt den Code ein bzw. fügt den Link ein. Vor dem Beitreten erscheint eine Vorschau mit Name, Lebensdauer und Server.
-- Vor jeder Einladung steht die Erklärung, dass QR-Code, Code und Link den Schlüssel enthalten.
+**Adding friends = inviting them into a bubble**
+- Invite: QR code (contains the full link), short code (e.g. `7KQ2M-9XH4T`, valid for 24 h) or a shared link. The short code sits on the relay as an encrypted 24h message.
+- Join: the camera scans the QR code, or you enter the code or paste the link. Before joining, a preview shows name, lifetime and server.
+- Every invitation is preceded by the explanation that the QR code, code and link contain the key.
 
-**Datenschutz sichtbar, aber leise**
-- Jeder Post zeigt seine Lebensdauer (⏳/📌). Vor dem Teilen steht, was mit dem Post passiert.
-- Beim Foto-Hinzufügen steht „Standort- und Kameradaten werden entfernt“.
-- Das Profil (Name, Bild, Bio) geht nur verschlüsselt an die eigenen Bubbles.
-- Server-Adressen und Fehlerursachen werden konkret benannt, z. B. „192.168.1.20:5080 ist nicht erreichbar“.
+**Members**
+- Only the person who created a bubble can remove members. Removing someone moves the bubble to a new key, and the sheet says so up front, including that earlier highlights stay behind.
+- Anyone can leave a bubble. Leaving asks for confirmation and says that coming back needs a new invitation.
+- Logging out asks for confirmation and says what is lost if no backup exists.
 
-**Keine Aufmerksamkeitsfallen**
-- Kein endloser Feed (nur Highlights der Bubbles, kein Nachladen ins Unendliche), keine Streaks, keine Ranglisten, keine „X hat noch nicht gepostet“-Hinweise, keine Zähler für Ungelesenes.
-- Herzen zeigen **Gesichter und Namen** („Mia und Tom“), keine große Zahl. Ein Kommentar-Zähler („2 Kommentare“) ist erlaubt.
-- Emoji-Reaktionen (später) folgen derselben Regel.
-- Benachrichtigungen höchstens einmal täglich und inhaltsleer.
+**Privacy visible, but quiet**
+- Every post shows its lifetime (⏳/📌). Before sharing, it says what happens to the post.
+- When adding a photo it says "Location and camera data are removed".
+- The profile (name, picture, bio) goes only, encrypted, to your own bubbles.
+- Server addresses and causes of errors are named concretely, e.g. "192.168.1.20:5080 is not reachable".
 
-**Sprache**
-- Wir duzen, sind warm und kurz. Wir sagen „Highlight“, „Bubble“ und „teilen“, nicht „Content“, „Gruppe“ oder „posten“.
-- Fehler sagen, was passiert ist und was man tun kann. Die Ausnahme ist die Server-Adresse.
-- Ein schlechter Tag wird von der App nie kommentiert oder bewertet. „Wie fühlst du dich?“ meint die Person, nicht eine Note.
-- Posten: „Wie fühlst du dich?“ mit 16 Emojis und einem Wort; die Auswahl ist optional und lässt sich durch erneutes Tippen zurücknehmen.
+**No attention traps**
+- No endless feed (only highlights from the bubbles, no infinite loading), no streaks, no leaderboards, no "X hasn't posted yet" hints, no counters for unread items.
+- Hearts show **faces and names** ("Mia and Tom"), not a big number. A comment counter ("2 comments") is allowed.
+- Emoji reactions (later) follow the same rule.
+- Notifications at most once a day and content-free.
+
+**Language**
+- We write in English, warm and short. We say "highlight", "bubble" and "share", not "content", "group" or "post".
+- Errors say what happened and what you can do. The exception is the server address.
+- The app never comments on or rates a bad day. "How are you feeling?" means the person, not a grade.
+- Sharing: "How are you feeling?" with 16 emojis and one word; the choice is optional and can be undone by tapping again.
 
 ## 8. Do's and Don'ts
 
 ### Do
-- `canvas` als Hintergrund jeder Seite verwenden, Karten in `surface`.
-- Genau einen Hauptbutton im Verlauf pro Ansicht setzen.
-- Fotos groß und randlos zeigen; Text auf Fotos nur über Schatten.
-- Lebensdauer an jedem Post anzeigen.
-- Erklären, warum etwas deaktiviert ist (z. B. „Wähle eine Bubble“ am Teilen-Button).
-- Linien-Icons aus `Resources/Images` verwenden (keine Emojis als Navigation).
+- Use `canvas` as the background of every page, cards in `surface`.
+- Put exactly one main button in the gradient per view.
+- Show photos large and edge to edge; text on photos only over a shadow.
+- Show the lifetime on every post.
+- Explain why something is disabled (e.g. "Choose a bubble" on the share button).
+- Use line icons from `Resources/Images` (no emojis as navigation).
 
 ### Don't
-- Das Schillern nicht für Fließtext oder große Flächen hinter Text mit niedrigem Kontrast nutzen.
-- Gefühle nicht mit Wertungsfarben (Grün/Rot) markieren.
-- Keine Schriften oder Bilder von externen Servern laden.
-- Keine Streaks, Ranglisten oder Gamification einbauen; Herzen nicht als Zahl zeigen.
-- Keine Rahmen um Karten und keine harten Schatten.
+- Don't use the shimmer for running text or for large areas behind low-contrast text.
+- Don't mark feelings with judgment colors (green/red).
+- Don't load fonts or images from external servers.
+- Don't add streaks, leaderboards or gamification; don't show hearts as a number.
+- No borders around cards and no hard shadows.
 
-## 9. Responsive Verhalten
+## 9. Responsive behavior
 
-| Breite | Verhalten |
+| Width | Behavior |
 |---|---|
-| < 600 pt | eine Spalte, Tab-Leiste unten, Hauptaktion unten fixiert |
-| ≥ 600 pt | Inhalt zentriert, höchstens 600 pt breit |
+| < 600 pt | one column, tab bar at the bottom, main action pinned at the bottom |
+| ≥ 600 pt | content centered, at most 600 pt wide |
 
-## 10. Story-Editor (später)
+## 10. Story editor (later)
 
-Die Leinwand hat das Format **9:16** (1080×1920), wird skaliert und nie beschnitten; Export als flaches JPEG. Hintergründe nutzen Verläufe aus `pink`, `violet`, `cyan` und deren Nachbarn. Die Werkzeugleiste ist ruhige App-Oberfläche (`surface-raised`, schwebend).
+The canvas has a **9:16** format (1080×1920), is scaled and never cropped; export as a flat JPEG. Backgrounds use gradients from `pink`, `violet`, `cyan` and their neighbors. The toolbar is calm app UI (`surface-raised`, floating).
 
-## 11. Umsetzung in .NET MAUI
+## 11. Implementation in .NET MAUI
 
-- Farben und Verläufe: `Resources/Styles/Colors.xaml` (`Canvas`, `Surface`, `SurfaceRaised`, `Hairline`, `Ink`, `InkSoft`, `Muted`, `Pink`, `Violet`, `Cyan`, `Accent`, `CtaStart`, `CtaEnd`, Brushes `BubbleGradient`, `CtaGradient`, `PhotoShade`).
-- Komponenten: benannte Styles in `Resources/Styles/Styles.xaml` (`PrimaryButton`, `SecondaryButton`, `GhostButton`, `IconButton`, `Card`, `Field`, `InfoBar`, `SecretBox`, `GlassPill`, `SoftPill`, `FeelingText`, `HeroText`, `TitleText`, `CaptionText`, `SectionText`, `CodeText`).
-- Wiederverwendbare Controls: `Controls/AvatarView` (Avatar, Ring, Plus), `Controls/PostCard` (Post-Karte).
-- QR-Codes erzeugt `QRCoder` lokal, gescannt wird mit `ZXing.Net.Maui` (Kamera nur, solange der Scan-Tab offen ist).
+- Colors and gradients: `Resources/Styles/Colors.xaml` (`Canvas`, `Surface`, `SurfaceRaised`, `Hairline`, `Ink`, `InkSoft`, `Muted`, `Pink`, `Violet`, `Cyan`, `Accent`, `CtaStart`, `CtaEnd`, brushes `BubbleGradient`, `CtaGradient`, `PhotoShade`).
+- Components: named styles in `Resources/Styles/Styles.xaml` (`PrimaryButton`, `SecondaryButton`, `GhostButton`, `IconButton`, `Card`, `Field`, `InfoBar`, `SecretBox`, `GlassPill`, `SoftPill`, `FeelingText`, `HeroText`, `TitleText`, `CaptionText`, `SectionText`, `CodeText`).
+- Reusable controls: `Controls/AvatarView` (avatar, ring, plus), `Controls/PostCard` (post card).
+- `QRCoder` generates QR codes locally, `ZXing.Net.Maui` scans them (camera only while the scan tab is open).
 
-## 12. Prompt-Hilfe für KI-Agenten
+## 12. Prompt help for AI agents
 
-> Baue die Oberfläche nach `DESIGN.md`: dunkler Grund (`canvas` #0B0A10), Karten in `surface` ohne Rahmen mit 24-pt-Radius, genau ein Pillen-Button im Pink-Violett-Verlauf pro Ansicht. Inter fett für Schlagzeilen, Fraunces nur für die Wortmarke. Fotos randlos und groß, Text-Posts auf leuchtendem Verlauf. Story-Ringe im Pink-Violett-Cyan-Verlauf. Jeder Post zeigt das Gefühl als Emoji-Pille und die Lebensdauer, darunter die Herz-Blase. Keine Streaks, keine externen Ressourcen. Deutsch, Du-Form, warm und kurz.
+> Build the UI according to `DESIGN.md`: dark base (`canvas` #0B0A10), cards in `surface` without borders and with a 24 pt radius, exactly one pill button in the pink-violet gradient per view. Inter bold for headlines, Fraunces only for the wordmark. Photos edge to edge and large, text posts on a glowing gradient. Story rings in the pink-violet-cyan gradient. Every post shows the feeling as an emoji pill and the lifetime, with the heart bubble below. No streaks, no external resources. English, warm and short.

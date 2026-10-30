@@ -7,7 +7,7 @@ namespace Bubble.Tests;
 
 static class TestSetup
 {
-    // Argon2 im Test billig machen; die echten Parameter gelten in App und Relay.
+    // Make Argon2 cheap in tests; the real parameters apply in the app and relay.
     [ModuleInitializer]
     internal static void Init()
     {
@@ -83,7 +83,7 @@ public class BackupTests
     {
         Assert.Equal(Backup.NormalizeCode("ABCDE-0111A-BCDEF-GHJKM-NPQRS"),
                      Backup.NormalizeCode("abcde o1il a bcdef ghjkm npqrs"));
-        Assert.Throws<FormatException>(() => Backup.NormalizeCode("zu-kurz"));
+        Assert.Throws<FormatException>(() => Backup.NormalizeCode("too-short"));
     }
 
     [Fact]

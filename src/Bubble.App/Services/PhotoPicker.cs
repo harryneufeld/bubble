@@ -2,24 +2,24 @@ using Bubble.App.Controls;
 
 namespace Bubble.App.Services;
 
-/// <summary>Foto aufnehmen oder auswählen – mit Kamera, wo es eine gibt.</summary>
+/// <summary>Take or choose a photo – with the camera where there is one.</summary>
 public static class PhotoPicker
 {
-    const string TakePhoto = "Foto aufnehmen";
-    const string FromGallery = "Aus Galerie wählen";
-    public const string Remove = "Entfernen";
+    const string TakePhoto = "Take photo";
+    const string FromGallery = "Choose from gallery";
+    public const string Remove = "Remove";
 
-    /// <summary>Fragt nach der Quelle. Null bei Abbruch oder „Entfernen“ (dann wird <paramref name="removed"/> aufgerufen).</summary>
+    /// <summary>Asks for the source. Null on cancel or "Remove" (then <paramref name="removed"/> is called).</summary>
     public static async Task<FileResult?> PickAsync(Page page, string title, bool offerRemove = false, Action? removed = null)
     {
         var options = new List<SheetOption>();
-        if (MediaPicker.Default.IsCaptureSupported) options.Add(new(TakePhoto, "Mit der Kamera", "📷"));
-        options.Add(new(FromGallery, "Ein vorhandenes Foto", "🖼️"));
+        if (MediaPicker.Default.IsCaptureSupported) options.Add(new(TakePhoto, "With the camera", "📷"));
+        options.Add(new(FromGallery, "An existing photo", "🖼️"));
         if (offerRemove) options.Add(new(Remove, null, "🗑️", Destructive: true));
 
         string? choice;
         if (options.Count == 1) choice = FromGallery;
-        else if (await SheetPage.ChooseAsync(page, title, "Standort- und Kameradaten werden entfernt.", options) is { } picked) choice = options[picked].Title;
+        else if (await SheetPage.ChooseAsync(page, title, "Location and camera data are removed.", options) is { } picked) choice = options[picked].Title;
         else choice = null;
 
         try
@@ -39,7 +39,7 @@ public static class PhotoPicker
         }
         catch (PermissionException)
         {
-            await page.DisplayAlertAsync("Kein Zugriff", "Erlaube Bubble in den Einstellungen den Zugriff auf Kamera bzw. Fotos.", "OK");
+            await page.DisplayAlertAsync("No access", "Allow Bubble to access the camera or photos in the settings.", "OK");
             return null;
         }
     }

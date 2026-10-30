@@ -3,14 +3,14 @@ using Microsoft.Maui.Controls.Shapes;
 
 namespace Bubble.App.Controls;
 
-/// <summary>Ring um ein Avatar: neue Story (Verlauf), angesehen (dezent) oder keiner.</summary>
+/// <summary>Ring around an avatar: new story (gradient), seen (subtle) or none.</summary>
 public enum AvatarRing { None, New, Seen }
 
 /// <summary>
-/// Rundes Profilbild. Ohne Bild zeigt es die Initialen auf einem Verlauf, der sich aus dem
-/// Namen ergibt – so sieht jede Person immer gleich aus. Optional mit Story-Ring und Plus-Badge.
-/// Die Ansicht wird einmal aufgebaut und danach nur noch aktualisiert: In Listen wird sie beim Scrollen
-/// ständig neu gebunden, und jedes Neuaufbauen der Unterelemente kostet dort sichtbar Leistung.
+/// Round profile picture. Without an image it shows the initials on a gradient derived from the
+/// name – so every person always looks the same. Optionally with a story ring and plus badge.
+/// The view is built once and only updated afterwards: in lists it is rebound constantly while
+/// scrolling, and rebuilding the child elements every time visibly costs performance.
 /// </summary>
 public sealed class AvatarView : ContentView
 {
@@ -29,10 +29,10 @@ public sealed class AvatarView : ContentView
     static BindableProperty Create(string name, Type type, object? defaultValue = null) =>
         BindableProperty.Create(name, type, typeof(AvatarView), defaultValue, propertyChanged: (b, _, _) => ((AvatarView)b).Update());
 
-    /// <summary>Das kleine Plus am Avatar wurde angetippt („Du“ in der Story-Leiste: Highlight teilen).</summary>
+    /// <summary>The small plus on the avatar was tapped ("You" in the story bar: share a highlight).</summary>
     public event EventHandler? PlusTapped;
 
-    // Verläufe für Initialen – alle mit weißem Text >= 4,5:1. Einmal angelegt und von allen Avataren geteilt.
+    // Gradients for initials – all with white text >= 4.5:1. Created once and shared by all avatars.
     static readonly Brush[] InitialBrushes = new[]
     {
         ("#C2185B", "#6D3CF5"), ("#6D3CF5", "#0E7490"), ("#B4235A", "#9A3412"),
@@ -66,7 +66,7 @@ public sealed class AvatarView : ContentView
         _plus.Background = (Brush)resources["CtaGradient"];
         _plus.Content = _plusIcon;
         _plus.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => PlusTapped?.Invoke(this, EventArgs.Empty)) });
-        SemanticProperties.SetDescription(_plus, "Highlight teilen");
+        SemanticProperties.SetDescription(_plus, "Share highlight");
 
         _root.Children.Add(_ring);
         _root.Children.Add(_circle);
@@ -117,7 +117,7 @@ public sealed class AvatarView : ContentView
             _plusIcon.Margin = badge * 0.18;
         }
 
-        SemanticProperties.SetDescription(this, string.IsNullOrEmpty(Name) ? "Profilbild" : $"Profilbild von {Name}");
+        SemanticProperties.SetDescription(this, string.IsNullOrEmpty(Name) ? "Profile picture" : $"Profile picture of {Name}");
     }
 
     public static string Initials(string? name)
@@ -131,7 +131,7 @@ public sealed class AvatarView : ContentView
         };
     }
 
-    // string.GetHashCode ist pro Prozess zufällig – hier brauchen wir stabile Farben
+    // string.GetHashCode is randomized per process – we need stable colors here
     static int StableHash(string? s)
     {
         unchecked

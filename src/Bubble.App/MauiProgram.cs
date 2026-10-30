@@ -23,7 +23,7 @@ public static class MauiProgram
 				fonts.AddFont("Fraunces-Regular.ttf", "Display");
 			});
 
-		// Entry/Editor sitzen in einem eigenen Rahmen (Style „Field“), daher ohne native Linie/Rahmen
+		// Entry/Editor sit in their own frame (style "Field"), so no native line/frame
 		Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("NoChrome", (handler, _) => RemoveChrome(handler.PlatformView));
 		Microsoft.Maui.Handlers.EditorHandler.Mapper.AppendToMapping("NoChrome", (handler, _) => RemoveChrome(handler.PlatformView));
 

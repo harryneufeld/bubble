@@ -16,14 +16,14 @@ public partial class BackupPage : ContentPage
     {
         base.OnAppearing();
         var active = _account.Vault?.Backup is not null;
-        StatusLabel.Text = active ? "✅ Backup ist aktiv und wird automatisch aktualisiert." : "⚠️ Noch kein Backup eingerichtet.";
-        CreateButton.Text = active ? "Neuen Backup-Code erzeugen" : "Backup-Code erstellen";
+        StatusLabel.Text = active ? "✅ Backup is active and updated automatically." : "⚠️ No backup set up yet.";
+        CreateButton.Text = active ? "Generate new backup code" : "Create backup code";
     }
 
     async void OnCreate(object? sender, EventArgs e)
     {
         if (_account.Vault?.Backup is not null &&
-            !await DisplayAlertAsync("Neuer Code", "Neue Änderungen landen nur noch im neuen Backup. Der alte Code öffnet danach nur noch den bisherigen Stand. Fortfahren?", "Ja", "Abbrechen"))
+            !await DisplayAlertAsync("New code", "New changes only go into the new backup. The old code will only open the previous state. Continue?", "Yes", "Cancel"))
             return;
 
         CreateButton.IsEnabled = false;
@@ -32,12 +32,12 @@ public partial class BackupPage : ContentPage
         {
             CodeLabel.Text = await _account.EnableBackupAsync();
             CodeBox.IsVisible = true;
-            StatusLabel.Text = "✅ Backup ist aktiv und wird automatisch aktualisiert.";
+            StatusLabel.Text = "✅ Backup is active and updated automatically.";
             CreateButton.IsVisible = false;
         }
         catch (HttpRequestException)
         {
-            await DisplayAlertAsync("Keine Verbindung", "Das Backup konnte nicht hochgeladen werden.", "OK");
+            await DisplayAlertAsync("No connection", "The backup could not be uploaded.", "OK");
         }
         finally
         {
@@ -49,6 +49,6 @@ public partial class BackupPage : ContentPage
     async void OnCopy(object? sender, EventArgs e)
     {
         await Clipboard.Default.SetTextAsync(CodeLabel.Text);
-        await DisplayAlertAsync("Kopiert", "Füge den Code jetzt in deinen Passwortmanager ein und leere danach die Zwischenablage.", "OK");
+        await DisplayAlertAsync("Copied", "Paste the code into your password manager now and clear the clipboard afterwards.", "OK");
     }
 }

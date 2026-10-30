@@ -4,7 +4,7 @@ using System.Net.Http.Json;
 
 namespace Bubble.Core;
 
-/// <summary>HTTP-Client für den Relay. Der Relay sieht nur Mailbox-IDs und verschlüsselte Blobs.</summary>
+/// <summary>HTTP client for the relay. The relay only sees mailbox IDs and encrypted blobs.</summary>
 public sealed class RelayClient(HttpClient http)
 {
     public async Task PostMessageAsync(string mailboxId, RelayMessageIn message, CancellationToken ct = default)
@@ -36,7 +36,7 @@ public sealed class RelayClient(HttpClient http)
         response.EnsureSuccessStatusCode();
     }
 
-    /// <summary>Gibt null zurück, wenn es unter diesen Zugangsdaten kein Backup gibt.</summary>
+    /// <summary>Returns null if there is no backup under these credentials.</summary>
     public async Task<byte[]?> GetBackupAsync(string backupId, string authToken, CancellationToken ct = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, $"v1/backups/{backupId}");

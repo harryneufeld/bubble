@@ -4,7 +4,7 @@ namespace Bubble.App.Controls;
 
 public partial class PostCard : ContentView
 {
-    /// <summary>Doppeltippen auf das Bild gibt ein Herz. Nur auf der Post-Seite, wo Tippen nichts anderes öffnet.</summary>
+    /// <summary>Double-tapping the image gives a heart. Only on the post page, where tapping opens nothing else.</summary>
     public static readonly BindableProperty DoubleTapToLikeProperty =
         BindableProperty.Create(nameof(DoubleTapToLike), typeof(bool), typeof(PostCard), false, propertyChanged: (b, _, n) => ((PostCard)b).EnableDoubleTap((bool)n));
 

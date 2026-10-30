@@ -13,7 +13,7 @@
                 <CollectionView.Header>
                     <VerticalStackLayout Spacing="4">
                         <controls:PostCard x:Name="Card" DoubleTapToLike="True" Margin="12,0,12,0" />
-                        <Label Text="Kommentare" Style="{StaticResource HeadingText}" Margin="16,4,16,8" />
+                        <Label Text="Comments" Style="{StaticResource HeadingText}" Margin="16,4,16,8" />
                     </VerticalStackLayout>
                 </CollectionView.Header>
                 <CollectionView.ItemTemplate>
@@ -35,8 +35,8 @@
                 </CollectionView.ItemTemplate>
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Padding="24,24" Spacing="6">
-                        <Label Text="Noch keine Kommentare" Style="{StaticResource HeadingText}" HorizontalTextAlignment="Center" />
-                        <Label Text="Schreib den ersten." Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
+                        <Label Text="No comments yet" Style="{StaticResource HeadingText}" HorizontalTextAlignment="Center" />
+                        <Label Text="Write the first one." Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.Footer>
@@ -48,12 +48,12 @@
         <!-- Kommentar schreiben -->
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10" Padding="12,8,12,12" MaximumWidthRequest="600">
             <Border Style="{StaticResource Field}" MinimumHeightRequest="50">
-                <Entry x:Name="CommentEntry" Placeholder="Kommentar schreiben …" MaxLength="500" ReturnType="Send" Completed="OnSend"
-                       SemanticProperties.Description="Kommentar schreiben" />
+                <Entry x:Name="CommentEntry" Placeholder="Write a comment …" MaxLength="500" ReturnType="Send" Completed="OnSend"
+                       SemanticProperties.Description="Write a comment" />
             </Border>
             <ImageButton Grid.Column="1" x:Name="SendButton" Source="ic_send.png" Clicked="OnSend"
                          Background="{StaticResource CtaGradient}" CornerRadius="25" WidthRequest="50" HeightRequest="50" Padding="14"
-                         SemanticProperties.Description="Kommentar senden" ToolTipProperties.Text="Kommentar senden" />
+                         SemanticProperties.Description="Send comment" ToolTipProperties.Text="Send comment" />
         </Grid>
     </Grid>
 </ContentPage>

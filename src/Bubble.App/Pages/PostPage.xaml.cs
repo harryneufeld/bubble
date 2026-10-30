@@ -3,7 +3,7 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-/// <summary>Ein Highlight mit Herz-Blase und Kommentaren.</summary>
+/// <summary>A highlight with heart bubble and comments.</summary>
 [QueryProperty(nameof(MailboxId), "id")]
 [QueryProperty(nameof(PostId), "post")]
 [QueryProperty(nameof(ToComments), "comments")]
@@ -18,7 +18,7 @@ public partial class PostPage : ContentPage
     public string MailboxId { get; set; } = "";
     public string PostId { get; set; } = "";
 
-    /// <summary>„1“: direkt zu den Kommentaren springen (aus der Story-Ansicht).</summary>
+    /// <summary>"1": jump straight to the comments (from the story view).</summary>
     public string ToComments { get; set; } = "";
     bool _scrolled;
 
@@ -42,7 +42,7 @@ public partial class PostPage : ContentPage
         await LoadAsync();
     }
 
-    /// <summary>Scrollt hinter die Karte zu den Kommentaren, oder setzt den Cursor ins Eingabefeld, wenn es noch keine gibt.</summary>
+    /// <summary>Scrolls past the card to the comments, or puts the cursor in the input field if there are none yet.</summary>
     void GoToComments()
     {
         if (ToComments != "1" || _scrolled || _item is null) return;
@@ -70,19 +70,19 @@ public partial class PostPage : ContentPage
         }
     }
 
-    /// <summary>False, wenn der Post nicht mehr da ist.</summary>
+    /// <summary>False if the post is gone.</summary>
     bool Render()
     {
         if (_feed.FindPost(_bubble!, PostId) is not { } post) return false;
-        // Nichts Neues: Karte nicht neu aufbauen, sonst lädt das Foto neu und flackert
+        // Nothing new: do not rebuild the card, otherwise the photo reloads and flickers
         if (_item is not null && Sig(post) == _sig) return true;
 
         _item = new PostItem(post, _feed, showBubble: true, showFaces: true);
         _sig = Sig(post);
-        _item.PropertyChanged += (_, _) => _sig = Sig(_item.Source); // eigenes Herz oder Kommentar: Zustand ist schon angezeigt
+        _item.PropertyChanged += (_, _) => _sig = Sig(_item.Source); // own heart or comment: the state is already shown
         Card.BindingContext = _item;
         CommentList.ItemsSource = _item.Comments;
-        Title = _item.Author == "Du" ? "Dein Highlight" : $"Highlight von {_item.AuthorName}";
+        Title = _item.Author == "You" ? "Your highlight" : $"Highlight from {_item.AuthorName}";
         return true;
     }
 
@@ -105,11 +105,11 @@ public partial class PostPage : ContentPage
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Kommentar nicht gesendet", Labels.ConnectionError(_bubble!.RelayUrl, ex), "OK");
+            await DisplayAlertAsync("Comment not sent", Labels.ConnectionError(_bubble!.RelayUrl, ex), "OK");
         }
         catch (InvalidOperationException ex)
         {
-            await DisplayAlertAsync("Nicht möglich", ex.Message, "OK");
+            await DisplayAlertAsync("Not possible", ex.Message, "OK");
         }
         finally
         {

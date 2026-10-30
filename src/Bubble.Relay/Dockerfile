@@ -1,5 +1,5 @@
-# Build-Kontext ist das Repo-Root:  docker build -f src/Bubble.Relay/Dockerfile .
-# Läuft auf amd64 und arm64.
+# The build context is the repo root:  docker build -f src/Bubble.Relay/Dockerfile .
+# Runs on amd64 and arm64.
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG TARGETARCH
 WORKDIR /src

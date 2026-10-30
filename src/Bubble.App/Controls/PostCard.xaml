@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Post-Karte: Kopf mit Avatar und Gefühl, Foto randlos (oder Text auf Verlauf), Herz-Blase, Herzen und Kommentare -->
+<!-- Post card: header with avatar and feeling, edge-to-edge photo (or text on gradient), heart bubble, hearts and comments -->
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:Bubble.App.Controls"
@@ -15,7 +15,7 @@
                     <Label Text="{Binding Meta}" Style="{StaticResource CaptionText}" LineBreakMode="TailTruncation" />
                 </VerticalStackLayout>
                 <Border Grid.Column="2" Style="{StaticResource SoftPill}" IsVisible="{Binding HasFeeling}"
-                        SemanticProperties.Description="{Binding Feeling, StringFormat='Fühlt sich: {0}'}">
+                        SemanticProperties.Description="{Binding Feeling, StringFormat='Feeling: {0}'}">
                     <Label Text="{Binding Feeling}" Style="{StaticResource FeelingText}" />
                 </Border>
             </Grid>
@@ -29,7 +29,7 @@
                     </Border>
                 </Grid>
 
-                <!-- Nur Text: groß auf leuchtendem Verlauf -->
+                <!-- Text only: large on a bright gradient -->
                 <Grid x:Name="TextArea" IsVisible="{Binding IsTextOnly}" MinimumHeightRequest="260" Background="{Binding TextBackground}">
                     <Label Text="{Binding Text}" FontFamily="BodyBold" FontSize="26" LineHeight="1.15" TextColor="White"
                            HorizontalTextAlignment="Center" VerticalOptions="Center" Margin="28,56" />
@@ -38,7 +38,7 @@
                     </Border>
                 </Grid>
 
-                <!-- Herz-Blase, die beim Doppeltippen kurz aufpoppt -->
+                <!-- Heart bubble that pops up briefly on double tap -->
                 <Image x:Name="BigHeart" Source="ic_heart_bubble_on.png" WidthRequest="110" HeightRequest="110" Opacity="0"
                        HorizontalOptions="Center" VerticalOptions="Center" InputTransparent="True" />
             </Grid>

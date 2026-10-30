@@ -1,14 +1,14 @@
-# CI für den Relay: Tests laufen bei jeder Änderung, das Docker-Image wird (multi-arch: amd64 + arm64) gebaut.
-# Veröffentlicht wird nur auf main und bei Tags `relay-v*`, nie aus Pull Requests.
+# CI for the relay: tests run on every change, the Docker image is built (multi-arch: amd64 + arm64).
+# Images are only published on main and on tags `relay-v*`, never from pull requests.
 #
 # Image:  ghcr.io/<besitzer>/bubble-relay
-#   :main        aktueller Stand von main
-#   :sha-<kurz>  jeder veröffentlichte Commit
-#   :latest      aktueller Stand von main
-#   :1.2.3, :1.2 bei einem Tag relay-v1.2.3
+#   :main        current state of main
+#   :sha-<short> every published commit
+#   :latest      current state of main
+#   :1.2.3, :1.2 for a tag relay-v1.2.3
 #
-# Hinweis: Ein neues GHCR-Paket ist zunächst privat. Zum Ziehen ohne Anmeldung (z. B. auf dem Pi) einmalig unter
-# GitHub → Profil → Packages → bubble-relay → Package settings auf „Public“ stellen.
+# Note: A new GHCR package is private at first. To pull without logging in (e.g. on a Pi), set it to "Public" once under
+# GitHub → profile → Packages → bubble-relay → Package settings.
 name: Relay
 
 on:
@@ -30,7 +30,7 @@ on:
       - ".github/workflows/relay.yml"
   workflow_dispatch:
 
-# Ein laufender Build pro Branch; neuere Pushes ersetzen ältere.
+# One running build per branch; newer pushes replace older ones.
 concurrency:
   group: relay-${{ github.ref }}
   cancel-in-progress: true
@@ -53,7 +53,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      # Die Live-Tests brauchen einen laufenden Relay und sind ohne BUBBLE_RELAY_URL übersprungen.
+      # The live tests need a running relay and are skipped without BUBBLE_RELAY_URL.
       - name: Test
         run: dotnet test tests/Bubble.Tests --nologo --verbosity minimal
 
@@ -68,7 +68,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Emulation für arm64 (Raspberry Pi); gebaut wird per Cross-Kompilierung im Dockerfile, QEMU startet nur das Laufzeit-Image.
+      # Emulation for arm64 (Raspberry Pi); building is done by cross-compiling in the Dockerfile, QEMU only starts the runtime image.
       - uses: docker/setup-qemu-action@v3
 
       - uses: docker/setup-buildx-action@v3
@@ -81,7 +81,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tags und Beschriftung
+      - name: Tags and labels
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -94,9 +94,9 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.title=Bubble Relay
-            org.opencontainers.image.description=Blinder Relay für Bubble: speichert nur verschlüsselte Daten
+            org.opencontainers.image.description=Blind relay for Bubble: only stores encrypted data
 
-      - name: Bauen und veröffentlichen
+      - name: Build and publish
         uses: docker/build-push-action@v6
         with:
           context: .

@@ -1,11 +1,14 @@
+using System.Numerics;
+using System.Security.Cryptography;
+using Org.BouncyCastle.Crypto.Agreement;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
 
 namespace Bubble.Core;
 
 /// <summary>
-/// Die Identität eines Accounts: ein Ed25519-Schlüsselpaar, keine E-Mail, keine Telefonnummer.
-/// Der Public Key (Base64Url) ist gleichzeitig die Member-ID.
+/// The identity of an account: an Ed25519 key pair, no email, no phone number.
+/// The public key (Base64Url) is also the member ID.
 /// </summary>
 public sealed class Identity
 {
@@ -27,6 +30,35 @@ public sealed class Identity
         signer.Init(true, _privateKey);
         signer.BlockUpdate(message, 0, message.Length);
         return signer.GenerateSignature();
+    }
+
+    /// <summary>
+    /// Diffie-Hellman with another member: the Ed25519 keys are converted to X25519 (the usual birational map).
+    /// Both sides get the same secret, which nobody else – including the relay – can compute.
+    /// </summary>
+    public byte[] SharedSecretWith(string otherPublicKey)
+    {
+        var scalar = SHA512.HashData(Seed)[..32];
+        var agreement = new X25519Agreement();
+        agreement.Init(new X25519PrivateKeyParameters(scalar));
+        var secret = new byte[agreement.AgreementSize];
+        agreement.CalculateAgreement(new X25519PublicKeyParameters(ToMontgomery(Base64Url.Decode(otherPublicKey))), secret, 0);
+        return secret;
+    }
+
+    static readonly BigInteger P = (BigInteger.One << 255) - 19;
+
+    static byte[] ToMontgomery(byte[] edPublicKey)
+    {
+        if (edPublicKey.Length != 32) throw new ArgumentException("Invalid public key.");
+        var bytes = (byte[])edPublicKey.Clone();
+        bytes[31] &= 0x7F;
+        var y = new BigInteger(bytes, isUnsigned: true, isBigEndian: false);
+        var denominator = ((1 - y) % P + P) % P;
+        var u = (1 + y) % P * BigInteger.ModPow(denominator, P - 2, P) % P;
+        var result = new byte[32];
+        u.TryWriteBytes(result, out _, isUnsigned: true, isBigEndian: false);
+        return result;
     }
 
     public static bool Verify(string publicKey, byte[] message, byte[] signature)

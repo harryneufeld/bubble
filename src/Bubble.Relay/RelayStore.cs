@@ -5,8 +5,8 @@ using Microsoft.Data.Sqlite;
 namespace Bubble.Relay;
 
 /// <summary>
-/// Speichert ausschließlich verschlüsselte Blobs. Bewusst nicht gespeichert:
-/// IP-Adressen, Empfangszeitpunkte, Nutzer- oder Gerätekennungen.
+/// Stores nothing but encrypted blobs. Deliberately not stored:
+/// IP addresses, receive times, user or device identifiers.
 /// </summary>
 public sealed class RelayStore
 {
@@ -38,7 +38,7 @@ public sealed class RelayStore
             """);
     }
 
-    /// <summary>False, wenn es die Nachrichten-ID in dieser Mailbox schon gibt.</summary>
+    /// <summary>False if the message ID already exists in this mailbox.</summary>
     public bool AddMessage(string mailbox, string id, byte[] ciphertext, long? expiresAt)
     {
         using var db = Open();
@@ -88,7 +88,7 @@ public sealed class RelayStore
 
     public enum BackupWrite { Created, Updated, Forbidden }
 
-    /// <summary>Das erste Schreiben legt den Token fest; danach darf nur schreiben, wer ihn kennt.</summary>
+    /// <summary>The first write sets the token; after that only someone who knows it may write.</summary>
     public BackupWrite PutBackup(string backupId, string token, byte[] ciphertext)
     {
         var tokenHash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token));
@@ -111,7 +111,7 @@ public sealed class RelayStore
         return existing is null ? BackupWrite.Created : BackupWrite.Updated;
     }
 
-    /// <summary>Null, wenn es kein Backup gibt oder der Token nicht passt (beides sieht für den Client gleich aus).</summary>
+    /// <summary>Null if there is no backup or the token does not match (both look the same to the client).</summary>
     public byte[]? GetBackup(string backupId, string token)
     {
         var tokenHash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token));
@@ -148,7 +148,7 @@ public sealed class RelayStore
     }
 }
 
-/// <summary>Löscht abgelaufene 24h-Posts regelmäßig endgültig.</summary>
+/// <summary>Regularly deletes expired 24h posts for good.</summary>
 public sealed class ExpiryCleanup(RelayStore store, ILogger<ExpiryCleanup> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -157,7 +157,7 @@ public sealed class ExpiryCleanup(RelayStore store, ILogger<ExpiryCleanup> logge
         do
         {
             var deleted = store.DeleteExpired();
-            if (deleted > 0) logger.LogInformation("{Count} abgelaufene Nachrichten gelöscht", deleted);
+            if (deleted > 0) logger.LogInformation("{Count} expired messages deleted", deleted);
         } while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 }

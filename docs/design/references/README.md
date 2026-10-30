@@ -1,11 +1,11 @@
-# Design-Referenzen
+# Design references
 
-Unverändert übernommen aus [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md) (MIT-Lizenz, siehe [LICENSE](LICENSE)). Es sind Analysen öffentlich sichtbarer Websites. Die Markenidentitäten gehören den jeweiligen Unternehmen, und die Dateien dienen hier nur als Inspiration.
+Taken over unchanged from [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md) (MIT license, see [LICENSE](LICENSE)). They are analyses of publicly visible websites. The brand identities belong to the respective companies, and the files only serve as inspiration here.
 
-| Datei | Wofür wir sie nutzen |
+| File | What we use it for |
 |---|---|
-| [oura.md](oura.md) | Basis: warmes Papier, ruhige Erdtöne, eine einzige Aktionsfarbe, großzügiger Rhythmus |
-| [airbnb.md](airbnb.md) | Foto-zentrierte Karten, weiche Radien, freundliche Schriftgewichte |
-| [clay.md](clay.md) | Verspielte, gesättigte Flächenfarben für den Story-Editor |
+| [oura.md](oura.md) | Base: warm paper, calm earth tones, a single action color, generous rhythm |
+| [airbnb.md](airbnb.md) | Photo-centered cards, soft radii, friendly font weights |
+| [clay.md](clay.md) | Playful, saturated surface colors for the story editor |
 
-Verbindlich für Bubble ist allein die [DESIGN.md](../../../DESIGN.md) im Repo-Root.
+Only [DESIGN.md](../../../DESIGN.md) in the repo root is binding for Bubble.

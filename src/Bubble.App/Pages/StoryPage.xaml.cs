@@ -16,7 +16,7 @@ public partial class StoryPage : ContentPage
     DateTime _shownAt;
     PostItem? _current;
 
-    /// <summary>Als Bubble-ID übergeben: alle meine eigenen Stories aus allen Bubbles.</summary>
+    /// <summary>Passed as bubble ID: all my own stories from all bubbles.</summary>
     public const string Mine = "me";
 
     public string MailboxId { get; set; } = "";
@@ -58,7 +58,7 @@ public partial class StoryPage : ContentPage
             _bars.Add(bar);
         }
 
-        // bei der ersten ungesehenen Story beginnen
+        // start at the first unseen story
         var firstUnseen = stories.Select((s, i) => (s, i)).FirstOrDefault(x => !_feed.IsSeen(x.s.Post.Id));
         Show(firstUnseen.s is null ? 0 : firstUnseen.i);
         _timer.Start();
@@ -82,7 +82,7 @@ public partial class StoryPage : ContentPage
 
         AuthorAvatar.Name = story.Author?.Name ?? m.AuthorName;
         AuthorAvatar.Image = story.Author?.Avatar;
-        AuthorLabel.Text = story.Post.IsMine ? "Du" : story.Author?.Name ?? m.AuthorName;
+        AuthorLabel.Text = story.Post.IsMine ? "You" : story.Author?.Name ?? m.AuthorName;
         MetaLabel.Text = $"{story.Bubble.Name} · {Labels.Ago(m.CreatedAt)}";
         _current = new PostItem(story, _feed, showBubble: true);
         ShowReactions();
@@ -124,7 +124,7 @@ public partial class StoryPage : ContentPage
         var task = item.ToggleLikeAsync();
         ShowReactions(); // sofort anzeigen
         await task;
-        if (_current == item) ShowReactions(); // nach einem Fehler steht hier wieder der alte Zustand
+        if (_current == item) ShowReactions(); // after an error the old state is back here
     }
 
     static async Task Pop(VisualElement view)
@@ -133,7 +133,7 @@ public partial class StoryPage : ContentPage
         await view.ScaleToAsync(1, 140, Easing.SpringOut);
     }
 
-    /// <summary>Schließt die Story und öffnet das Highlight, direkt bei den Kommentaren.</summary>
+    /// <summary>Closes the story and opens the highlight, straight at the comments.</summary>
     async void OnComments(object? sender, EventArgs e)
     {
         if (_current is not { } item) return;

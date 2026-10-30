@@ -3,10 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Bubble.App.Pages.JoinPage"
              Shell.TabBarIsVisible="False"
-             Title="Beitreten">
+             Title="Join">
     <ScrollView>
         <VerticalStackLayout Style="{StaticResource Column}" Padding="20,8,20,32" Spacing="16">
-            <Label Text="Einer Bubble beitreten" Style="{StaticResource TitleText}" />
+            <Label Text="Join a bubble" Style="{StaticResource TitleText}" />
 
             <!-- Umschalter Scannen / Code -->
             <Border BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 999" Padding="4">
@@ -15,13 +15,13 @@
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnScanTab" />
                         </Border.GestureRecognizers>
-                        <Label x:Name="ScanTabText" Text="QR-Code scannen" FontFamily="BodySemibold" HorizontalOptions="Center" VerticalOptions="Center" />
+                        <Label x:Name="ScanTabText" Text="Scan QR code" FontFamily="BodySemibold" HorizontalOptions="Center" VerticalOptions="Center" />
                     </Border>
                     <Border Grid.Column="1" x:Name="CodeTab" StrokeShape="RoundRectangle 999" HeightRequest="44">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnCodeTab" />
                         </Border.GestureRecognizers>
-                        <Label x:Name="CodeTabText" Text="Code eingeben" FontFamily="BodySemibold" HorizontalOptions="Center" VerticalOptions="Center" />
+                        <Label x:Name="CodeTabText" Text="Enter code" FontFamily="BodySemibold" HorizontalOptions="Center" VerticalOptions="Center" />
                     </Border>
                 </Grid>
             </Border>
@@ -34,7 +34,7 @@
                         <Label x:Name="CameraMessage" Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" VerticalOptions="Center" Margin="24" />
                     </Grid>
                 </Border>
-                <Label Text="Halte die Kamera auf den QR-Code im Einladen-Bildschirm deiner Freundin oder deines Freundes." Style="{StaticResource CaptionText}" HorizontalTextAlignment="Center" />
+                <Label Text="Point the camera at the QR code on your friend's invite screen." Style="{StaticResource CaptionText}" HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
 
             <!-- Code -->
@@ -42,11 +42,11 @@
                 <Border Style="{StaticResource Field}">
                     <Entry x:Name="CodeEntry" Placeholder="XXXXX-XXXXX" FontFamily="{StaticResource MonoFont}" FontSize="24" CharacterSpacing="3"
                            HorizontalTextAlignment="Center" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" MaxLength="11"
-                           ReturnType="Go" Completed="OnRedeem" SemanticProperties.Description="Einladungscode" />
+                           ReturnType="Go" Completed="OnRedeem" SemanticProperties.Description="Invitation code" />
                 </Border>
                 <Label x:Name="CodeHint" Style="{StaticResource CaptionText}" HorizontalTextAlignment="Center" />
-                <Button x:Name="RedeemButton" Text="Code einlösen" Clicked="OnRedeem" />
-                <Button Text="Link aus Zwischenablage einfügen" ImageSource="ic_link.png" Clicked="OnPaste" Style="{StaticResource GhostButton}" />
+                <Button x:Name="RedeemButton" Text="Redeem code" Clicked="OnRedeem" />
+                <Button Text="Paste link from clipboard" ImageSource="ic_link.png" Clicked="OnPaste" Style="{StaticResource GhostButton}" />
             </VerticalStackLayout>
 
             <ActivityIndicator x:Name="Busy" IsRunning="False" IsVisible="{Binding IsRunning, Source={x:Reference Busy}}" />
@@ -54,11 +54,11 @@
             <!-- Vorschau nach dem Erkennen -->
             <Border x:Name="Preview" Style="{StaticResource SecretBox}" IsVisible="False">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Einladung gefunden" Style="{StaticResource SectionText}" />
+                    <Label Text="Invitation found" Style="{StaticResource SectionText}" />
                     <Label x:Name="PreviewName" Style="{StaticResource TitleText}" />
                     <Label x:Name="PreviewMeta" Style="{StaticResource CaptionText}" />
-                    <Label Style="{StaticResource SmallText}" Text="Die anderen sehen dein Profil, sobald du beitrittst." />
-                    <Button Text="Beitreten" Clicked="OnJoin" Margin="0,8,0,0" />
+                    <Label Style="{StaticResource SmallText}" Text="The others see your profile as soon as you join." />
+                    <Button Text="Join" Clicked="OnJoin" Margin="0,8,0,0" />
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>

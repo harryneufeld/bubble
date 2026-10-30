@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Vollbild-Stories einer Bubble: tippen rechts = weiter, links = zurück -->
+<!-- Full-screen stories of a bubble: tap right = next, left = back -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:Bubble.App.Controls"
@@ -16,7 +16,7 @@
         </Grid>
         <controls:FadeImage x:Name="StoryImage" Aspect="AspectFit" IsVisible="False" />
 
-        <!-- Lesbarkeit oben und unten -->
+        <!-- Readability at top and bottom -->
         <BoxView HeightRequest="160" VerticalOptions="Start" InputTransparent="True">
             <BoxView.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -41,7 +41,7 @@
             </BoxView>
         </Grid>
 
-        <!-- Kopf: Fortschritt, Absender, Schließen -->
+        <!-- Header: progress, sender, close -->
         <VerticalStackLayout VerticalOptions="Start" Padding="12,12,12,0" Spacing="12">
             <Grid x:Name="Progress" ColumnSpacing="4" HeightRequest="3" InputTransparent="True" />
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
@@ -51,11 +51,11 @@
                     <Label x:Name="MetaLabel" FontSize="12" TextColor="#D9FFFFFF" />
                 </VerticalStackLayout>
                 <ImageButton Grid.Column="2" Source="ic_close.png" Style="{StaticResource IconButton}" BackgroundColor="#33FFFFFF"
-                             Clicked="OnClose" SemanticProperties.Description="Schließen" />
+                             Clicked="OnClose" SemanticProperties.Description="Close" />
             </Grid>
         </VerticalStackLayout>
 
-        <!-- Fuß: Gefühl, Bildunterschrift, Herz-Blase und Weg zu den Kommentaren -->
+        <!-- Footer: feeling, caption, heart bubble and way to the comments -->
         <VerticalStackLayout VerticalOptions="End" Padding="20,0,20,28" Spacing="10">
             <Border x:Name="MoodChip" Style="{StaticResource GlassPill}" InputTransparent="True">
                 <Label x:Name="MoodLabel" Style="{StaticResource PillText}" TextColor="White" />
@@ -64,13 +64,13 @@
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,6,0,0">
                 <ImageButton x:Name="LikeButton" Source="ic_heart_bubble.png" Clicked="OnLike"
                              WidthRequest="52" HeightRequest="52" CornerRadius="26" Padding="12" BackgroundColor="#33FFFFFF"
-                             SemanticProperties.Description="Herz geben" />
+                             SemanticProperties.Description="Give heart" />
                 <Label x:Name="LikersLabel" Grid.Column="1" FontSize="13" FontFamily="BodyMedium" TextColor="#E6FFFFFF"
                        VerticalOptions="Center" LineBreakMode="TailTruncation" InputTransparent="True" />
                 <Button x:Name="CommentButton" Grid.Column="2" ImageSource="ic_comment_white.png" ContentLayout="Left,8" Clicked="OnComments"
                         Background="#33FFFFFF" TextColor="White" FontFamily="BodySemibold" FontSize="14"
                         CornerRadius="26" HeightRequest="52" Padding="18,0" BorderWidth="0"
-                        SemanticProperties.Hint="Öffnet das Highlight mit den Kommentaren" />
+                        SemanticProperties.Hint="Opens the highlight with its comments" />
             </Grid>
         </VerticalStackLayout>
     </Grid>

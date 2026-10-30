@@ -17,7 +17,7 @@ public partial class App : MauiWinUIApplication
 	public App()
 	{
 		this.InitializeComponent();
-		// Abstürze nachvollziehbar machen: WinUI-Ausnahmen landen sonst nur als „APPCRASH“ im Ereignisprotokoll
+		// Make crashes traceable: WinUI exceptions otherwise only show up as "APPCRASH" in the event log
 		UnhandledException += (_, e) => LogCrash("WinUI", e.Exception, e.Message);
 		AppDomain.CurrentDomain.UnhandledException += (_, e) => LogCrash("AppDomain", e.ExceptionObject as Exception, null);
 	}

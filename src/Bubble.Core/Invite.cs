@@ -3,15 +3,15 @@ using System.Text.Json;
 namespace Bubble.Core;
 
 /// <summary>
-/// Einladung in eine Bubble. Der Schlüssel steht im Fragment (#...) des Links;
-/// Fragmente werden von Browsern nie an Server geschickt.
-/// Wer den Link hat, ist in der Bubble – also nur über vertrauenswürdige Kanäle teilen.
+/// Invitation to a bubble. The key lives in the fragment (#...) of the link;
+/// browsers never send fragments to servers.
+/// Whoever has the link is in the bubble – so only share it over trusted channels.
 /// </summary>
-public sealed record Invite(string Name, string Key, string RelayUrl, PostLifetime Lifetime)
+public sealed record Invite(string Name, string Key, string RelayUrl, PostLifetime Lifetime, string? OwnerKey = null)
 {
     const string Prefix = "bubble://join#";
 
-    public static Invite For(BubbleMembership bubble) => new(bubble.Name, bubble.Key, bubble.RelayUrl, bubble.Lifetime);
+    public static Invite For(BubbleMembership bubble) => new(bubble.Name, bubble.Key, bubble.RelayUrl, bubble.Lifetime, bubble.OwnerKey);
 
     public string ToLink() => Prefix + Base64Url.Encode(JsonSerializer.SerializeToUtf8Bytes(this, CoreJson.Default.Invite));
 
@@ -33,5 +33,5 @@ public sealed record Invite(string Name, string Key, string RelayUrl, PostLifeti
         }
     }
 
-    public BubbleMembership ToMembership() => new() { Name = Name, Key = Key, RelayUrl = RelayUrl, Lifetime = Lifetime };
+    public BubbleMembership ToMembership() => new() { Name = Name, Key = Key, RelayUrl = RelayUrl, Lifetime = Lifetime, OwnerKey = OwnerKey };
 }

@@ -11,9 +11,9 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-        // Hinter den Seiten liegt sonst der helle Standard-Fensterhintergrund und blitzt beim Seitenwechsel auf.
+        // Otherwise the light default window background sits behind the pages and flashes on page changes.
         Window?.SetBackgroundDrawable(new Android.Graphics.Drawables.ColorDrawable(Android.Graphics.Color.ParseColor("#0B0A10")));
-        // Zuletzt registriert, zuerst gefragt: Seiten schließen, Tabs zu „Heute“, auf „Heute“ zweimal Zurück zum Beenden.
+        // Registered last, asked first: close pages, tabs go to "Today", on "Today" press back twice to exit.
         OnBackPressedDispatcher.AddCallback(this, new BackCallback(this));
     }
 
@@ -21,7 +21,7 @@ public class MainActivity : MauiAppCompatActivity
     {
         public override void HandleOnBackPressed()
         {
-            // Sheets, Stories und Onboarding sind Modal-Seiten und kümmern sich selbst: an MAUI weiterreichen.
+            // Sheets, stories and onboarding are modal pages and handle it themselves: pass it on to MAUI.
             if (Shell.Current is not AppShell shell || shell.Navigation.ModalStack.Count > 0)
             {
                 PassOn();

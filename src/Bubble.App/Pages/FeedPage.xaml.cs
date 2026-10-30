@@ -4,13 +4,13 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-public sealed record MemberItem(string FullName, byte[]? Image, bool IsMe)
+public sealed record MemberItem(string Key, string FullName, byte[]? Image, bool IsMe)
 {
-    public string Name => IsMe ? "Du" : FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? FullName;
-    public string Description => IsMe ? "Du" : FullName;
+    public string Name => IsMe ? "You" : FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? FullName;
+    public string Description => IsMe ? "You" : FullName;
 }
 
-/// <summary>Eine Bubble: Cover, Mitglieder, Einladen und alle Highlights.</summary>
+/// <summary>One bubble: cover, members, inviting and all highlights.</summary>
 [QueryProperty(nameof(MailboxId), "id")]
 public partial class FeedPage : ContentPage
 {
@@ -48,11 +48,18 @@ public partial class FeedPage : ContentPage
         try
         {
             await _feed.RefreshAsync(_bubble);
+            if (_feed.WasRemoved(_bubble))
+            {
+                _feed.TakeRemoved();
+                await DisplayAlertAsync("Removed from bubble", $"The creator removed you from “{_bubble.Name}”.", "OK");
+                await Shell.Current.GoToAsync("..");
+                return;
+            }
             Render();
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Nicht geladen", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+            await DisplayAlertAsync("Not loaded", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
         finally
         {
@@ -67,13 +74,13 @@ public partial class FeedPage : ContentPage
         var posts = _feed.PostsOf(bubble);
 
         NameLabel.Text = bubble.Name;
-        LifetimeLabel.Text = $"Neue Highlights: {Labels.Lifetime(bubble.Lifetime)}";
+        LifetimeLabel.Text = $"New highlights: {Labels.Lifetime(bubble.Lifetime)}";
         PeopleLabel.Text = Labels.People(snapshot?.Members.Count ?? 1);
         var cover = posts.FirstOrDefault(p => p.Post.Message.Image is not null)?.Post.Message.Image;
         CoverImage.Source = cover is null ? null : ImageSource.FromStream(() => new MemoryStream(cover));
         CoverFrame.Background = Gradients.For(bubble.MailboxId);
 
-        Members.ItemsSource = (snapshot?.Members ?? []).Select(m => new MemberItem(m.Name, m.Avatar, m.IsMe)).ToList();
+        Members.ItemsSource = (snapshot?.Members ?? []).Select(m => new MemberItem(m.Key, m.Name, m.Avatar, m.IsMe)).ToList();
         Posts.ItemsSource = posts.Select(p => new PostItem(p, _feed, showBubble: false)).ToList();
     }
 
@@ -92,8 +99,8 @@ public partial class FeedPage : ContentPage
     async void OnChangeLifetime(object? sender, EventArgs e)
     {
         if (_bubble is null) return;
-        var choice = await SheetPage.ChooseAsync(this, "Lebensdauer",
-            "Gilt für neue Highlights. Bestehende behalten ihre Einstellung. Alle Mitglieder sehen die Änderung.",
+        var choice = await SheetPage.ChooseAsync(this, "Lifetime",
+            "Applies to new highlights. Existing ones keep their setting. All members see the change.",
             Labels.LifetimeOptions(_bubble.Lifetime));
         if (choice is not { } index) return;
 
@@ -107,7 +114,43 @@ public partial class FeedPage : ContentPage
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Nicht geändert", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+            await DisplayAlertAsync("Not changed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
+    }
+
+    async void OnMemberTapped(object? sender, TappedEventArgs e)
+    {
+        if (_bubble is null || e.Parameter is not MemberItem member || member.IsMe) return;
+        if (!_account.Client.IsOwner(_bubble)) return; // only the creator can remove people
+
+        var choice = await SheetPage.ChooseAsync(this, member.FullName,
+            "Removing someone moves the bubble to a new key that only the remaining members get. Earlier highlights stay behind under the old key.",
+            [new SheetOption("Remove from bubble", "They can no longer see or share anything new.", "🚪", Destructive: true)]);
+        if (choice is null) return;
+
+        try
+        {
+            await _account.Client.RemoveMemberAsync(_bubble, member.Key);
+            await _account.SaveAsync();
+            MailboxId = _bubble.MailboxId; // the new key means a new mailbox
+            await LoadAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            await DisplayAlertAsync("Not removed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+        }
+    }
+
+    async void OnLeave(object? sender, EventArgs e)
+    {
+        if (_bubble is null) return;
+        var owner = _account.Client.IsOwner(_bubble);
+        var message = owner
+            ? $"You created “{_bubble.Name}”. Nobody will be able to remove members after you leave. You can only come back with a new invitation."
+            : $"You will no longer see “{_bubble.Name}”. You can only come back with a new invitation.";
+        if (!await DisplayAlertAsync("Leave bubble?", message, "Leave", "Cancel")) return;
+
+        await _account.LeaveAsync(_bubble);
+        await Shell.Current.GoToAsync("..");
     }
 }
