@@ -38,7 +38,8 @@ public static class MessageCodec
             var message = JsonSerializer.Deserialize(signed.Payload, CoreJson.Default.BubbleMessage);
             if (message is null || !Identity.Verify(message.AuthorKey, signed.Payload, signed.Signature))
                 return null;
-            return message;
+            // Frühere Versionen schrieben für „kein Bild“ einen leeren Wert; der darf nicht als Foto zählen.
+            return message.Image is { Length: 0 } ? message with { Image = null } : message;
         }
         catch (Exception e) when (e is CryptographicException or JsonException or FormatException)
         {
