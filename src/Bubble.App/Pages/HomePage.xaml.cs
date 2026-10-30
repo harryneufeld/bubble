@@ -37,6 +37,7 @@ public partial class HomePage : ContentPage
             return;
         }
         Render(); // immediately, with whatever is already loaded
+        ShareInbox.MarkReady();
         await LoadAsync();
     }
 
