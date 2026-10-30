@@ -23,6 +23,16 @@ dotnet run --project src/Bubble.Relay
 
 Der Relay läuft danach auf `http://localhost:5080`. Die App startest du aus Visual Studio, z. B. als Windows-App oder im Android-Emulator; der Emulator erreicht den Relay über `10.0.2.2:5080`. Für ein echtes Handy startest du den Relay mit `--urls http://0.0.0.0:5080` und trägst in `AccountService.DefaultRelayUrl` die IP-Adresse deines PCs ein.
 
+### Leistung prüfen
+
+Flüssigkeit beim Scrollen und Seitenwechseln lässt sich nur mit einem **Release-Build** beurteilen: Der Debug-Build wird zur Laufzeit übersetzt und ruckelt etwa dreimal so oft. Für Android:
+
+```bash
+dotnet build src/Bubble.App -f net10.0-android -c Release -p:AndroidPackageFormat=apk -p:RuntimeIdentifier=android-arm64
+```
+
+Messen lässt sich mit `adb shell dumpsys gfxinfo com.companyname.bubble.app` (ruckelnde Frames, Perzentile) nach einem Scrollen über mehrere Karten.
+
 ### Relay per Docker
 
 ```bash

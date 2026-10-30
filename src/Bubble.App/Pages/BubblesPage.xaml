@@ -30,7 +30,7 @@
                             <TapGestureRecognizer Tapped="OnTapped" CommandParameter="{Binding .}" />
                         </Border.GestureRecognizers>
                         <Grid>
-                            <Image Source="{Binding Cover}" Aspect="AspectFill" IsVisible="{Binding HasCover}" />
+                            <controls:FadeImage Source="{Binding Cover}" Aspect="AspectFill" IsVisible="{Binding HasCover}" />
                             <BoxView Background="{StaticResource PhotoShade}" />
                             <Ellipse WidthRequest="10" HeightRequest="10" Fill="{StaticResource BubbleGradient}" IsVisible="{Binding HasNew}"
                                      HorizontalOptions="End" VerticalOptions="Start" Margin="14" SemanticProperties.Description="Neues" />
