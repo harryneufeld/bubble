@@ -207,9 +207,13 @@ Text-only posts: large white text centered on a glowing gradient, the same heigh
 | < 600 pt | one column, tab bar at the bottom, main action pinned at the bottom |
 | ≥ 600 pt | content centered, at most 600 pt wide |
 
-## 10. Story editor (later)
+## 10. Design editor
 
-The canvas has a **9:16** format (1080×1920), is scaled and never cropped; export as a flat JPEG. Backgrounds use gradients from `pink`, `violet`, `cyan` and their neighbors. The toolbar is calm app UI (`surface-raised`, floating).
+Opened from Compose ("Design"). The canvas is **9:16** (1080×1920) or **4:5** (1080×1350), is scaled and never cropped; export as a flat JPEG that is posted like a photo. Backgrounds use gradients from `pink`, `violet`, `cyan` and their neighbors, solid colors or a blurred photo. The toolbar is calm app UI (`surface-raised`, floating).
+
+- Layers: photos (in frames, cropped to fill), text, shapes (bubble, circle, rectangle, heart, star, line, arrow). Templates start with empty photo frames.
+- Editor fonts (in the design only, not in the app UI): Inter Bold, DM Serif Display, Bebas Neue, Caveat Brush, Pacifico, Space Mono, Fraunces. Emoji in text fall back to the system emoji font.
+- Code: `Editor/` (model, Skia renderer used for both view and export, templates), `Pages/EditorPage`.
 
 ## 11. Implementation in .NET MAUI
 

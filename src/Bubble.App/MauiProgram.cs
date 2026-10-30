@@ -1,6 +1,7 @@
 using Bubble.App.Pages;
 using Bubble.App.Services;
 using Microsoft.Extensions.Logging;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using ZXing.Net.Maui.Controls;
 
 namespace Bubble.App;
@@ -13,6 +14,7 @@ public static class MauiProgram
 		builder
 			.UseMauiApp<App>()
 			.UseBarcodeReader()
+			.UseSkiaSharp()
 			.ConfigureFonts(fonts =>
 			{
 				// Laut DESIGN.md: Display = Fraunces, Body = Inter (beide SIL OFL, Lizenzen in docs/licenses)
@@ -21,6 +23,12 @@ public static class MauiProgram
 				fonts.AddFont("Inter-SemiBold.ttf", "BodySemibold");
 				fonts.AddFont("Inter-Bold.ttf", "BodyBold");
 				fonts.AddFont("Fraunces-Regular.ttf", "Display");
+				// Editor fonts (SIL OFL, licenses in docs/licenses)
+				fonts.AddFont("BebasNeue-Regular.ttf", "Bebas");
+				fonts.AddFont("CaveatBrush-Regular.ttf", "CaveatBrush");
+				fonts.AddFont("DMSerifDisplay-Regular.ttf", "DMSerif");
+				fonts.AddFont("SpaceMono-Bold.ttf", "SpaceMono");
+				fonts.AddFont("Pacifico-Regular.ttf", "Pacifico");
 			});
 
 		// Entry/Editor sit in their own frame (style "Field"), so no native line/frame
