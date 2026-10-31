@@ -14,6 +14,9 @@ builder.Services.AddSingleton(sp => new RelayStore(
 builder.Services.AddHostedService<ExpiryCleanup>();
 builder.Services.Configure<PushOptions>(builder.Configuration.GetSection("Push"));
 builder.Services.AddSingleton<PushDispatcher>();
+builder.Services.AddSingleton<PushGatewayClient>();
+builder.Services.AddHttpClient(PushDispatcher.GatewayClientName, c => c.Timeout = TimeSpan.FromSeconds(10))
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
 builder.Services.AddHostedService<PushWorker>();
 builder.Services.AddHttpClient(PushDispatcher.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(10))
     .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
@@ -54,23 +57,56 @@ messages.MapGet("/", (string mailbox, long? after, RelayStore store) =>
 
 var subscriptions = app.MapGroup("/v1/push/subscriptions");
 
-subscriptions.MapPost("/", (PushSubscriptionIn body, RelayStore store, IOptions<PushOptions> options) =>
+subscriptions.MapPost("/", async (PushSubscriptionIn body, RelayStore store, IOptions<PushOptions> options, PushGatewayClient gateway, CancellationToken ct) =>
 {
-    if (!PushTypes.IsValid(body.Type)
-        || body.Endpoint.Length > RelayLimits.MaxPushEndpointLength
-        || !PushEndpoint.TryValidate(body.Endpoint, options.Value.AllowPrivateEndpoints, out _)
-        || !AreMailboxes(body.Mailboxes))
-        return Results.BadRequest("Invalid push subscription.");
+    if (!AreMailboxes(body.Mailboxes)) return Results.BadRequest("Invalid push subscription.");
 
-    var created = store.CreateSubscription(body.Type, body.Endpoint, body.Mailboxes);
+    string endpoint;
+    switch (body.Type)
+    {
+        case PushTypes.UnifiedPush:
+            if (body.Endpoint is not { Length: > 0 and <= RelayLimits.MaxPushEndpointLength } url
+                || body.Platform is not null || body.Token is not null
+                || !PushEndpoint.TryValidate(url, options.Value.AllowPrivateEndpoints, out _))
+                return Results.BadRequest("Invalid push subscription.");
+            endpoint = url;
+            break;
+
+        case PushTypes.Gateway:
+            if (!gateway.IsConfigured) return Results.StatusCode(StatusCodes.Status501NotImplemented);
+            if (body.Endpoint is not null || !IsGatewayRegistration(body.Platform, body.Token))
+                return Results.BadRequest("Invalid push subscription.");
+            if (await gateway.RegisterAsync(body.Platform!, body.Token!, ct) is not { } wakeUrl)
+                return Results.StatusCode(StatusCodes.Status502BadGateway);
+            endpoint = wakeUrl;
+            break;
+
+        default:
+            return Results.BadRequest("Invalid push subscription.");
+    }
+
+    var created = store.CreateSubscription(body.Type, endpoint, body.Mailboxes);
     return Results.Created($"/v1/push/subscriptions/{created.Id}", created);
 });
 
-subscriptions.MapPut("/{id}", (string id, PushMailboxesBody body, HttpRequest request, RelayStore store) =>
+subscriptions.MapPut("/{id}", async (string id, PushMailboxesBody body, HttpRequest request, RelayStore store, PushGatewayClient gateway, CancellationToken ct) =>
 {
     if (!Ids.IsMessageId(id) || BearerToken(request) is not { } secret || !AreMailboxes(body.Mailboxes))
         return Results.BadRequest();
-    return store.UpdateSubscriptionMailboxes(id, secret, body.Mailboxes) ? Results.NoContent() : Results.NotFound();
+    if (store.GetSubscriptionType(id, secret) is not { } type)
+        return Results.NotFound();
+
+    // Renew the handle before it expires: the token is only passed through to the gateway, never stored.
+    string? newEndpoint = null;
+    if (body.Platform is not null || body.Token is not null)
+    {
+        if (type != PushTypes.Gateway || !IsGatewayRegistration(body.Platform, body.Token))
+            return Results.BadRequest();
+        newEndpoint = await gateway.RegisterAsync(body.Platform!, body.Token!, ct);
+        if (newEndpoint is null) return Results.StatusCode(StatusCodes.Status502BadGateway);
+    }
+
+    return store.UpdateSubscriptionMailboxes(id, secret, body.Mailboxes, newEndpoint) ? Results.NoContent() : Results.NotFound();
 });
 
 subscriptions.MapDelete("/{id}", (string id, HttpRequest request, RelayStore store) =>
@@ -114,6 +150,9 @@ static bool TryDecode(string base64, int maxBytes, out byte[] bytes)
     catch (FormatException) { return false; }
     return bytes.Length is > 0 && bytes.Length <= maxBytes;
 }
+
+static bool IsGatewayRegistration(string? platform, string? token) =>
+    platform is "fcm" or "apns" && token is { Length: > 0 and <= 4096 };
 
 static bool AreMailboxes(List<string> mailboxes) =>
     mailboxes.Count <= RelayLimits.MaxPushMailboxes && mailboxes.All(Ids.IsKeyId);

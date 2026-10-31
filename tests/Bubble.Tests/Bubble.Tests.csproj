@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Bubble.Core\Bubble.Core.csproj" />
     <ProjectReference Include="..\..\src\Bubble.Relay\Bubble.Relay.csproj" />
+    <ProjectReference Include="..\..\src\Bubble.PushGateway\Bubble.PushGateway.csproj" />
   </ItemGroup>
 
 </Project>

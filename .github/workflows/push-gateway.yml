@@ -1,4 +1,4 @@
-# CI for the push gateway: the project is built on every change, the Docker image is built (multi-arch: amd64 + arm64).
+# CI for the push gateway: tests run on every change, the Docker image is built (multi-arch: amd64 + arm64).
 # Images are only published on main and on tags `gateway-v*`, never from pull requests.
 #
 # Image:  ghcr.io/<besitzer>/bubble-push-gateway
@@ -17,10 +17,12 @@ on:
     tags: ["gateway-v*"]
     paths:
       - "src/Bubble.PushGateway/**"
+      - "tests/**"
       - ".github/workflows/push-gateway.yml"
   pull_request:
     paths:
       - "src/Bubble.PushGateway/**"
+      - "tests/**"
       - ".github/workflows/push-gateway.yml"
   workflow_dispatch:
 
@@ -36,8 +38,8 @@ env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/bubble-push-gateway
 
 jobs:
-  build:
-    name: Build
+  test:
+    name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -47,12 +49,13 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Build
-        run: dotnet build src/Bubble.PushGateway -c Release --nologo --verbosity minimal
+      # The live tests need a running relay and are skipped without BUBBLE_RELAY_URL.
+      - name: Test
+        run: dotnet test tests/Bubble.Tests --nologo --verbosity minimal
 
   image:
     name: Docker-Image
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:

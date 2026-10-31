@@ -31,29 +31,32 @@ The relay doesn't care which path a device uses. It only stores `{ type, endpoin
 
 Small ASP.NET Core service in this repo, with its own Docker image (`ghcr.io/<owner>/bubble-push-gateway`) and CI workflow like the relay. Only the keys are private.
 
-- **Stateless, no database.** On registration the gateway gets `{ platform, token }` from the app and returns a **handle**: `{ platform, token }` encrypted with ChaCha20-Poly1305 under the gateway secret. The relay only ever sees the handle, never the raw FCM/APNs token.
-- `POST /v1/register` `{ platform: "fcm" | "apns", token }` → `{ handle }`
+- **Stateless, no database.** On registration the gateway gets `{ platform, token }` and returns a **handle**: `{ platform, token, expiry }` sealed with AES-256-GCM under the gateway secret (old secrets stay accepted for rotation). The relay stores only the handle. It sees the raw token once, while passing the registration through, and does not keep it.
+- Who calls it: only the relay. The app registers through its relay (`POST /v1/push/subscriptions` with `type: "gateway"`, `platform`, `token`), the relay calls the gateway. So the gateway can stay on a private network, or be public for other people's relays.
+- `POST /v1/register` `{ platform: "fcm" | "apns", token }` → `{ handle }` (`apns` answers 501 until iOS is built; `503` if FCM isn't configured)
 - `POST /v1/wake/{handle}` → decrypts, sends a content-free message (the relay just POSTs `{"v":1}` to the stored endpoint URL, same as for UnifiedPush):
   - FCM: data message, high priority, `{ "v": 1 }`
   - APNs: `content-available: 1` plus `mutable-content: 1` with a generic alert, so the iOS notification service extension can replace the text
-- Response `410 Gone` if FCM/APNs reports the token as invalid, so the relay deletes the subscription.
-- **Rate limit** per handle (e.g. at most 1 push per 10 s, bursts merged) and per calling IP.
-- No logs with handles, tokens or IPs.
+- Responses: `202` sent, `410 Gone` if the handle is invalid or expired or FCM/APNs reports the token as invalid (the relay deletes the subscription), `429` throttled, `502` the platform failed.
+- **Rate limit:** per handle (one wake per 10 s) and per calling IP. Handles expire after 90 days; the app renews them.
+- Request logging of ASP.NET is set to `Warning`, so handles in URLs don't end up in logs.
 - Configuration via environment variables / mounted files:
-  - `Push__Secret`: 32-byte key for the handles (rotation: accept the old key for a while)
+  - `Push__Secret`: key for the handles, e.g. `openssl rand -base64 32` (required)
+  - `Push__PreviousSecrets__0`, …: older secrets that are still accepted (rotation)
+  - `Push__HandleLifetimeDays` (90), `Push__MinWakeInterval` (`00:00:10`)
   - `Push__Fcm__CredentialsFile`: Firebase service account JSON
   - `Push__Apns__KeyFile`, `Push__Apns__KeyId`, `Push__Apns__TeamId`, `Push__Apns__Topic` (only if iOS goes directly through APNs, see open questions)
 
 ### 2. Relay (`src/Bubble.Relay`)
 
-- `POST /v1/push/subscriptions` `{ type: "gateway" | "unifiedpush", endpoint, mailboxes: [...] }` → `{ id, secret }` (max. 200 mailboxes)
-  - `gateway`: endpoint = gateway URL + `/v1/wake/` + handle
-  - `unifiedpush`: endpoint = the URL from the distributor
-- `PUT /v1/push/subscriptions/{id}` (header `Authorization: Bearer <secret>`): replace the mailbox list (after joining or leaving a bubble, key rotation)
+- `POST /v1/push/subscriptions` → `{ id, secret }` (max. 200 mailboxes)
+  - `{ type: "gateway", platform: "fcm" | "apns", token, mailboxes }`: the relay swaps the token for a handle at its configured gateway (`Push__Gateway=http://gateway:5090`) and stores `<gateway>/v1/wake/<handle>`. `501` if the relay has no gateway, `502` if the gateway refuses or is down.
+  - `{ type: "unifiedpush", endpoint, mailboxes }`: endpoint = the URL from the distributor
+- `PUT /v1/push/subscriptions/{id}` (header `Authorization: Bearer <secret>`): replace the mailbox list (after joining or leaving a bubble, key rotation). Gateway subscriptions can send `platform` and `token` as well to renew the handle.
 - `DELETE /v1/push/subscriptions/{id}` (same header)
 - On every `POST /v1/mailboxes/{mailbox}/messages`: for each subscription on that mailbox, queue a wake. A background worker sends it, at most once per subscription every few seconds. Errors are retried briefly; on `404`/`410` the subscription is deleted.
 - UnifiedPush: `POST` to the endpoint with body `{"v":1}` (RFC 8030 style). **SSRF protection:** HTTPS only, no private/local addresses, checked when registering and again when connecting (so a DNS name can't point inside); no redirects. `Push__AllowPrivateEndpoints=true` lifts this for local tests.
-- Gateway URLs: the relay accepts any HTTPS gateway (the app's build decides which one). Optional allow-list for operators who want to restrict it.
+- The gateway URL is the operator's choice (`Push__Gateway`), so it may be on a private network. Clients can't point the relay at a gateway or any other URL except for UnifiedPush endpoints, which get the SSRF checks.
 - Subscriptions with no activity for 60 days are deleted; the app re-registers on start.
 
 ### 3. App (`src/Bubble.App`)
@@ -89,7 +92,7 @@ Small ASP.NET Core service in this repo, with its own Docker image (`ghcr.io/<ow
 | Who | Sees | Doesn't see |
 |---|---|---|
 | Relay | which mailboxes one device subscribes to, gateway URL / UnifiedPush endpoint | content, FCM/APNs token, names |
-| Push gateway | that some relay wants to wake device X, and when | mailboxes, bubbles, content |
+| Push gateway | that some relay wants to wake device X, and when, plus the relay's IP | mailboxes, bubbles, content |
 | Google / Apple | that the app gets a push, and when | content, relay, bubbles |
 | UnifiedPush server | endpoint, time | content, mailboxes |
 
@@ -97,8 +100,8 @@ Small ASP.NET Core service in this repo, with its own Docker image (`ghcr.io/<ow
 
 ## Steps
 
-1. **Relay** (done on branch `push-notifications`): subscription endpoints, store, wake worker, UnifiedPush delivery with SSRF protection, tests (including in-memory end-to-end with a fake gateway).
-2. **Push gateway:** register/wake, handle encryption, FCM sending, rate limit, Dockerfile, CI workflow, compose entry.
+1. **Relay** (done): subscription endpoints, store, wake worker, UnifiedPush delivery with SSRF protection, tests (including in-memory end-to-end with a fake gateway).
+2. **Push gateway** (done for FCM; APNs follows with iOS): register/wake, handle sealing, FCM sending, rate limit, Dockerfile, CI workflow. Still open: compose entry.
 3. **App Android:** `IPushProvider`, `PushRegistrar`, FCM provider, local notifications, settings screen, `push.props`.
 4. **App Android UnifiedPush:** connector binding, provider, test with ntfy.
 5. **App iOS:** APNs registration, notification service extension (requires an Apple Developer account).
@@ -108,4 +111,5 @@ Small ASP.NET Core service in this repo, with its own Docker image (`ghcr.io/<ow
 
 - **iOS via FCM or directly via APNs?** FCM: less code, one token type. APNs directly: no Google dependency on iOS. Leaning towards APNs directly, since the gateway is ours anyway.
 - Should self-hosted relays be able to use our gateway freely, or only with an API key? Starting free with a rate limit, adding keys if it gets abused.
+- Cap on subscriptions per mailbox or per IP at the relay (anyone who knows a mailbox ID can subscribe to wakes).
 - Notification text with or without the post's emoji/text excerpt (decided on the device, possibly a setting).

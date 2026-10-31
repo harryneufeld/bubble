@@ -34,11 +34,12 @@ public sealed class RelayClient(HttpClient http)
     }
 
     /// <summary>Returns false if the relay no longer knows the subscription (the caller registers again).</summary>
-    public async Task<bool> UpdatePushMailboxesAsync(PushSubscriptionOut subscription, List<string> mailboxes, CancellationToken ct = default)
+    public async Task<bool> UpdatePushMailboxesAsync(PushSubscriptionOut subscription, List<string> mailboxes,
+        string? platform = null, string? token = null, CancellationToken ct = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Put, $"v1/push/subscriptions/{subscription.Id}")
         {
-            Content = JsonContent.Create(new PushMailboxesBody(mailboxes), CoreJson.Default.PushMailboxesBody),
+            Content = JsonContent.Create(new PushMailboxesBody(mailboxes, platform, token), CoreJson.Default.PushMailboxesBody),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", subscription.Secret);
         using var response = await http.SendAsync(request, ct);
