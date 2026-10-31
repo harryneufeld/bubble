@@ -117,7 +117,7 @@ How the app behaves:
 ## Steps
 
 1. **Relay** (done): subscription endpoints, store, wake worker, UnifiedPush delivery with SSRF protection, tests (including in-memory end-to-end with a fake gateway).
-2. **Push gateway** (done for FCM; APNs follows with iOS): register/wake, handle sealing, FCM sending, rate limit, Dockerfile, CI workflow. Still open: compose entry.
+2. **Push gateway** (done for FCM; APNs follows with iOS): register/wake, handle sealing, FCM sending, rate limit, Dockerfile, CI workflow. The compose file has a `push` profile for it.
 3. **App Android** (done for FCM): `IPushProvider` and `PushRegistrar` in Core, FCM provider and push service, local notifications, "Notifications" switch on the profile page, `push.props`.
 4. **App Android UnifiedPush:** connector binding, provider, test with ntfy.
 5. **App iOS:** APNs registration, notification service extension (requires an Apple Developer account).
