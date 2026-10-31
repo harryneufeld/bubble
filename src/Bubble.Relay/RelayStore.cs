@@ -35,6 +35,19 @@ public sealed class RelayStore
                 token_hash BLOB NOT NULL,
                 ciphertext BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id          TEXT PRIMARY KEY,
+                secret_hash BLOB    NOT NULL,
+                type        TEXT    NOT NULL,
+                endpoint    TEXT    NOT NULL,
+                last_seen   INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS push_mailboxes (
+                subscription_id TEXT NOT NULL REFERENCES push_subscriptions (id) ON DELETE CASCADE,
+                mailbox         TEXT NOT NULL,
+                PRIMARY KEY (subscription_id, mailbox)
+            );
+            CREATE INDEX IF NOT EXISTS ix_push_mailboxes_mailbox ON push_mailboxes (mailbox);
             """);
     }
 
@@ -125,6 +138,129 @@ public sealed class RelayStore
         return (byte[])reader[1];
     }
 
+    public PushSubscriptionOut CreateSubscription(string type, string endpoint, IEnumerable<string> mailboxes)
+    {
+        var id = Base64Url.Encode(RandomNumberGenerator.GetBytes(16));
+        var secret = Base64Url.Encode(RandomNumberGenerator.GetBytes(32));
+        using var db = Open();
+        using var tx = db.BeginTransaction();
+        using (var cmd = db.CreateCommand())
+        {
+            cmd.CommandText = "INSERT INTO push_subscriptions (id, secret_hash, type, endpoint, last_seen) VALUES ($id, $s, $t, $e, $seen)";
+            cmd.Parameters.AddWithValue("$id", id);
+            cmd.Parameters.AddWithValue("$s", HashSecret(secret));
+            cmd.Parameters.AddWithValue("$t", type);
+            cmd.Parameters.AddWithValue("$e", endpoint);
+            cmd.Parameters.AddWithValue("$seen", Today());
+            cmd.ExecuteNonQuery();
+        }
+        SetMailboxes(db, id, mailboxes);
+        tx.Commit();
+        return new PushSubscriptionOut(id, secret);
+    }
+
+    /// <summary>False if the subscription does not exist or the secret does not match (both look the same to the client).</summary>
+    public bool UpdateSubscriptionMailboxes(string id, string secret, IEnumerable<string> mailboxes)
+    {
+        using var db = Open();
+        using var tx = db.BeginTransaction();
+        if (!SecretMatches(db, id, secret)) return false;
+        SetMailboxes(db, id, mailboxes);
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "UPDATE push_subscriptions SET last_seen = $seen WHERE id = $id";
+        cmd.Parameters.AddWithValue("$seen", Today());
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
+        tx.Commit();
+        return true;
+    }
+
+    public bool DeleteSubscription(string id, string secret)
+    {
+        using var db = Open();
+        using var tx = db.BeginTransaction();
+        if (!SecretMatches(db, id, secret)) return false;
+        DeleteSubscription(db, id);
+        tx.Commit();
+        return true;
+    }
+
+    /// <summary>Called when the push endpoint reports the device as gone.</summary>
+    public void DeleteSubscription(string id)
+    {
+        using var db = Open();
+        DeleteSubscription(db, id);
+    }
+
+    public List<PushTarget> GetSubscriptionsForMailbox(string mailbox)
+    {
+        using var db = Open();
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = """
+            SELECT s.id, s.type, s.endpoint FROM push_subscriptions s
+            JOIN push_mailboxes m ON m.subscription_id = s.id
+            WHERE m.mailbox = $m
+            """;
+        cmd.Parameters.AddWithValue("$m", mailbox);
+        using var reader = cmd.ExecuteReader();
+        var result = new List<PushTarget>();
+        while (reader.Read())
+            result.Add(new PushTarget(reader.GetString(0), reader.GetString(1), reader.GetString(2)));
+        return result;
+    }
+
+    public int DeleteStaleSubscriptions()
+    {
+        using var db = Open();
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "DELETE FROM push_subscriptions WHERE last_seen < $cutoff";
+        cmd.Parameters.AddWithValue("$cutoff", Today() - (long)RelayLimits.PushSubscriptionTtl.TotalSeconds);
+        return cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>Only the day is kept, not the exact time.</summary>
+    long Today() => _time.GetUtcNow().ToUnixTimeSeconds() / 86400 * 86400;
+
+    static byte[] HashSecret(string secret) => SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(secret));
+
+    static bool SecretMatches(SqliteConnection db, string id, string secret)
+    {
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "SELECT secret_hash FROM push_subscriptions WHERE id = $id";
+        cmd.Parameters.AddWithValue("$id", id);
+        return cmd.ExecuteScalar() is byte[] hash && CryptographicOperations.FixedTimeEquals(hash, HashSecret(secret));
+    }
+
+    static void SetMailboxes(SqliteConnection db, string id, IEnumerable<string> mailboxes)
+    {
+        using (var cmd = db.CreateCommand())
+        {
+            cmd.CommandText = "DELETE FROM push_mailboxes WHERE subscription_id = $id";
+            cmd.Parameters.AddWithValue("$id", id);
+            cmd.ExecuteNonQuery();
+        }
+        foreach (var mailbox in mailboxes.Distinct())
+        {
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = "INSERT INTO push_mailboxes (subscription_id, mailbox) VALUES ($id, $m)";
+            cmd.Parameters.AddWithValue("$id", id);
+            cmd.Parameters.AddWithValue("$m", mailbox);
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    static void DeleteSubscription(SqliteConnection db, string id)
+    {
+        // Foreign keys are off by default in SQLite, so delete the mailbox rows explicitly.
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = """
+            DELETE FROM push_mailboxes WHERE subscription_id = $id;
+            DELETE FROM push_subscriptions WHERE id = $id;
+            """;
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
+    }
+
     static byte[]? GetTokenHash(SqliteConnection db, string backupId)
     {
         using var cmd = db.CreateCommand();
@@ -148,7 +284,9 @@ public sealed class RelayStore
     }
 }
 
-/// <summary>Regularly deletes expired 24h posts for good.</summary>
+public sealed record PushTarget(string Id, string Type, string Endpoint);
+
+/// <summary>Regularly deletes expired 24h posts and push subscriptions that were not renewed for good.</summary>
 public sealed class ExpiryCleanup(RelayStore store, ILogger<ExpiryCleanup> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -158,6 +296,8 @@ public sealed class ExpiryCleanup(RelayStore store, ILogger<ExpiryCleanup> logge
         {
             var deleted = store.DeleteExpired();
             if (deleted > 0) logger.LogInformation("{Count} expired messages deleted", deleted);
+            var stale = store.DeleteStaleSubscriptions();
+            if (stale > 0) logger.LogInformation("{Count} stale push subscriptions deleted", stale);
         } while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 }
