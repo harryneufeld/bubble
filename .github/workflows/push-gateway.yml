@@ -1,0 +1,102 @@
+# CI for the push gateway: the project is built on every change, the Docker image is built (multi-arch: amd64 + arm64).
+# Images are only published on main and on tags `gateway-v*`, never from pull requests.
+#
+# Image:  ghcr.io/<besitzer>/bubble-push-gateway
+#   :main        current state of main
+#   :sha-<short> every published commit
+#   :latest      current state of main
+#   :1.2.3, :1.2 for a tag gateway-v1.2.3
+#
+# Note: A new GHCR package is private at first. To pull without logging in, set it to "Public" once under
+# GitHub → profile → Packages → bubble-push-gateway → Package settings.
+name: Push gateway
+
+on:
+  push:
+    branches: [main]
+    tags: ["gateway-v*"]
+    paths:
+      - "src/Bubble.PushGateway/**"
+      - ".github/workflows/push-gateway.yml"
+  pull_request:
+    paths:
+      - "src/Bubble.PushGateway/**"
+      - ".github/workflows/push-gateway.yml"
+  workflow_dispatch:
+
+# One running build per branch; newer pushes replace older ones.
+concurrency:
+  group: push-gateway-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/bubble-push-gateway
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build src/Bubble.PushGateway -c Release --nologo --verbosity minimal
+
+  image:
+    name: Docker-Image
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Emulation for arm64 (Raspberry Pi); building is done by cross-compiling in the Dockerfile, QEMU only starts the runtime image.
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Bei GHCR anmelden
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=match,pattern=gateway-v(\d+\.\d+\.\d+),group=1
+            type=match,pattern=gateway-v(\d+\.\d+)\.\d+,group=1
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=Bubble Push Gateway
+            org.opencontainers.image.description=Wakes Bubble devices via FCM and APNs without seeing any content
+
+      - name: Build and publish
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Bubble.PushGateway/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=push-gateway
+          cache-to: type=gha,mode=max,scope=push-gateway

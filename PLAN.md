@@ -18,7 +18,7 @@ An app for sharing highlights in private groups ("bubbles") – with an emoji fo
 - **"Blind" relay server** in the EU: only stores encrypted blobs and deletes 24h posts automatically
 - **No email and no phone number:** the identity is a key pair on the device
 - **Images:** metadata (EXIF/GPS) is removed before upload, the image is compressed and encrypted
-- **Content-free push notifications**, no IP logs, no external assets
+- **Content-free push notifications** via our own push gateway (FCM/APNs) or UnifiedPush, see [docs/push.md](docs/push.md); no IP logs, no external assets
 
 ## New device / recovery
 An encrypted key backup sits on the server. It contains the identity and all bubble keys and can be opened in two ways:

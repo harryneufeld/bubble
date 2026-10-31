@@ -1,9 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using Bubble.Core;
+using Bubble.Relay;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Bubble.Tests;
@@ -13,6 +15,8 @@ public sealed class RelayFixture : IDisposable
     readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"bubble-relay-{Guid.NewGuid():N}.db");
     readonly WebApplicationFactory<Program> _factory;
 
+    public FakePushEndpoint Push { get; } = new();
+
     public FakeTimeProvider Time { get; } = new(new DateTimeOffset(2026, 10, 19, 10, 0, 0, TimeSpan.Zero));
 
     public RelayFixture()
@@ -20,11 +24,24 @@ public sealed class RelayFixture : IDisposable
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
         {
             b.UseSetting("Relay:Database", _dbPath);
-            b.ConfigureServices(s => s.Replace(ServiceDescriptor.Singleton<TimeProvider>(Time)));
+            b.ConfigureServices(s =>
+            {
+                s.Replace(ServiceDescriptor.Singleton<TimeProvider>(Time));
+                // Tests call PushDispatcher.FlushAsync themselves, so no timer-driven worker and no real HTTP calls.
+                s.RemoveAll<IHostedService>();
+                s.AddHostedService<ExpiryCleanup>();
+                s.AddHttpClient(PushDispatcher.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => Push);
+            });
         });
     }
 
     public HttpClient Http() => _factory.CreateClient();
+
+    public T Service<T>() where T : notnull
+    {
+        _ = _factory.Server; // starts the host
+        return _factory.Services.GetRequiredService<T>();
+    }
 
     public RelayClient Relay(string _) => new(Http());
 

@@ -126,6 +126,23 @@ public sealed record RelayMessageOut(long Seq, string Id, string Ciphertext, lon
 
 public sealed record BackupBody(string Ciphertext);
 
+/// <summary>How a device wants to be woken: <see cref="PushTypes"/>, and the URL the relay POSTs to.</summary>
+public sealed record PushSubscriptionIn(string Type, string Endpoint, List<string> Mailboxes);
+
+public sealed record PushSubscriptionOut(string Id, string Secret);
+
+public sealed record PushMailboxesBody(List<string> Mailboxes);
+
+public static class PushTypes
+{
+    /// <summary>The endpoint belongs to a push gateway (FCM/APNs).</summary>
+    public const string Gateway = "gateway";
+
+    public const string UnifiedPush = "unifiedpush";
+
+    public static bool IsValid(string type) => type is Gateway or UnifiedPush;
+}
+
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web, UseStringEnumConverter = true)]
 [JsonSerializable(typeof(BubbleMessage))]
 [JsonSerializable(typeof(SignedMessage))]
@@ -136,4 +153,7 @@ public sealed record BackupBody(string Ciphertext);
 [JsonSerializable(typeof(RelayMessageOut))]
 [JsonSerializable(typeof(List<RelayMessageOut>))]
 [JsonSerializable(typeof(BackupBody))]
+[JsonSerializable(typeof(PushSubscriptionIn))]
+[JsonSerializable(typeof(PushSubscriptionOut))]
+[JsonSerializable(typeof(PushMailboxesBody))]
 public partial class CoreJson : JsonSerializerContext;

@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Bubble.Core;
 using Bubble.Relay;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,15 @@ builder.Services.AddSingleton(sp => new RelayStore(
     builder.Configuration["Relay:Database"] ?? "relay.db",
     sp.GetRequiredService<TimeProvider>()));
 builder.Services.AddHostedService<ExpiryCleanup>();
+builder.Services.Configure<PushOptions>(builder.Configuration.GetSection("Push"));
+builder.Services.AddSingleton<PushDispatcher>();
+builder.Services.AddHostedService<PushWorker>();
+builder.Services.AddHttpClient(PushDispatcher.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(10))
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+    {
+        AllowAutoRedirect = false,
+        ConnectCallback = builder.Configuration.GetValue<bool>("Push:AllowPrivateEndpoints") ? null : PushEndpoint.ConnectPublicAsync,
+    });
 
 var app = builder.Build();
 
@@ -18,7 +28,7 @@ app.MapGet("/", () => "Bubble Relay – only stores encrypted data.");
 
 var messages = app.MapGroup("/v1/mailboxes/{mailbox}/messages");
 
-messages.MapPost("/", (string mailbox, RelayMessageIn body, RelayStore store, TimeProvider time) =>
+messages.MapPost("/", (string mailbox, RelayMessageIn body, RelayStore store, TimeProvider time, PushDispatcher push) =>
 {
     if (!Ids.IsKeyId(mailbox) || !Ids.IsMessageId(body.Id))
         return Results.BadRequest("Invalid ID.");
@@ -30,15 +40,45 @@ messages.MapPost("/", (string mailbox, RelayMessageIn body, RelayStore store, Ti
     if (!TryDecode(body.Ciphertext, RelayLimits.MaxCiphertextBytes, out var ciphertext))
         return Results.BadRequest("Invalid or too large content.");
 
-    return store.AddMessage(mailbox, body.Id, ciphertext, body.ExpiresAt)
-        ? Results.Created()
-        : Results.Conflict();
+    if (!store.AddMessage(mailbox, body.Id, ciphertext, body.ExpiresAt))
+        return Results.Conflict();
+
+    push.Notify(mailbox);
+    return Results.Created();
 });
 
 messages.MapGet("/", (string mailbox, long? after, RelayStore store) =>
     Ids.IsKeyId(mailbox)
         ? Results.Ok(store.GetMessages(mailbox, after ?? 0))
         : Results.BadRequest("Invalid ID."));
+
+var subscriptions = app.MapGroup("/v1/push/subscriptions");
+
+subscriptions.MapPost("/", (PushSubscriptionIn body, RelayStore store, IOptions<PushOptions> options) =>
+{
+    if (!PushTypes.IsValid(body.Type)
+        || body.Endpoint.Length > RelayLimits.MaxPushEndpointLength
+        || !PushEndpoint.TryValidate(body.Endpoint, options.Value.AllowPrivateEndpoints, out _)
+        || !AreMailboxes(body.Mailboxes))
+        return Results.BadRequest("Invalid push subscription.");
+
+    var created = store.CreateSubscription(body.Type, body.Endpoint, body.Mailboxes);
+    return Results.Created($"/v1/push/subscriptions/{created.Id}", created);
+});
+
+subscriptions.MapPut("/{id}", (string id, PushMailboxesBody body, HttpRequest request, RelayStore store) =>
+{
+    if (!Ids.IsMessageId(id) || BearerToken(request) is not { } secret || !AreMailboxes(body.Mailboxes))
+        return Results.BadRequest();
+    return store.UpdateSubscriptionMailboxes(id, secret, body.Mailboxes) ? Results.NoContent() : Results.NotFound();
+});
+
+subscriptions.MapDelete("/{id}", (string id, HttpRequest request, RelayStore store) =>
+{
+    if (!Ids.IsMessageId(id) || BearerToken(request) is not { } secret)
+        return Results.BadRequest();
+    return store.DeleteSubscription(id, secret) ? Results.NoContent() : Results.NotFound();
+});
 
 app.MapPut("/v1/backups/{backupId}", (string backupId, BackupBody body, HttpRequest request, RelayStore store) =>
 {
@@ -74,6 +114,9 @@ static bool TryDecode(string base64, int maxBytes, out byte[] bytes)
     catch (FormatException) { return false; }
     return bytes.Length is > 0 && bytes.Length <= maxBytes;
 }
+
+static bool AreMailboxes(List<string> mailboxes) =>
+    mailboxes.Count <= RelayLimits.MaxPushMailboxes && mailboxes.All(Ids.IsKeyId);
 
 static string? BearerToken(HttpRequest request)
 {
