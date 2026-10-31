@@ -54,7 +54,11 @@ public sealed class FeedService(AccountService account)
         {
             if (snapshot is null) Unreachable.Add(bubble);
             else if (snapshot.Removed) await ForgetRemovedAsync(bubble);
-            else _snapshots[bubble.MailboxId] = snapshot;
+            else
+            {
+                _snapshots[bubble.MailboxId] = snapshot;
+                NotifiedPosts.MarkSeen(bubble.MailboxId, snapshot);
+            }
         }
         // Another member changed the lifetime, or the owner moved the bubble to a new key
         if (vault.Bubbles.Any(b => before[b] != (b.Key, b.Lifetime))) await account.SaveAsync();
@@ -70,6 +74,7 @@ public sealed class FeedService(AccountService account)
             return;
         }
         _snapshots[bubble.MailboxId] = snapshot;
+        NotifiedPosts.MarkSeen(bubble.MailboxId, snapshot);
         if (before != (bubble.Key, bubble.Lifetime)) await account.SaveAsync();
     }
 

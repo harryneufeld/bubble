@@ -98,11 +98,27 @@ Small ASP.NET Core service in this repo, with its own Docker image (`ghcr.io/<ow
 
 **Known trade-off:** a subscription links the mailboxes of one device on the relay. Without push, the relay can only guess that link from IPs and timing. Mitigation for later: one subscription per bubble with separate handles/endpoints (more registrations, same wake). Push stays optional so users can turn it off.
 
+## Setting it up
+
+1. **Firebase:** create a project, register the Android app `org.bubble.social` with the SHA-1 of the signing key (for Play builds also the Play app-signing key). Download `google-services.json` and a service account key.
+2. **App build:** copy the four values from `google-services.json` into [src/Bubble.App/push.props](../src/Bubble.App/push.props) (or pass them as `-p:BubblePushFcm…=…`). Without them the app builds without Firebase, and the Notifications switch doesn't show.
+3. **Gateway:** run the image with `Push__Secret` and `Push__Fcm__CredentialsFile` (the service account key).
+4. **Relay:** set `Push__Gateway` to the gateway's address (`http://gateway:5090` on the same Docker network).
+5. **In the app:** Profile → Notifications. The app asks for the notification permission, registers at the relay of each bubble and renews the handle every two weeks.
+
+How the app behaves:
+
+- One subscription per relay, with the mailboxes of the bubbles on that relay. It follows the bubble list and the token; nothing is sent when nothing changed.
+- A wake fetches the bubbles, decrypts, and announces posts by others that weren't seen yet. The first time a bubble is seen its backlog is not announced. What the feed has shown counts as seen.
+- The lock screen shows only "New in your bubbles".
+- Logging out removes the subscriptions.
+- The Firebase package is pinned to 124.1.2: newer ones need AndroidX versions that clash with MAUI 10.0.20.
+
 ## Steps
 
 1. **Relay** (done): subscription endpoints, store, wake worker, UnifiedPush delivery with SSRF protection, tests (including in-memory end-to-end with a fake gateway).
 2. **Push gateway** (done for FCM; APNs follows with iOS): register/wake, handle sealing, FCM sending, rate limit, Dockerfile, CI workflow. Still open: compose entry.
-3. **App Android:** `IPushProvider`, `PushRegistrar`, FCM provider, local notifications, settings screen, `push.props`.
+3. **App Android** (done for FCM): `IPushProvider` and `PushRegistrar` in Core, FCM provider and push service, local notifications, "Notifications" switch on the profile page, `push.props`.
 4. **App Android UnifiedPush:** connector binding, provider, test with ntfy.
 5. **App iOS:** APNs registration, notification service extension (requires an Apple Developer account).
 6. **Docs:** README sections "Push" and "Self-hosting the push gateway", update "What the relay knows".

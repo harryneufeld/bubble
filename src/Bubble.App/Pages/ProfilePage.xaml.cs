@@ -7,12 +7,15 @@ public partial class ProfilePage : ContentPage
 {
     readonly AccountService _account;
     readonly FeedService _feed;
+    readonly PushService _push;
+    bool _settingSwitch;
 
-    public ProfilePage(AccountService account, FeedService feed)
+    public ProfilePage(AccountService account, FeedService feed, PushService push)
     {
         InitializeComponent();
         _account = account;
         _feed = feed;
+        _push = push;
     }
 
     protected override async void OnAppearing()
@@ -28,6 +31,10 @@ public partial class ProfilePage : ContentPage
         StatsLabel.Text = vault.Bubbles.Count == 1 ? "In 1 bubble" : $"In {vault.Bubbles.Count} bubbles";
         BackupLabel.Text = vault.Backup is null ? "Not set up yet" : "Active, updated automatically";
         ServerLabel.Text = Labels.Host(AccountService.DefaultRelayUrl);
+        NotificationsRow.IsVisible = NotificationsDivider.IsVisible = PushService.IsAvailable;
+        _settingSwitch = true;
+        NotificationsSwitch.IsToggled = PushService.IsEnabled;
+        _settingSwitch = false;
         VersionLabel.Text = $"Version {AppInfo.Current.VersionString} ({AppInfo.Current.BuildString})";
     }
 
@@ -76,6 +83,20 @@ public partial class ProfilePage : ContentPage
             await DisplayAlertAsync("Backup not updated", "The server is not reachable. The backup will be updated on the next save.", "OK");
     }
 
+    async void OnNotificationsToggled(object? sender, ToggledEventArgs e)
+    {
+        if (_settingSwitch) return;
+        if (await _push.SetEnabledAsync(e.Value)) return;
+
+        _settingSwitch = true;
+        NotificationsSwitch.IsToggled = PushService.IsEnabled;
+        _settingSwitch = false;
+        if (e.Value)
+            await DisplayAlertAsync("Notifications not switched on",
+                "Check that Bubble may show notifications and that your server and its push gateway are reachable. " +
+                "Servers that don't offer push can't notify you yet.", "OK");
+    }
+
     async void OnLogOut(object? sender, TappedEventArgs e)
     {
         var vault = _account.Vault;
@@ -85,6 +106,7 @@ public partial class ProfilePage : ContentPage
             : "Your identity and bubble keys are removed from this device. You can restore everything later with your backup code, so make sure you still have it.";
         if (!await DisplayAlertAsync("Log out?", message, "Log out", "Cancel")) return;
 
+        await _push.RemoveAllAsync(); // before the account goes: the relays should forget this device
         _account.LogOut();
         _feed.Reset();
         await Shell.Current.GoToAsync("//home"); // the home page notices there is no account and shows onboarding

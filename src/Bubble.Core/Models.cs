@@ -161,4 +161,5 @@ public static class PushTypes
 [JsonSerializable(typeof(PushSubscriptionIn))]
 [JsonSerializable(typeof(PushSubscriptionOut))]
 [JsonSerializable(typeof(PushMailboxesBody))]
+[JsonSerializable(typeof(Dictionary<string, PushRelayState>))]
 public partial class CoreJson : JsonSerializerContext;

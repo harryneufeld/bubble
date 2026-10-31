@@ -4,6 +4,8 @@
 	<application android:allowBackup="false" android:usesCleartextTraffic="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true"></application>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
+	<!-- Notifications about new highlights (asked for when the user switches them on) -->
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 	<!-- Camera: profile picture, photos and scanning QR code invitations -->
 	<uses-permission android:name="android.permission.CAMERA" />
 	<uses-feature android:name="android.hardware.camera" android:required="false" />

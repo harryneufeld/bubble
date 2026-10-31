@@ -1,0 +1,25 @@
+<Project>
+
+  <!--
+    Push notifications on Android (FCM). The values are in the google-services.json of your Firebase project
+    (they are not secret, every APK carries them):
+
+      BubblePushFcmProjectId   project_info.project_id
+      BubblePushFcmAppId       client[0].client_info.mobilesdk_app_id
+      BubblePushFcmApiKey      client[0].api_key[0].current_key
+      BubblePushFcmSenderId    project_info.project_number
+
+    All four have to be set, otherwise the app is built without Firebase and without push.
+    They can also be passed on the command line, e.g. -p:BubblePushFcmProjectId=my-project.
+
+    The push gateway holds the matching service account key and sends the wakes. The relay needs it as Push__Gateway,
+    see docs/push.md.
+  -->
+  <PropertyGroup>
+    <BubblePushFcmProjectId></BubblePushFcmProjectId>
+    <BubblePushFcmAppId></BubblePushFcmAppId>
+    <BubblePushFcmApiKey></BubblePushFcmApiKey>
+    <BubblePushFcmSenderId></BubblePushFcmSenderId>
+  </PropertyGroup>
+
+</Project>
