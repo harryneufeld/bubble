@@ -494,4 +494,6 @@ $RECYCLE.BIN/
 *.keystore
 *.jks
 signing.props
+push.local.props
+google-services.json
 dist/

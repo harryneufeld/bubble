@@ -101,7 +101,7 @@ Small ASP.NET Core service in this repo, with its own Docker image (`ghcr.io/<ow
 ## Setting it up
 
 1. **Firebase:** create a project, register the Android app `org.bubble.social` with the SHA-1 of the signing key (for Play builds also the Play app-signing key). Download `google-services.json` and a service account key.
-2. **App build:** copy the four values from `google-services.json` into [src/Bubble.App/push.props](../src/Bubble.App/push.props) (or pass them as `-p:BubblePushFcm…=…`). Without them the app builds without Firebase, and the Notifications switch doesn't show.
+2. **App build:** copy the four values from `google-services.json` into `src/Bubble.App/push.local.props` (start from [push.local.props.example](../src/Bubble.App/push.local.props.example); the file is ignored by git), or pass them as `-p:BubblePushFcm…=…`. Without them the app builds without Firebase, and the Notifications switch doesn't show. The values aren't secret (every APK carries them), but keeping them out of the repo stops forks from building against our Firebase project. Also restrict the API key in the Google Cloud Console (Credentials → "Android key (auto created by Firebase)") to Android apps with the package name and signing SHA-1s, and to the Firebase Installations API and the FCM Registration API.
 3. **Gateway:** run the image with `Push__Secret` and `Push__Fcm__CredentialsFile` (the service account key).
 4. **Relay:** set `Push__Gateway` to the gateway's address (`http://gateway:5090` on the same Docker network).
 5. **In the app:** Profile → Notifications. The app asks for the notification permission, registers at the relay of each bubble and renews the handle every two weeks.
