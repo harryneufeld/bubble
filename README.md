@@ -2,6 +2,17 @@
 
 Share highlights with a feeling (emoji) in private groups, with hearts and comments, end-to-end encrypted. Goals and roadmap are in [PLAN.md](PLAN.md), the design rules in [DESIGN.md](DESIGN.md).
 
+[![Sponsor Bubble](https://img.shields.io/badge/Sponsor-Bubble-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/harryneufeld)
+
+## Support Bubble
+
+Bubble has no ads, no tracking and no investors. It is built in my spare time, and keeping it alive costs real money: the relay server in the EU, the domain and website, and the fees for publishing the app in the stores. If Bubble brings you and your people a little closer, a coffee's worth helps keep it running:
+
+- ❤️ [Sponsor on GitHub](https://github.com/sponsors/harryneufeld), one-time or monthly
+- ⭐ Star the repo and tell a friend, that helps too
+
+Thank you!
+
 ## Projects
 
 | Project | Contents |
