@@ -497,3 +497,5 @@ signing.props
 push.local.props
 google-services.json
 dist/
+fcm-service-account*.json
+*-firebase-adminsdk-*.json
