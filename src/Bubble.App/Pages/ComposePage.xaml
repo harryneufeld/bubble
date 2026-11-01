@@ -6,12 +6,14 @@
              Title="Share highlight">
     <Grid Style="{StaticResource Column}" RowDefinitions="*,Auto" Padding="16,8,16,16">
         <ScrollView>
-            <VerticalStackLayout Spacing="14" Padding="0,0,0,12">
+            <VerticalStackLayout x:Name="Form" Spacing="14" Padding="0,0,0,12" BackgroundColor="Transparent">
                 <Label Text="How are you feeling?" Style="{StaticResource TitleText}" />
                 <Label x:Name="FeelingHint" Style="{StaticResource CaptionText}" Text="Tap an emoji that fits your day." />
 
                 <!-- Feeling: one emoji, optional -->
-                <FlexLayout x:Name="FeelingGrid" Wrap="Wrap" JustifyContent="Start" />
+                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" HeightRequest="64">
+                    <HorizontalStackLayout x:Name="FeelingGrid" Spacing="10" Padding="0,4" />
+                </ScrollView>
 
                 <Border Style="{StaticResource Field}" Padding="12,6">
                     <Editor x:Name="TextEditor" Placeholder="What was special today?" AutoSize="TextChanges" MaxLength="1000"

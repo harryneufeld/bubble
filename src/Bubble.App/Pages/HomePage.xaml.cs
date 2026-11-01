@@ -36,10 +36,25 @@ public partial class HomePage : ContentPage
             await Shell.Current.GoToAsync(nameof(OnboardingPage));
             return;
         }
+        _feed.Refreshed -= OnFeedRefreshed;
+        _feed.Refreshed += OnFeedRefreshed;
         Render(); // immediately, with whatever is already loaded
         ShareInbox.MarkReady();
+        await _feed.LoadCachedAsync(); // last known posts right away, also without a connection
+        Render();
         await LoadAsync();
     }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _feed.Refreshed -= OnFeedRefreshed;
+    }
+
+    void OnFeedRefreshed() => MainThread.BeginInvokeOnMainThread(() =>
+    {
+        if (_account.Vault is not null) Render();
+    });
 
     async void OnRefreshing(object? sender, EventArgs e) => await LoadAsync();
 

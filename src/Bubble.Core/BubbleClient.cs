@@ -64,7 +64,7 @@ public sealed class BubbleSnapshot(
 /// The logic of a bubble: load the feed, post, hearts and comments, change the lifetime, share the profile,
 /// remove members. Platform independent so the app and the tests use the same code.
 /// </summary>
-public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor, TimeProvider? time = null)
+public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor, TimeProvider? time = null, IMessageCache? cache = null)
 {
     public const int MaxCommentLength = 500;
     const int MaxRotationHops = 8;
@@ -89,9 +89,19 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
         }
     }
 
+    /// <summary>What the bubble looked like when it was last loaded, without asking the relay. Null if nothing is cached.</summary>
+    public async Task<BubbleSnapshot?> LoadCachedAsync(BubbleMembership bubble, CancellationToken ct = default) =>
+        cache?.Load(bubble.MailboxId) is { } raw ? (await BuildAsync(bubble, raw, sync: false, ct)).Snapshot : null;
+
     async Task<(BubbleSnapshot? Snapshot, byte[]? NewKey)> LoadOnceAsync(BubbleMembership bubble, CancellationToken ct)
     {
         var raw = await relayFor(bubble.RelayUrl).GetMessagesAsync(bubble.MailboxId, ct: ct);
+        cache?.Save(bubble.MailboxId, raw);
+        return await BuildAsync(bubble, raw, sync: true, ct);
+    }
+
+    async Task<(BubbleSnapshot? Snapshot, byte[]? NewKey)> BuildAsync(BubbleMembership bubble, List<RelayMessageOut> raw, bool sync, CancellationToken ct)
+    {
         var messages = raw
             .Select(r => (r.Id, Message: MessageCodec.Decrypt(bubble, r)))
             .Where(x => x.Message is not null)
@@ -130,7 +140,7 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
             .Where(p => p.ExpiresAt is null || p.ExpiresAt > now)
             .OrderByDescending(p => p.Message.CreatedAt)
             .ToList();
-        await SyncExpiryAsync(bubble, posts, raw.ToDictionary(r => r.Id, r => r.ExpiresAt), ct);
+        if (sync) await SyncExpiryAsync(bubble, posts, raw.ToDictionary(r => r.Id, r => r.ExpiresAt), ct);
         var postIds = posts.Select(p => p.Id).ToHashSet();
 
         // Members: whoever sent a profile or shared something, unless their latest message says they left; the newest details win.

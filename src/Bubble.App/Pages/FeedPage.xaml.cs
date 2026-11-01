@@ -36,9 +36,22 @@ public partial class FeedPage : ContentPage
             await Shell.Current.GoToAsync("..");
             return;
         }
+        _feed.Refreshed -= OnFeedRefreshed;
+        _feed.Refreshed += OnFeedRefreshed;
         Render();
         await LoadAsync();
     }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _feed.Refreshed -= OnFeedRefreshed;
+    }
+
+    void OnFeedRefreshed() => MainThread.BeginInvokeOnMainThread(() =>
+    {
+        if (_bubble is not null && _account.FindBubble(MailboxId) is not null) Render();
+    });
 
     async void OnRefreshing(object? sender, EventArgs e) => await LoadAsync();
 

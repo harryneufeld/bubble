@@ -19,6 +19,12 @@ public sealed class FeedService(AccountService account)
     /// <summary>Bubbles whose relay was not reachable on the last load.</summary>
     public List<BubbleMembership> Unreachable { get; } = [];
 
+    /// <summary>Raised after posts were loaded, so a page that is already open can show them.</summary>
+    public event Action? Refreshed;
+
+    DateTime _lastResumeRefresh = DateTime.MinValue;
+    bool _refreshing;
+
     /// <summary>Names of bubbles the owner removed me from since the last call to <see cref="TakeRemoved"/>.</summary>
     readonly List<string> _removed = [];
 
@@ -38,6 +44,35 @@ public sealed class FeedService(AccountService account)
     }
 
     public BubbleSnapshot? SnapshotFor(BubbleMembership bubble) => _snapshots.GetValueOrDefault(bubble.MailboxId);
+
+    /// <summary>Shows what was loaded last time before the relay answers (and when it does not).</summary>
+    public async Task LoadCachedAsync()
+    {
+        var vault = account.Vault;
+        if (vault is null) return;
+        foreach (var bubble in vault.Bubbles.ToList().Where(b => !_snapshots.ContainsKey(b.MailboxId)))
+        {
+            if (await account.Client.LoadCachedAsync(bubble) is { Removed: false } snapshot)
+            {
+                _snapshots[bubble.MailboxId] = snapshot;
+                NotifiedPosts.MarkSeen(bubble.MailboxId, snapshot);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The app came back to the front, e.g. from tapping a notification: load again so the new post is already there.
+    /// Never throws and does nothing if it just ran.
+    /// </summary>
+    public async Task RefreshOnResumeAsync()
+    {
+        if (account.Vault is not { Bubbles.Count: > 0 } || _refreshing || DateTime.UtcNow - _lastResumeRefresh < TimeSpan.FromSeconds(5)) return;
+        _refreshing = true;
+        _lastResumeRefresh = DateTime.UtcNow;
+        try { await RefreshAsync(); }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or InvalidOperationException) { }
+        finally { _refreshing = false; }
+    }
 
     public async Task RefreshAsync()
     {
@@ -63,6 +98,7 @@ public sealed class FeedService(AccountService account)
         // Another member changed the lifetime, or the owner moved the bubble to a new key
         // A bubble created while loading is not in `before`; creating it already saved the vault.
         if (vault.Bubbles.ToList().Any(b => before.TryGetValue(b, out var old) && old != (b.Key, b.Lifetime))) await account.SaveAsync();
+        Refreshed?.Invoke();
     }
 
     public async Task RefreshAsync(BubbleMembership bubble)
@@ -77,6 +113,7 @@ public sealed class FeedService(AccountService account)
         _snapshots[bubble.MailboxId] = snapshot;
         NotifiedPosts.MarkSeen(bubble.MailboxId, snapshot);
         if (before != (bubble.Key, bubble.Lifetime)) await account.SaveAsync();
+        Refreshed?.Invoke();
     }
 
     /// <summary>True if the bubble is gone because the owner removed me from it.</summary>
