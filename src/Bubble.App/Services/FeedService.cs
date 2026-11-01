@@ -61,7 +61,8 @@ public sealed class FeedService(AccountService account)
             }
         }
         // Another member changed the lifetime, or the owner moved the bubble to a new key
-        if (vault.Bubbles.Any(b => before[b] != (b.Key, b.Lifetime))) await account.SaveAsync();
+        // A bubble created while loading is not in `before`; creating it already saved the vault.
+        if (vault.Bubbles.ToList().Any(b => before.TryGetValue(b, out var old) && old != (b.Key, b.Lifetime))) await account.SaveAsync();
     }
 
     public async Task RefreshAsync(BubbleMembership bubble)
