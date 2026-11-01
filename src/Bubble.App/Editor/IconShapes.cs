@@ -18,7 +18,18 @@ public static class IconShapes
         (ShapeKind.Camera, "Camera"), (ShapeKind.Pin, "Place"), (ShapeKind.Home, "Home"), (ShapeKind.Coffee, "Coffee"),
     ];
 
-    public static bool IsIcon(ShapeKind kind) => All.Any(i => i.Kind == kind);
+    /// <summary>The basic shapes in the order of the picker (the first ones are drawn by the renderer itself).</summary>
+    public static readonly (ShapeKind Kind, string Name)[] Basic =
+    [
+        (ShapeKind.Blob, "Bubble"), (ShapeKind.Circle, "Circle"), (ShapeKind.Rectangle, "Rectangle"), (ShapeKind.Pill, "Pill"),
+        (ShapeKind.Squircle, "Squircle"), (ShapeKind.Arch, "Arch"), (ShapeKind.Semicircle, "Half circle"), (ShapeKind.Ring, "Ring"),
+        (ShapeKind.Triangle, "Triangle"), (ShapeKind.Diamond, "Diamond"), (ShapeKind.Hexagon, "Hexagon"), (ShapeKind.Cross, "Cross"),
+        (ShapeKind.Drop, "Drop"), (ShapeKind.Leaf, "Leaf"), (ShapeKind.Wave, "Wave"), (ShapeKind.Heart, "Heart"),
+        (ShapeKind.Star, "Star"), (ShapeKind.Line, "Line"), (ShapeKind.Arrow, "Arrow"),
+    ];
+
+    /// <summary>True for the kinds built here (icons and the newer basic shapes).</summary>
+    public static bool IsIcon(ShapeKind kind) => kind >= ShapeKind.Sun && kind != ShapeKind.Pill;
 
     /// <summary>The icon scaled into <paramref name="box"/>.</summary>
     public static SKPath PathIn(ShapeKind kind, SKRect box)
@@ -26,19 +37,6 @@ public static class IconShapes
         var path = Build(kind);
         path.Transform(SKMatrix.CreateScaleTranslation(box.Width / 100, box.Height / 100, box.MidX, box.MidY));
         return path;
-    }
-
-    /// <summary>A square PNG of the icon in one color, for the picker.</summary>
-    public static byte[] Preview(ShapeKind kind, int size, SKColor color)
-    {
-        using var bitmap = new SKBitmap(size, size);
-        using var canvas = new SKCanvas(bitmap);
-        canvas.Clear(SKColors.Transparent);
-        using var path = PathIn(kind, SKRect.Create(size * 0.1f, size * 0.1f, size * 0.8f, size * 0.8f));
-        using var paint = new SKPaint { IsAntialias = true, Color = color };
-        canvas.DrawPath(path, paint);
-        using var image = SKImage.FromBitmap(bitmap);
-        return image.Encode(SKEncodedImageFormat.Png, 100).ToArray();
     }
 
     static SKPath Build(ShapeKind kind)
@@ -159,6 +157,93 @@ public static class IconShapes
                 Round(p, -9, 12, 18, 28, 3, hole: true);
                 break;
 
+            case ShapeKind.Squircle:
+            {
+                var points = new SKPoint[96];
+                for (var i = 0; i < points.Length; i++)
+                {
+                    var a = i * 2 * Math.PI / points.Length;
+                    double c = Math.Cos(a), s = Math.Sin(a);
+                    points[i] = new SKPoint((float)(50 * Math.Sign(c) * Math.Sqrt(Math.Abs(c))), (float)(50 * Math.Sign(s) * Math.Sqrt(Math.Abs(s))));
+                }
+                Poly(p, false, points);
+                break;
+            }
+
+            case ShapeKind.Arch:
+                // Straight sides, round top: with a 4:5 box the top is a true half circle.
+                p.MoveTo(-50, 50);
+                p.LineTo(-50, -10);
+                p.ArcTo(new SKRect(-50, -50, 50, 30), 180, 180, false);
+                p.LineTo(50, 50);
+                p.Close();
+                break;
+
+            case ShapeKind.Semicircle:
+                // With a 2:1 box this is a true half circle.
+                p.MoveTo(-50, 50);
+                p.ArcTo(new SKRect(-50, -50, 50, 150), 180, 180, false);
+                p.Close();
+                break;
+
+            case ShapeKind.Ring:
+                Circle(p, 0, 0, 47);
+                Circle(p, 0, 0, 27, hole: true);
+                break;
+
+            case ShapeKind.Triangle:
+                Rounded(p, 10, 0, -46, 48, 38, -48, 38);
+                break;
+
+            case ShapeKind.Diamond:
+                Rounded(p, 9, 0, -49, 49, 0, 0, 49, -49, 0);
+                break;
+
+            case ShapeKind.Hexagon:
+                Rounded(p, 9, Enumerable.Range(0, 6)
+                    .SelectMany(i => new[] { (float)Math.Cos(-Math.PI / 2 + i * Math.PI / 3) * 49, (float)Math.Sin(-Math.PI / 2 + i * Math.PI / 3) * 49 })
+                    .ToArray());
+                break;
+
+            case ShapeKind.Cross:
+                Rounded(p, 9, -17, -49, 17, -49, 17, -17, 49, -17, 49, 17, 17, 17, 17, 49, -17, 49, -17, 17, -49, 17, -49, -17, -17, -17);
+                break;
+
+            case ShapeKind.Drop:
+                p.MoveTo(0, -48);
+                p.CubicTo(8, -30, 34, -8, 34, 16);
+                p.CubicTo(34, 36, 18, 48, 0, 48);
+                p.CubicTo(-18, 48, -34, 36, -34, 16);
+                p.CubicTo(-34, -8, -8, -30, 0, -48);
+                p.Close();
+                break;
+
+            case ShapeKind.Leaf:
+                p.MoveTo(-46, 46);
+                p.CubicTo(-46, -4, -8, -46, 46, -46);
+                p.CubicTo(46, 4, 8, 46, -46, 46);
+                p.Close();
+                break;
+
+            case ShapeKind.Wave:
+            {
+                // A band with a gentle wave in it (one and a half periods).
+                const int steps = 40;
+                var points = new List<SKPoint>();
+                for (var i = 0; i <= steps; i++)
+                {
+                    var x = -50f + 100f * i / steps;
+                    points.Add(new SKPoint(x, -22 + 14 * (float)Math.Sin((x + 50) / 100 * 3 * Math.PI)));
+                }
+                for (var i = steps; i >= 0; i--)
+                {
+                    var x = -50f + 100f * i / steps;
+                    points.Add(new SKPoint(x, 22 + 14 * (float)Math.Sin((x + 50) / 100 * 3 * Math.PI)));
+                }
+                Poly(p, false, points.ToArray());
+                break;
+            }
+
             case ShapeKind.Coffee:
                 Round(p, -38, -14, 64, 54, 12);
                 Round(p, 18, -4, 28, 30, 12);
@@ -191,6 +276,33 @@ public static class IconShapes
         }
         if ((area > 0) == hole) points = points.Reverse().ToArray(); // positive area = clockwise on screen
         p.AddPoly(points, close: true);
+    }
+
+    /// <summary>A polygon (x, y pairs, clockwise) whose corners are rounded by <paramref name="radius"/>.</summary>
+    static void Rounded(SKPath p, float radius, params float[] xy)
+    {
+        var pts = Enumerable.Range(0, xy.Length / 2).Select(i => new SKPoint(xy[2 * i], xy[2 * i + 1])).ToArray();
+        for (var i = 0; i < pts.Length; i++)
+        {
+            var prev = pts[(i - 1 + pts.Length) % pts.Length];
+            var cur = pts[i];
+            var next = pts[(i + 1) % pts.Length];
+            var start = Toward(cur, prev, radius);
+            var end = Toward(cur, next, radius);
+            if (i == 0) p.MoveTo(start); else p.LineTo(start);
+            p.QuadTo(cur, end);
+        }
+        p.Close();
+    }
+
+    /// <summary>The point <paramref name="distance"/> from <paramref name="from"/> on the way to <paramref name="to"/> (at most half way).</summary>
+    static SKPoint Toward(SKPoint from, SKPoint to, float distance)
+    {
+        var dx = to.X - from.X;
+        var dy = to.Y - from.Y;
+        var length = (float)Math.Sqrt(dx * dx + dy * dy);
+        var t = Math.Min(distance, length / 2) / length;
+        return new SKPoint(from.X + dx * t, from.Y + dy * t);
     }
 
     /// <summary>A short bar pointing away from the center, at <paramref name="angle"/>, between two radii.</summary>

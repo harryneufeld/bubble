@@ -109,6 +109,8 @@ public enum ShapeKind
     Rectangle, Circle, Blob, Heart, Star, Line, Arrow,
     // Flat icons (see IconShapes); new ones go to the end so saved designs keep their meaning.
     Sun, Moon, Cloud, Bolt, Flower, Tree, Flame, Sparkle, Smiley, Speech, Crown, Note, Camera, Pin, Home, Coffee,
+    // More basic shapes, many of them curved.
+    Pill, Squircle, Arch, Semicircle, Ring, Triangle, Diamond, Hexagon, Cross, Drop, Leaf, Wave,
 }
 
 public sealed class ShapeLayer : Layer

@@ -372,39 +372,39 @@ public partial class EditorPage : ContentPage
         Tools.Children.Clear();
         if (CropLayer is { } crop)
         {
-            Tool("✅", "Done", () => SetCrop(false));
-            Tool("↺", "Reset", () => Change(crop.ResetCrop));
+            Tool("ed_check", "Done", () => SetCrop(false));
+            Tool("ed_reset", "Reset", () => Change(crop.ResetCrop));
             RefreshOptions();
             return;
         }
         _crop = false;
-        if (Selected is not null) Tool("✖️", "Deselect", () => Select(null));
+        if (Selected is not null) Tool("ic_close", "Deselect", () => Select(null));
         switch (Selected)
         {
             case null:
-                Tool("🖼️", "Photo", () => _ = AddPhotoAsync());
-                Tool("🔤", "Text", () => EditText(null, isNew: true));
-                Tool("🔷", "Shape", () => _ = AddShapeAsync());
-                Tool("✨", "Icons", () => _ = AddIconAsync());
-                Tool("🎨", "Background", () => TogglePanel(Panel.Background), _panel == Panel.Background);
-                Tool("🧩", "Templates", () => _ = ChooseTemplateAsync());
+                Tool("ic_image", "Photo", () => _ = AddPhotoAsync());
+                Tool("ed_text", "Text", () => EditText(null, isNew: true));
+                Tool("ed_shape", "Shapes", () => _ = AddShapeAsync());
+                Tool("ed_icons", "Icons", () => _ = AddIconAsync());
+                Tool("ed_background", "Background", () => TogglePanel(Panel.Background), _panel == Panel.Background);
+                Tool("ed_templates", "Templates", () => _ = ChooseTemplateAsync());
                 break;
             case TextLayer text:
-                Tool("✏️", "Edit", () => EditText(text, isNew: false));
-                Tool("Aa", "Font", () => TogglePanel(Panel.Font), _panel == Panel.Font);
-                Tool("🎨", "Color", () => TogglePanel(Panel.Color), _panel == Panel.Color);
-                Tool("✨", "Style", () => TogglePanel(Panel.Style), _panel == Panel.Style);
+                Tool("ic_edit", "Edit", () => EditText(text, isNew: false));
+                Tool("ed_font", "Font", () => TogglePanel(Panel.Font), _panel == Panel.Font);
+                Tool("ed_color", "Color", () => TogglePanel(Panel.Color), _panel == Panel.Color);
+                Tool("ed_style", "Style", () => TogglePanel(Panel.Style), _panel == Panel.Style);
                 Tool(text.Align switch { SKTextAlign.Left => "⇤", SKTextAlign.Right => "⇥", _ => "↔" }, "Align", () => Change(() =>
                     text.Align = text.Align switch { SKTextAlign.Center => SKTextAlign.Left, SKTextAlign.Left => SKTextAlign.Right, _ => SKTextAlign.Center }));
                 CommonTools(text);
                 break;
             case ShapeLayer shape:
-                Tool("🎨", "Color", () => TogglePanel(Panel.Color), _panel == Panel.Color);
+                Tool("ed_color", "Color", () => TogglePanel(Panel.Color), _panel == Panel.Color);
                 CommonTools(shape);
                 break;
             case ImageLayer image:
-                if (image.Image is not null) Tool("✂️", "Crop", () => SetCrop(true));
-                Tool("🔁", "Replace", () => _ = FillPhotoAsync(image));
+                if (image.Image is not null) Tool("ed_crop", "Crop", () => SetCrop(true));
+                Tool("ed_replace", "Replace", () => _ = FillPhotoAsync(image));
                 Tool(image.CornerRadius switch { 0 => "◻️", >= 9999 => "⚪", _ => "▢" }, "Corners", () => Change(() =>
                     image.CornerRadius = image.CornerRadius switch { 0 => 40, >= 9999 => 0, _ => 9999 }));
                 CommonTools(image);
@@ -415,17 +415,17 @@ public partial class EditorPage : ContentPage
 
     void CommonTools(Layer layer)
     {
-        Tool("⬆️", "Forward", () => Reorder(layer, +1));
-        Tool("⬇️", "Back", () => Reorder(layer, -1));
-        Tool("🌗", $"{Math.Round(layer.Opacity * 100)} %", () => Change(() => layer.Opacity = layer.Opacity <= 0.25f ? 1 : layer.Opacity - 0.25f));
-        Tool("⧉", "Duplicate", () =>
+        Tool("ed_up", "Forward", () => Reorder(layer, +1));
+        Tool("ed_down", "Back", () => Reorder(layer, -1));
+        Tool("ed_opacity", $"{Math.Round(layer.Opacity * 100)} %", () => Change(() => layer.Opacity = layer.Opacity <= 0.25f ? 1 : layer.Opacity - 0.25f));
+        Tool("ic_copy", "Duplicate", () =>
         {
             Checkpoint();
             var copy = layer.Duplicate();
             _design.Layers.Insert(_design.Layers.IndexOf(layer) + 1, copy);
             Select(copy);
         });
-        Tool("🗑️", "Delete", () =>
+        Tool("ed_trash", "Delete", () =>
         {
             Checkpoint();
             _design.Layers.Remove(layer);
@@ -447,7 +447,7 @@ public partial class EditorPage : ContentPage
                 Spacing = 3,
                 Children =
                 {
-                    new Label { Text = icon, FontSize = 22, HorizontalOptions = LayoutOptions.Center, TextColor = (Color)Res("Ink") },
+                    new Image { Source = icon + ".png", WidthRequest = 24, HeightRequest = 24, HorizontalOptions = LayoutOptions.Center },
                     new Label { Text = label, FontSize = 11, FontFamily = "BodyMedium", HorizontalOptions = LayoutOptions.Center, TextColor = (Color)Res("InkSoft") },
                 },
             },
@@ -675,23 +675,28 @@ public partial class EditorPage : ContentPage
         Change(() => { _design.Background = BackgroundKind.Photo; _design.BackgroundPhoto = bytes; });
     }
 
-    static readonly (ShapeKind Kind, string Name, string Icon)[] ShapeOptions =
-    [
-        (ShapeKind.Blob, "Bubble", "🫧"), (ShapeKind.Circle, "Circle", "⚪"), (ShapeKind.Rectangle, "Rectangle", "▭"),
-        (ShapeKind.Heart, "Heart", "🤍"), (ShapeKind.Star, "Star", "⭐"), (ShapeKind.Line, "Line", "➖"), (ShapeKind.Arrow, "Arrow", "➡️"),
-    ];
+    static ImageSource Preview(ShapeKind kind) =>
+        ImageSource.FromStream(() => new MemoryStream(DesignRenderer.ShapePreview(kind, 128, SKColors.White)));
 
     async Task AddShapeAsync()
     {
-        var options = ShapeOptions.Select(s => new SheetOption(s.Name, null, s.Icon)).ToList();
-        if (await SheetPage.ChooseAsync(this, "Add shape", null, options) is not { } index) return;
-        var kind = ShapeOptions[index].Kind;
+        var items = IconShapes.Basic.Select(s => (s.Name, Preview(s.Kind))).ToList();
+        if (await SheetPage.ChooseGridAsync(this, "Add shape", null, items) is not { } index) return;
+        var kind = IconShapes.Basic[index].Kind;
         var shape = new ShapeLayer
         {
             Kind = kind, X = Design.Width / 2, Y = _design.Height / 2,
             Gradient = kind is ShapeKind.Blob or ShapeKind.Circle,
-            Width = kind switch { ShapeKind.Rectangle or ShapeKind.Line or ShapeKind.Arrow => 600, _ => 460 },
-            Height = kind switch { ShapeKind.Rectangle => 400, ShapeKind.Line or ShapeKind.Arrow => 140, _ => 460 },
+            Width = kind switch
+            {
+                ShapeKind.Rectangle or ShapeKind.Line or ShapeKind.Arrow or ShapeKind.Pill => 600,
+                ShapeKind.Wave => 640, ShapeKind.Semicircle => 560, ShapeKind.Arch => 400, _ => 460,
+            },
+            Height = kind switch
+            {
+                ShapeKind.Rectangle => 400, ShapeKind.Line or ShapeKind.Arrow => 140, ShapeKind.Pill => 240,
+                ShapeKind.Wave => 240, ShapeKind.Semicircle => 280, ShapeKind.Arch => 500, _ => 460,
+            },
             Color = kind is ShapeKind.Line or ShapeKind.Arrow ? SKColors.White : new SKColor(0xFF, 0x4F, 0x9A),
         };
         Checkpoint();
@@ -703,7 +708,7 @@ public partial class EditorPage : ContentPage
     async Task AddIconAsync()
     {
         var items = IconShapes.All
-            .Select(i => (i.Name, (ImageSource)ImageSource.FromStream(() => new MemoryStream(IconShapes.Preview(i.Kind, 128, SKColors.White)))))
+            .Select(i => (i.Name, Preview(i.Kind)))
             .ToList();
         if (await SheetPage.ChooseGridAsync(this, "Add icon", null, items) is not { } index) return;
         var icon = new ShapeLayer

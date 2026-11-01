@@ -341,6 +341,27 @@ public static class DesignRenderer
 
     // ---------- Shapes ----------
 
+    /// <summary>A square PNG of a shape in one color, for the pickers.</summary>
+    public static byte[] ShapePreview(ShapeKind kind, int size, SKColor color)
+    {
+        using var bitmap = new SKBitmap(size, size);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear(SKColors.Transparent);
+        canvas.Translate(size / 2f, size / 2f);
+        var stroke = kind is ShapeKind.Line or ShapeKind.Arrow;
+        var (w, h) = kind switch
+        {
+            _ when stroke => (size * 0.84f, size * 0.3f),
+            ShapeKind.Pill or ShapeKind.Wave => (size * 0.84f, size * 0.5f),
+            ShapeKind.Semicircle => (size * 0.84f, size * 0.42f),
+            ShapeKind.Arch => (size * 0.62f, size * 0.78f),
+            _ => (size * 0.78f, size * 0.78f),
+        };
+        DrawShape(canvas, new ShapeLayer { Kind = kind, Width = w, Height = h, Color = color });
+        using var image = SKImage.FromBitmap(bitmap);
+        return image.Encode(SKEncodedImageFormat.Png, 100).ToArray();
+    }
+
     static void DrawShape(SKCanvas canvas, ShapeLayer layer)
     {
         var w = layer.Width;
@@ -384,6 +405,9 @@ public static class DesignRenderer
                 break;
             case ShapeKind.Circle:
                 path.AddOval(box);
+                break;
+            case ShapeKind.Pill:
+                path.AddRoundRect(box, Math.Min(rx, ry), Math.Min(rx, ry));
                 break;
             case ShapeKind.Star:
                 for (var i = 0; i < 10; i++)
