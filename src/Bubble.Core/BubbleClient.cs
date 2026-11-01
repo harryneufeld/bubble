@@ -23,6 +23,9 @@ public sealed class BubbleSnapshot(
     Dictionary<string, List<Comment>> comments)
 {
     public IReadOnlyList<FeedPost> Posts => posts;
+
+    /// <summary>My own member key.</summary>
+    public string MyKey => myKey;
     public IReadOnlyList<Member> Members => members;
 
     /// <summary>True if the owner removed me from this bubble (the key was rotated without me).</summary>

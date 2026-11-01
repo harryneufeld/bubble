@@ -109,7 +109,7 @@ Small ASP.NET Core service in this repo, with its own Docker image (`ghcr.io/<ow
 How the app behaves:
 
 - One subscription per relay, with the mailboxes of the bubbles on that relay. It follows the bubble list and the token; nothing is sent when nothing changed.
-- A wake fetches the bubbles, decrypts, and announces posts by others that weren't seen yet. The first time a bubble is seen its backlog is not announced. What the feed has shown counts as seen.
+- A wake fetches the bubbles, decrypts, and announces what is new: posts by others, and hearts and comments by others on your own posts. Each type can be switched off under Profile → Notifications (all on by default). The first time a bubble is seen its backlog is not announced, and what the feed has shown counts as seen. Types that are switched off still count as announced, so switching one on later doesn't bring back old items.
 - The lock screen shows only "New in your bubbles".
 - Logging out removes the subscriptions.
 - The Firebase package is pinned to 124.1.2: newer ones need AndroidX versions that clash with MAUI 10.0.20.

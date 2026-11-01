@@ -1,5 +1,6 @@
 using Bubble.App.Controls;
 using Bubble.App.Services;
+using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
@@ -34,6 +35,10 @@ public partial class ProfilePage : ContentPage
         NotificationsRow.IsVisible = NotificationsDivider.IsVisible = PushService.IsAvailable;
         _settingSwitch = true;
         NotificationsSwitch.IsToggled = PushService.IsEnabled;
+        PostsSwitch.IsToggled = NotificationPreferences.IsOn(NotificationKind.Post);
+        HeartsSwitch.IsToggled = NotificationPreferences.IsOn(NotificationKind.Heart);
+        CommentsSwitch.IsToggled = NotificationPreferences.IsOn(NotificationKind.Comment);
+        NotificationKindsList.IsVisible = PushService.IsEnabled;
         _settingSwitch = false;
         VersionLabel.Text = $"Version {AppInfo.Current.VersionString} ({AppInfo.Current.BuildString})";
     }
@@ -83,10 +88,21 @@ public partial class ProfilePage : ContentPage
             await DisplayAlertAsync("Backup not updated", "The server is not reachable. The backup will be updated on the next save.", "OK");
     }
 
+    void OnKindToggled(object? sender, ToggledEventArgs e)
+    {
+        if (_settingSwitch) return;
+        var kind = sender == HeartsSwitch ? NotificationKind.Heart
+            : sender == CommentsSwitch ? NotificationKind.Comment
+            : NotificationKind.Post;
+        NotificationPreferences.Set(kind, e.Value);
+    }
+
     async void OnNotificationsToggled(object? sender, ToggledEventArgs e)
     {
         if (_settingSwitch) return;
-        if (await _push.SetEnabledAsync(e.Value)) return;
+        var ok = await _push.SetEnabledAsync(e.Value);
+        NotificationKindsList.IsVisible = PushService.IsEnabled;
+        if (ok) return;
 
         _settingSwitch = true;
         NotificationsSwitch.IsToggled = PushService.IsEnabled;

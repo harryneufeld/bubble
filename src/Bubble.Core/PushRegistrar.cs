@@ -120,19 +120,3 @@ public sealed class PushRegistrar(Func<string, RelayClient> relayFor, IPushState
     Task SaveAsync(Dictionary<string, PushRelayState> state) =>
         state.Count == 0 ? store.ClearAsync() : store.SetAsync(JsonSerializer.Serialize(state, CoreJson.Default.DictionaryStringPushRelayState));
 }
-
-/// <summary>Decides which posts a wake should announce.</summary>
-public static class PostNotifications
-{
-    /// <summary>Posts by others that are not in <paramref name="known"/> yet, oldest first.</summary>
-    public static List<FeedPost> NewPosts(BubbleSnapshot snapshot, IReadOnlySet<string> known) =>
-        [.. snapshot.Posts.Where(p => !p.IsMine && !known.Contains(p.Id)).OrderBy(p => p.Message.CreatedAt)];
-
-    /// <summary>A line for the notification, e.g. "Anna 🥳 Sunrise at the lake". Never longer than about 100 characters.</summary>
-    public static string Describe(FeedPost post)
-    {
-        var text = post.Message.Text?.ReplaceLineEndings(" ").Trim();
-        var line = string.Join(' ', new[] { post.Message.AuthorName, post.Message.Emoji, text }.Where(s => !string.IsNullOrWhiteSpace(s)));
-        return line.Length <= 100 ? line : line[..99].TrimEnd() + "…";
-    }
-}
