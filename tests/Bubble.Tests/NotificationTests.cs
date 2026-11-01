@@ -40,8 +40,8 @@ public class NotificationTests
 
         Assert.Equal(["new-1", "new-2"], events.Select(e => e.Key));
         Assert.All(events, e => Assert.Equal(NotificationKind.Post, e.Kind));
-        Assert.Equal("Anna posted a highlight 🥳", events[0].Text);
-        Assert.Equal("Ben posted a highlight 🥳", events[1].Text);
+        Assert.Equal("Anna posted a highlight ✨", events[0].Text);
+        Assert.Equal("Ben posted a highlight ✨", events[1].Text);
     }
 
     [Fact]
