@@ -124,5 +124,6 @@ BUBBLE_RELAY_URL=http://<server>:5080/ dotnet test --filter LiveRelayTests
 - **No rate limiting** and no storage quotas on the relay.
 - **Data loading:** the feed is loaded completely every time it opens, there is no local cache.
 - **Short invitation codes are guessable:** 50 bits, but only valid for 24 h and slowed down by Argon2id. Prefer the QR code or link if in doubt.
-- **Not included yet:** push notifications, Canva-like editor, passkey, emoji reactions.
+- **Push notifications** work on Android through FCM only if the build has Firebase settings and the relay has a push gateway, see [docs/push.md](docs/push.md). Not yet: UnifiedPush in the app, iOS.
+- **Not included yet:** passkey, emoji reactions.
 - **Development only:** HTTP is allowed for the local relay (Android `usesCleartextTraffic`, iOS `NSAllowsLocalNetworking`). Production needs HTTPS and a relay in the EU.

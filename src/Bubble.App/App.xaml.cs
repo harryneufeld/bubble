@@ -1,3 +1,4 @@
+using Bubble.App.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Bubble.App;
@@ -12,6 +13,9 @@ public partial class App : Application
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		return new Window(new AppShell());
+		var window = new Window(new AppShell());
+		// Brings the push subscription up to date (renews the handle, follows token changes) once the app starts.
+		IPlatformApplication.Current?.Services.GetService<PushService>()?.Start();
+		return window;
 	}
 }

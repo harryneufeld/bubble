@@ -14,6 +14,9 @@ public sealed class AccountService
 
     public Vault? Vault { get; private set; }
 
+    /// <summary>Raised after the vault was saved, e.g. so push can follow the bubble list.</summary>
+    public event Action? Saved;
+
     const string RelayUrlKey = "bubble.relay-url";
 
     /// <summary>Public relay. A different server (e.g. a local development relay) can be set under "Server".</summary>
@@ -131,6 +134,7 @@ public sealed class AccountService
     {
         var vault = Vault ?? throw new InvalidOperationException("No account.");
         await SecureStorage.Default.SetAsync(VaultKey, JsonSerializer.Serialize(vault, CoreJson.Default.Vault));
+        Saved?.Invoke();
         if (vault.Backup is null) return true;
         try
         {

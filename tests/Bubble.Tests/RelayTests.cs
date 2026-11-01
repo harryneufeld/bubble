@@ -13,17 +13,21 @@ namespace Bubble.Tests;
 public sealed class RelayFixture : IDisposable
 {
     readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"bubble-relay-{Guid.NewGuid():N}.db");
-    readonly WebApplicationFactory<Program> _factory;
+    // Any type from the relay assembly selects it; `Program` would be ambiguous with the push gateway's.
+    readonly WebApplicationFactory<RelayStore> _factory;
 
     public FakePushEndpoint Push { get; } = new();
 
     public FakeTimeProvider Time { get; } = new(new DateTimeOffset(2026, 10, 19, 10, 0, 0, TimeSpan.Zero));
 
-    public RelayFixture()
+    public string DatabasePathForTests => _dbPath;
+
+    public RelayFixture(string? gateway = "http://gateway.test/")
     {
-        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+        _factory = new WebApplicationFactory<RelayStore>().WithWebHostBuilder(b =>
         {
             b.UseSetting("Relay:Database", _dbPath);
+            if (gateway is not null) b.UseSetting("Push:Gateway", gateway);
             b.ConfigureServices(s =>
             {
                 s.Replace(ServiceDescriptor.Singleton<TimeProvider>(Time));
@@ -31,6 +35,7 @@ public sealed class RelayFixture : IDisposable
                 s.RemoveAll<IHostedService>();
                 s.AddHostedService<ExpiryCleanup>();
                 s.AddHttpClient(PushDispatcher.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => Push);
+                s.AddHttpClient(PushDispatcher.GatewayClientName).ConfigurePrimaryHttpMessageHandler(() => Push);
             });
         });
     }

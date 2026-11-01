@@ -19,10 +19,22 @@ public sealed class FakePushEndpoint : HttpMessageHandler
         get { lock (_requests) return [.. _requests]; }
     }
 
+    /// <summary>Answers <c>POST /v1/register</c> like the push gateway: hands out <c>handle-N</c>. Null makes it refuse.</summary>
+    public bool RegisterWorks { get; set; } = true;
+
+    int _handles;
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync(ct);
         lock (_requests) _requests.Add((request.RequestUri!, body));
+
+        if (request.RequestUri!.AbsolutePath == "/v1/register")
+        {
+            return RegisterWorks
+                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { handle = $"handle-{Interlocked.Increment(ref _handles)}" }) }
+                : new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+        }
         return new HttpResponseMessage(Status);
     }
 }
@@ -32,6 +44,8 @@ public class PushTests : IDisposable
     const string Endpoint = "https://push.example.org/v1/wake/handle-1";
 
     readonly RelayFixture _relay = new();
+
+    const string WakeBody = "{\"v\":1}";
 
     public void Dispose() => _relay.Dispose();
 
@@ -47,7 +61,7 @@ public class PushTests : IDisposable
     {
         var relay = new RelayClient(_relay.Http());
         var mailbox = NewMailbox();
-        await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, Endpoint, [mailbox]));
+        await relay.CreatePushSubscriptionAsync(new(PushTypes.UnifiedPush, Endpoint, [mailbox]));
 
         await relay.PostMessageAsync(mailbox, NewMessage());
         await FlushAsync();
@@ -55,6 +69,111 @@ public class PushTests : IDisposable
         var request = Assert.Single(_relay.Push.Requests);
         Assert.Equal(new Uri(Endpoint), request.Uri);
         Assert.Equal("""{"v":1}""", request.Body);
+    }
+
+    [Fact]
+    public async Task GatewaySubscription_SwapsTokenForHandle_AndWakesThroughTheGateway()
+    {
+        var relay = new RelayClient(_relay.Http());
+        var mailbox = NewMailbox();
+        await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, null, [mailbox], "fcm", "device-token"));
+
+        await relay.PostMessageAsync(mailbox, NewMessage());
+        await FlushAsync();
+
+        Assert.Collection(_relay.Push.Requests,
+            register =>
+            {
+                Assert.Equal("http://gateway.test/v1/register", register.Uri.ToString());
+                Assert.Contains("device-token", register.Body);
+            },
+            wake =>
+            {
+                Assert.Equal("http://gateway.test/v1/wake/handle-1", wake.Uri.ToString());
+                Assert.Equal(WakeBody, wake.Body);
+            });
+    }
+
+    [Fact]
+    public async Task GatewaySubscription_RenewsHandle_AndKeepsMailboxes()
+    {
+        var relay = new RelayClient(_relay.Http());
+        var mailbox = NewMailbox();
+        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, null, [mailbox], "fcm", "device-token"));
+
+        Assert.True(await relay.UpdatePushMailboxesAsync(subscription, [mailbox], "fcm", "device-token"));
+        await relay.PostMessageAsync(mailbox, NewMessage());
+        await FlushAsync();
+
+        Assert.Equal("http://gateway.test/v1/wake/handle-2", _relay.Push.Requests[^1].Uri.ToString());
+    }
+
+    [Fact]
+    public async Task GatewaySubscription_RelayDoesNotKeepTheToken()
+    {
+        var relay = new RelayClient(_relay.Http());
+        await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, null, [NewMailbox()], "fcm", "device-token-xyz"));
+
+        // The data may still sit in the write-ahead log, and the files are in use, so open them shared.
+        foreach (var file in new[] { _relay.DatabasePathForTests, _relay.DatabasePathForTests + "-wal" })
+        {
+            if (!File.Exists(file)) continue;
+            using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+            Assert.False(memory.ToArray().AsSpan().IndexOf("device-token-xyz"u8) >= 0, file);
+        }
+    }
+
+    [Fact]
+    public async Task UnreachableGateway_FailsTheRegistration()
+    {
+        _relay.Push.RegisterWorks = false;
+
+        var response = await _relay.Http().PostAsJsonAsync(
+            "v1/push/subscriptions", new PushSubscriptionIn(PushTypes.Gateway, null, [NewMailbox()], "fcm", "t"), CoreJson.Default.PushSubscriptionIn);
+
+        Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GatewayTypeWithoutGatewayConfigured_IsNotImplemented()
+    {
+        using var other = new RelayFixture(gateway: null);
+
+        var response = await other.Http().PostAsJsonAsync(
+            "v1/push/subscriptions", new PushSubscriptionIn(PushTypes.Gateway, null, [NewMailbox()], "fcm", "t"), CoreJson.Default.PushSubscriptionIn);
+
+        Assert.Equal(HttpStatusCode.NotImplemented, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("gateway", "https://push.example.org/wake", "fcm", "t")] // gateway subscriptions bring no URL
+    [InlineData("gateway", null, "carrier-pigeon", "t")]
+    [InlineData("gateway", null, "fcm", null)]
+    [InlineData("unifiedpush", "https://push.example.org/wake", "fcm", "t")] // UnifiedPush brings no token
+    [InlineData("unifiedpush", null, null, null)]
+    public async Task MixedUpSubscriptions_AreRejected(string type, string? endpoint, string? platform, string? token)
+    {
+        var response = await _relay.Http().PostAsJsonAsync(
+            "v1/push/subscriptions", new PushSubscriptionIn(type, endpoint, [NewMailbox()], platform, token), CoreJson.Default.PushSubscriptionIn);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UnifiedPushSubscription_CannotRenewWithToken()
+    {
+        var relay = new RelayClient(_relay.Http());
+        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.UnifiedPush, Endpoint, [NewMailbox()]));
+
+        var response = await _relay.Http().SendAsync(new HttpRequestMessage(HttpMethod.Put, $"v1/push/subscriptions/{subscription.Id}")
+        {
+            Content = JsonContent.Create(new PushMailboxesBody([], "fcm", "t"), CoreJson.Default.PushMailboxesBody),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", subscription.Secret) },
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
@@ -74,7 +193,7 @@ public class PushTests : IDisposable
     {
         var relay = new RelayClient(_relay.Http());
         var mailbox = NewMailbox();
-        await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, Endpoint, [mailbox]));
+        await relay.CreatePushSubscriptionAsync(new(PushTypes.UnifiedPush, Endpoint, [mailbox]));
 
         await relay.PostMessageAsync(mailbox, NewMessage());
         await relay.PostMessageAsync(mailbox, NewMessage());
@@ -95,7 +214,7 @@ public class PushTests : IDisposable
     {
         var relay = new RelayClient(_relay.Http());
         var (first, second) = (NewMailbox(), NewMailbox());
-        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, Endpoint, [first]));
+        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.UnifiedPush, Endpoint, [first]));
 
         Assert.True(await relay.UpdatePushMailboxesAsync(subscription, [second]));
 
@@ -113,7 +232,7 @@ public class PushTests : IDisposable
     {
         var relay = new RelayClient(_relay.Http());
         var mailbox = NewMailbox();
-        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, Endpoint, [mailbox]));
+        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.UnifiedPush, Endpoint, [mailbox]));
         var wrong = subscription with { Secret = Base64Url.Encode(RandomNumberGenerator.GetBytes(32)) };
 
         Assert.False(await relay.UpdatePushMailboxesAsync(wrong, []));
@@ -129,7 +248,7 @@ public class PushTests : IDisposable
     {
         var relay = new RelayClient(_relay.Http());
         var mailbox = NewMailbox();
-        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, Endpoint, [mailbox]));
+        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.UnifiedPush, Endpoint, [mailbox]));
 
         await relay.DeletePushSubscriptionAsync(subscription);
         await relay.PostMessageAsync(mailbox, NewMessage());
@@ -145,7 +264,7 @@ public class PushTests : IDisposable
     {
         var relay = new RelayClient(_relay.Http());
         var mailbox = NewMailbox();
-        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, Endpoint, [mailbox]));
+        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.UnifiedPush, Endpoint, [mailbox]));
 
         _relay.Push.Status = status;
         await relay.PostMessageAsync(mailbox, NewMessage());
@@ -159,7 +278,7 @@ public class PushTests : IDisposable
     {
         var relay = new RelayClient(_relay.Http());
         var mailbox = NewMailbox();
-        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, Endpoint, [mailbox]));
+        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.UnifiedPush, Endpoint, [mailbox]));
 
         _relay.Push.Status = HttpStatusCode.InternalServerError;
         await relay.PostMessageAsync(mailbox, NewMessage());
@@ -173,7 +292,7 @@ public class PushTests : IDisposable
     {
         var relay = new RelayClient(_relay.Http());
         var mailbox = NewMailbox();
-        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, Endpoint, [mailbox]));
+        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.UnifiedPush, Endpoint, [mailbox]));
 
         _relay.Time.Advance(TimeSpan.FromDays(59));
         Assert.Equal(0, _relay.Service<RelayStore>().DeleteStaleSubscriptions());
@@ -204,7 +323,7 @@ public class PushTests : IDisposable
     public async Task EndpointsPointingNowhereUseful_AreRejected(string endpoint)
     {
         var response = await _relay.Http().PostAsJsonAsync(
-            "v1/push/subscriptions", new PushSubscriptionIn(PushTypes.Gateway, endpoint, [NewMailbox()]), CoreJson.Default.PushSubscriptionIn);
+            "v1/push/subscriptions", new PushSubscriptionIn(PushTypes.UnifiedPush, endpoint, [NewMailbox()]), CoreJson.Default.PushSubscriptionIn);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -216,9 +335,9 @@ public class PushTests : IDisposable
         var bad = new PushSubscriptionIn[]
         {
             new("carrier-pigeon", Endpoint, [NewMailbox()]),
-            new(PushTypes.Gateway, Endpoint, ["not-a-mailbox"]),
-            new(PushTypes.Gateway, Endpoint, [.. Enumerable.Range(0, RelayLimits.MaxPushMailboxes + 1).Select(_ => NewMailbox())]),
-            new(PushTypes.Gateway, "https://push.example.org/" + new string('a', RelayLimits.MaxPushEndpointLength), [NewMailbox()]),
+            new(PushTypes.UnifiedPush, Endpoint, ["not-a-mailbox"]),
+            new(PushTypes.UnifiedPush, Endpoint, [.. Enumerable.Range(0, RelayLimits.MaxPushMailboxes + 1).Select(_ => NewMailbox())]),
+            new(PushTypes.UnifiedPush, "https://push.example.org/" + new string('a', RelayLimits.MaxPushEndpointLength), [NewMailbox()]),
         };
 
         foreach (var subscription in bad)
@@ -232,7 +351,7 @@ public class PushTests : IDisposable
     public async Task UpdateWithoutBearerToken_IsRejected()
     {
         var relay = new RelayClient(_relay.Http());
-        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.Gateway, Endpoint, [NewMailbox()]));
+        var subscription = await relay.CreatePushSubscriptionAsync(new(PushTypes.UnifiedPush, Endpoint, [NewMailbox()]));
 
         using var request = new HttpRequestMessage(HttpMethod.Put, $"v1/push/subscriptions/{subscription.Id}")
         {

@@ -1,4 +1,9 @@
 # Relay starten:  docker compose up -d --build
+#
+# Mit Push-Benachrichtigungen (Android, FCM) zusätzlich das Gateway:
+#   PUSH_SECRET=$(openssl rand -base64 32) PUSH_GATEWAY=http://gateway:5090 \
+#   FCM_CREDENTIALS=./fcm-service-account.json docker compose --profile push up -d --build
+# Die Schlüsseldatei muss für den Container lesbar sein (chmod 644). Das Gateway bleibt im internen Netz, nur der Relay spricht mit ihm. Siehe docs/push.md.
 services:
   relay:
     build:
@@ -7,8 +12,24 @@ services:
     image: bubble-relay
     ports:
       - "5080:5080"
+    environment:
+      # Leer = Relay ohne Push-Gateway (nur UnifiedPush-Abos möglich)
+      Push__Gateway: ${PUSH_GATEWAY:-}
     volumes:
       - relay-data:/data
+    restart: unless-stopped
+
+  gateway:
+    profiles: ["push"]
+    build:
+      context: .
+      dockerfile: src/Bubble.PushGateway/Dockerfile
+    image: bubble-push-gateway
+    environment:
+      Push__Secret: ${PUSH_SECRET:?PUSH_SECRET fehlt (openssl rand -base64 32)}
+      Push__Fcm__CredentialsFile: /run/secrets/fcm.json
+    volumes:
+      - ${FCM_CREDENTIALS:?FCM_CREDENTIALS fehlt (Firebase-Dienstkonto-Schlüssel, JSON)}:/run/secrets/fcm.json:ro
     restart: unless-stopped
 
 volumes:

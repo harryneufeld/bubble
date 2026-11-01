@@ -160,19 +160,31 @@ public sealed class RelayStore
     }
 
     /// <summary>False if the subscription does not exist or the secret does not match (both look the same to the client).</summary>
-    public bool UpdateSubscriptionMailboxes(string id, string secret, IEnumerable<string> mailboxes)
+    public bool UpdateSubscriptionMailboxes(string id, string secret, IEnumerable<string> mailboxes, string? newEndpoint = null)
     {
         using var db = Open();
         using var tx = db.BeginTransaction();
         if (!SecretMatches(db, id, secret)) return false;
         SetMailboxes(db, id, mailboxes);
         using var cmd = db.CreateCommand();
-        cmd.CommandText = "UPDATE push_subscriptions SET last_seen = $seen WHERE id = $id";
+        cmd.CommandText = "UPDATE push_subscriptions SET last_seen = $seen, endpoint = COALESCE($e, endpoint) WHERE id = $id";
         cmd.Parameters.AddWithValue("$seen", Today());
+        cmd.Parameters.AddWithValue("$e", (object?)newEndpoint ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$id", id);
         cmd.ExecuteNonQuery();
         tx.Commit();
         return true;
+    }
+
+    /// <summary>The subscription's type, or null if it does not exist or the secret does not match.</summary>
+    public string? GetSubscriptionType(string id, string secret)
+    {
+        using var db = Open();
+        if (!SecretMatches(db, id, secret)) return null;
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "SELECT type FROM push_subscriptions WHERE id = $id";
+        cmd.Parameters.AddWithValue("$id", id);
+        return cmd.ExecuteScalar() as string;
     }
 
     public bool DeleteSubscription(string id, string secret)

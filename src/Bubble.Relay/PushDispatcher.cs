@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text;
+using Bubble.Core;
 using Microsoft.Extensions.Options;
 
 namespace Bubble.Relay;
@@ -10,6 +12,12 @@ public sealed class PushOptions
 {
     /// <summary>Allow http and private addresses as push endpoints. For local tests only.</summary>
     public bool AllowPrivateEndpoints { get; set; }
+
+    /// <summary>
+    /// The push gateway that turns device tokens into handles and delivers through FCM/APNs. Without it the relay
+    /// only accepts UnifiedPush subscriptions. It comes from the operator, so it may be on a private network.
+    /// </summary>
+    public string? Gateway { get; set; }
 
     /// <summary>At most one wake per subscription in this time; wakes in between are merged into one.</summary>
     public TimeSpan MinInterval { get; set; } = TimeSpan.FromSeconds(5);
@@ -26,7 +34,11 @@ public sealed class PushDispatcher(
     IOptions<PushOptions> options,
     ILogger<PushDispatcher> logger)
 {
+    /// <summary>For UnifiedPush endpoints, which clients supply: public addresses only.</summary>
     public const string HttpClientName = "push";
+
+    /// <summary>For the operator's own push gateway.</summary>
+    public const string GatewayClientName = "gateway";
 
     static readonly byte[] WakeBody = Encoding.UTF8.GetBytes("""{"v":1}""");
 
@@ -68,7 +80,7 @@ public sealed class PushDispatcher(
     {
         try
         {
-            using var http = httpFactory.CreateClient(HttpClientName);
+            using var http = httpFactory.CreateClient(target.Type == PushTypes.Gateway ? GatewayClientName : HttpClientName);
             using var request = new HttpRequestMessage(HttpMethod.Post, target.Endpoint) { Content = new ByteArrayContent(WakeBody) };
             request.Content.Headers.ContentType = new("application/json");
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
@@ -88,6 +100,36 @@ public sealed class PushDispatcher(
             logger.LogWarning("Push wake for {Id} failed: {Message}", target.Id, e.Message);
         }
     }
+}
+
+/// <summary>Swaps a device token for a handle at the operator's push gateway.</summary>
+public sealed class PushGatewayClient(IHttpClientFactory httpFactory, IOptions<PushOptions> options)
+{
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(options.Value.Gateway);
+
+    /// <summary>The URL the relay POSTs to for a wake. Null if the gateway refused or could not be reached.</summary>
+    public async Task<string?> RegisterAsync(string platform, string token, CancellationToken ct)
+    {
+        try
+        {
+            using var http = httpFactory.CreateClient(PushDispatcher.GatewayClientName);
+            using var response = await http.PostAsJsonAsync(
+                new Uri(Base(), "v1/register"), new GatewayRegisterIn(platform, token), cancellationToken: ct);
+            if (!response.IsSuccessStatusCode) return null;
+            var body = await response.Content.ReadFromJsonAsync<GatewayRegisterOut>(ct);
+            return string.IsNullOrEmpty(body?.Handle) ? null : new Uri(Base(), $"v1/wake/{Uri.EscapeDataString(body.Handle)}").ToString();
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
+    Uri Base() => new(options.Value.Gateway!.TrimEnd('/') + "/");
+
+    sealed record GatewayRegisterIn(string Platform, string Token);
+
+    sealed record GatewayRegisterOut(string Handle);
 }
 
 public sealed class PushWorker(PushDispatcher dispatcher) : BackgroundService

@@ -37,6 +37,7 @@ public static class MauiProgram
 
 		builder.Services.AddSingleton<AccountService>();
 		builder.Services.AddSingleton<FeedService>();
+		builder.Services.AddSingleton<PushService>();
 		foreach (var page in typeof(MauiProgram).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(ContentPage)) && !t.IsAbstract))
 			builder.Services.AddTransient(page);
 

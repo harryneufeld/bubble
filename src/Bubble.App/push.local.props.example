@@ -1,0 +1,11 @@
+<Project>
+
+  <!-- Copy to push.local.props (not checked in) and fill in the values from your google-services.json, see push.props. -->
+  <PropertyGroup>
+    <BubblePushFcmProjectId>my-project</BubblePushFcmProjectId>
+    <BubblePushFcmAppId>1:000000000000:android:0000000000000000000000</BubblePushFcmAppId>
+    <BubblePushFcmApiKey>AIza...</BubblePushFcmApiKey>
+    <BubblePushFcmSenderId>000000000000</BubblePushFcmSenderId>
+  </PropertyGroup>
+
+</Project>

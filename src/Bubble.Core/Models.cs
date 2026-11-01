@@ -126,16 +126,21 @@ public sealed record RelayMessageOut(long Seq, string Id, string Ciphertext, lon
 
 public sealed record BackupBody(string Ciphertext);
 
-/// <summary>How a device wants to be woken: <see cref="PushTypes"/>, and the URL the relay POSTs to.</summary>
-public sealed record PushSubscriptionIn(string Type, string Endpoint, List<string> Mailboxes);
+/// <summary>
+/// How a device wants to be woken. <see cref="PushTypes.UnifiedPush"/>: the distributor's <c>Endpoint</c> URL.
+/// <see cref="PushTypes.Gateway"/>: the platform (<c>fcm</c>, <c>apns</c>) and the device <c>Token</c>; the relay
+/// swaps the token for an opaque handle at its push gateway and never stores the token.
+/// </summary>
+public sealed record PushSubscriptionIn(string Type, string? Endpoint, List<string> Mailboxes, string? Platform = null, string? Token = null);
 
 public sealed record PushSubscriptionOut(string Id, string Secret);
 
-public sealed record PushMailboxesBody(List<string> Mailboxes);
+/// <summary>Platform and token are optional and only for gateway subscriptions: they renew the handle before it expires.</summary>
+public sealed record PushMailboxesBody(List<string> Mailboxes, string? Platform = null, string? Token = null);
 
 public static class PushTypes
 {
-    /// <summary>The endpoint belongs to a push gateway (FCM/APNs).</summary>
+    /// <summary>Woken through the relay's push gateway (FCM/APNs).</summary>
     public const string Gateway = "gateway";
 
     public const string UnifiedPush = "unifiedpush";
@@ -156,4 +161,5 @@ public static class PushTypes
 [JsonSerializable(typeof(PushSubscriptionIn))]
 [JsonSerializable(typeof(PushSubscriptionOut))]
 [JsonSerializable(typeof(PushMailboxesBody))]
+[JsonSerializable(typeof(Dictionary<string, PushRelayState>))]
 public partial class CoreJson : JsonSerializerContext;

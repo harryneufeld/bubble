@@ -26,6 +26,16 @@
                         <Image Grid.Column="2" Source="ic_chevron.png" WidthRequest="18" HeightRequest="18" Opacity="0.6" />
                     </Grid>
                     <BoxView Style="{StaticResource Divider}" Margin="14,0" />
+                    <Grid x:Name="NotificationsRow" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Padding="14,10,14,10" IsVisible="False">
+                        <Image Source="ic_bell.png" WidthRequest="22" HeightRequest="22" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="Notifications" Style="{StaticResource HeadingText}" FontSize="16" />
+                            <Label Text="Tells you when someone shares a highlight" Style="{StaticResource CaptionText}" />
+                        </VerticalStackLayout>
+                        <Switch x:Name="NotificationsSwitch" Grid.Column="2" Toggled="OnNotificationsToggled" VerticalOptions="Center"
+                                SemanticProperties.Description="Notifications" />
+                    </Grid>
+                    <BoxView x:Name="NotificationsDivider" Style="{StaticResource Divider}" Margin="14,0" IsVisible="False" />
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Padding="14,14">
                         <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnServer" /></Grid.GestureRecognizers>
                         <Image Source="ic_server.png" WidthRequest="22" HeightRequest="22" />
