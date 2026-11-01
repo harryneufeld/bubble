@@ -40,8 +40,8 @@ public class NotificationTests
 
         Assert.Equal(["new-1", "new-2"], events.Select(e => e.Key));
         Assert.All(events, e => Assert.Equal(NotificationKind.Post, e.Kind));
-        Assert.Equal("Anna 🥳 First", events[0].Text);
-        Assert.Equal("Ben 🥳 Second line", events[1].Text);
+        Assert.Equal("Anna posted a highlight 🥳", events[0].Text);
+        Assert.Equal("Ben posted a highlight 🥳", events[1].Text);
     }
 
     [Fact]
@@ -131,15 +131,18 @@ public class NotificationTests
     }
 
     [Fact]
-    public void LongTexts_AreShortened()
+    public void LongComments_AreShortened_AndPostTextStaysOut()
     {
         var snapshot = new BubbleSnapshot(
-            [new FeedPost("x", Message("Anna", new string('w', 500), Now), false)],
-            Members, "me", [], []);
+            [new FeedPost("x", Message("Me", "Secret text", Now), true)],
+            Members, "me", [], new() { ["x"] = [CommentBy("c", "anna", new string('w', 500))] });
 
         var line = Assert.Single(PostNotifications.NewEvents(snapshot, Nothing)).Text;
 
         Assert.True(line.Length <= 100);
         Assert.EndsWith("…", line);
+
+        var post = new BubbleSnapshot([new FeedPost("y", Message("Anna", "Secret text", Now), false)], Members, "me", [], []);
+        Assert.DoesNotContain("Secret", Assert.Single(PostNotifications.NewEvents(post, Nothing)).Text);
     }
 }

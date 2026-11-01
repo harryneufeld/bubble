@@ -73,12 +73,9 @@ public static class PostNotifications
         }
     }
 
-    /// <summary>A line for a post, e.g. "Anna 🥳 Sunrise at the lake". Never longer than about 100 characters.</summary>
-    public static string Describe(FeedPost post)
-    {
-        var text = post.Message.Text?.ReplaceLineEndings(" ").Trim();
-        return Shorten(string.Join(' ', new[] { post.Message.AuthorName, post.Message.Emoji, text }.Where(s => !string.IsNullOrWhiteSpace(s))));
-    }
+    /// <summary>A line for a post, e.g. "Anna posted a highlight 🥳". The text of the post stays out: it shows once the app is open.</summary>
+    public static string Describe(FeedPost post) =>
+        Shorten(string.Join(' ', new[] { post.Message.AuthorName, "posted a highlight", post.Message.Emoji }.Where(s => !string.IsNullOrWhiteSpace(s))));
 
     static IEnumerable<Member> LikersOf(BubbleSnapshot snapshot, FeedPost post) =>
         snapshot.LikersOf(post.Id).Where(m => !m.IsMe && m.Key != snapshot.MyKey);
