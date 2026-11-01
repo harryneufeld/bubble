@@ -115,7 +115,7 @@ public partial class PostPage : ContentPage
         {
             if (options[index].Destructive)
             {
-                if (!await DisplayAlertAsync("Delete highlight?", "It disappears for everyone in the bubble.", "Delete", "Cancel")) return;
+                if (!await this.ShowAlertAsync("Delete highlight?", "It disappears for everyone in the bubble.", "Delete", "Cancel")) return;
                 await _account.Client.DeletePostAsync(_bubble, post.Post);
                 await _feed.RefreshAsync(_bubble);
                 await Shell.Current.GoToAsync("..");
@@ -127,11 +127,11 @@ public partial class PostPage : ContentPage
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Not changed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+            await this.ShowAlertAsync("Not changed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
         catch (InvalidOperationException ex)
         {
-            await DisplayAlertAsync("Not possible", ex.Message, "OK");
+            await this.ShowAlertAsync("Not possible", ex.Message, "OK");
         }
     }
 
@@ -151,11 +151,11 @@ public partial class PostPage : ContentPage
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Comment not sent", Labels.ConnectionError(_bubble!.RelayUrl, ex), "OK");
+            await this.ShowAlertAsync("Comment not sent", Labels.ConnectionError(_bubble!.RelayUrl, ex), "OK");
         }
         catch (InvalidOperationException ex)
         {
-            await DisplayAlertAsync("Not possible", ex.Message, "OK");
+            await this.ShowAlertAsync("Not possible", ex.Message, "OK");
         }
         finally
         {

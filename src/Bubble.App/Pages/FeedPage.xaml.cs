@@ -51,7 +51,7 @@ public partial class FeedPage : ContentPage
             if (_feed.WasRemoved(_bubble))
             {
                 _feed.TakeRemoved();
-                await DisplayAlertAsync("Removed from bubble", $"The creator removed you from “{_bubble.Name}”.", "OK");
+                await this.ShowAlertAsync("Removed from bubble", $"The creator removed you from “{_bubble.Name}”.", "OK");
                 await Shell.Current.GoToAsync("..");
                 return;
             }
@@ -59,7 +59,7 @@ public partial class FeedPage : ContentPage
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Not loaded", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+            await this.ShowAlertAsync("Not loaded", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
         finally
         {
@@ -115,11 +115,11 @@ public partial class FeedPage : ContentPage
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Not changed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+            await this.ShowAlertAsync("Not changed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
         catch (InvalidOperationException ex)
         {
-            await DisplayAlertAsync("Not possible", ex.Message, "OK");
+            await this.ShowAlertAsync("Not possible", ex.Message, "OK");
         }
     }
 
@@ -142,7 +142,7 @@ public partial class FeedPage : ContentPage
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Not removed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+            await this.ShowAlertAsync("Not removed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
     }
 
@@ -153,7 +153,7 @@ public partial class FeedPage : ContentPage
         var message = owner
             ? $"You created “{_bubble.Name}”. Nobody will be able to remove members after you leave. You can only come back with a new invitation."
             : $"You will no longer see “{_bubble.Name}”. You can only come back with a new invitation.";
-        if (!await DisplayAlertAsync("Leave bubble?", message, "Leave", "Cancel")) return;
+        if (!await this.ShowAlertAsync("Leave bubble?", message, "Leave", "Cancel")) return;
 
         await _account.LeaveAsync(_bubble);
         await Shell.Current.GoToAsync("..");

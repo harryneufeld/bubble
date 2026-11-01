@@ -1,3 +1,4 @@
+using Bubble.App.Controls;
 using Bubble.App.Services;
 using Bubble.Core;
 
@@ -173,7 +174,7 @@ public partial class ComposePage : ContentPage
         }
         catch (InvalidDataException)
         {
-            await DisplayAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
+            await this.ShowAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
         }
     }
 
@@ -207,7 +208,7 @@ public partial class ComposePage : ContentPage
     {
         if (string.IsNullOrWhiteSpace(TextEditor.Text) && _image is null)
         {
-            await DisplayAlertAsync("Nothing yet", "Write something or add a photo.", "OK");
+            await this.ShowAlertAsync("Nothing yet", "Write something or add a photo.", "OK");
             return;
         }
 
@@ -229,7 +230,7 @@ public partial class ComposePage : ContentPage
                 catch (HttpRequestException ex) { failed.Add($"“{bubble.Name}”: {Labels.ConnectionError(bubble.RelayUrl, ex)}"); }
             }
             if (failed.Count > 0)
-                await DisplayAlertAsync("Not shared everywhere", string.Join("\n", failed), "OK");
+                await this.ShowAlertAsync("Not shared everywhere", string.Join("\n", failed), "OK");
             await _feed.RefreshAsync();
             if (failed.Count < _selected.Count) await Shell.Current.GoToAsync("..");
         }

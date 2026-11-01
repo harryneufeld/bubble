@@ -632,7 +632,7 @@ public partial class EditorPage : ContentPage
         }
         catch (InvalidDataException)
         {
-            await DisplayAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
+            await this.ShowAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
             return null;
         }
     }
@@ -750,7 +750,7 @@ public partial class EditorPage : ContentPage
     async void OnDone(object? sender, EventArgs e)
     {
         if (_design.Layers.Any(l => l is ImageLayer { Image: null }) &&
-            !await DisplayAlertAsync("Empty photo frames", "Frames without a photo are left out. Finish anyway?", "Finish", "Keep editing"))
+            !await this.ShowAlertAsync("Empty photo frames", "Frames without a photo are left out. Finish anyway?", "Finish", "Keep editing"))
             return;
 
         DoneButton.IsEnabled = false;

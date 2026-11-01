@@ -1,3 +1,4 @@
+using Bubble.App.Controls;
 using Bubble.App.Services;
 
 namespace Bubble.App.Pages;
@@ -23,7 +24,7 @@ public partial class BackupPage : ContentPage
     async void OnCreate(object? sender, EventArgs e)
     {
         if (_account.Vault?.Backup is not null &&
-            !await DisplayAlertAsync("New code", "New changes only go into the new backup. The old code will only open the previous state. Continue?", "Yes", "Cancel"))
+            !await this.ShowAlertAsync("New code", "New changes only go into the new backup. The old code will only open the previous state. Continue?", "Yes", "Cancel"))
             return;
 
         CreateButton.IsEnabled = false;
@@ -37,7 +38,7 @@ public partial class BackupPage : ContentPage
         }
         catch (HttpRequestException)
         {
-            await DisplayAlertAsync("No connection", "The backup could not be uploaded.", "OK");
+            await this.ShowAlertAsync("No connection", "The backup could not be uploaded.", "OK");
         }
         finally
         {
@@ -49,6 +50,6 @@ public partial class BackupPage : ContentPage
     async void OnCopy(object? sender, EventArgs e)
     {
         await Clipboard.Default.SetTextAsync(CodeLabel.Text);
-        await DisplayAlertAsync("Copied", "Paste the code into your password manager now and clear the clipboard afterwards.", "OK");
+        await this.ShowAlertAsync("Copied", "Paste the code into your password manager now and clear the clipboard afterwards.", "OK");
     }
 }

@@ -52,7 +52,7 @@ public partial class HomePage : ContentPage
             if (_account.Vault!.Bubbles.Count > 0) await _feed.RefreshAsync();
             Render();
             foreach (var name in _feed.TakeRemoved())
-                await DisplayAlertAsync("Removed from bubble", $"The creator removed you from “{name}”.", "OK");
+                await this.ShowAlertAsync("Removed from bubble", $"The creator removed you from “{name}”.", "OK");
         }
         finally
         {
@@ -153,7 +153,7 @@ public partial class HomePage : ContentPage
     {
         if (_account.Vault!.Bubbles.Count == 0)
         {
-            await DisplayAlertAsync("No bubble yet", "Create a bubble first or join one.", "OK");
+            await this.ShowAlertAsync("No bubble yet", "Create a bubble first or join one.", "OK");
             return;
         }
         await Shell.Current.GoToAsync(nameof(ComposePage));
