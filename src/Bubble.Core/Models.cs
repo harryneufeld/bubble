@@ -3,18 +3,19 @@ using System.Text.Json.Serialization;
 
 namespace Bubble.Core;
 
-/// <summary>How long the posts of a bubble live.</summary>
+/// <summary>How long a post lives. For a bubble it is the longest lifetime its posts may have.</summary>
 public enum PostLifetime { Story24h, Persistent }
 
 public enum Mood { Top, Flop }
 
 /// <summary>
-/// Post = highlight, LifetimeChanged = new lifetime, Profile = name and picture of the sender,
+/// Post = highlight, LifetimeChanged = new maximum lifetime of the bubble (owner only),
+/// PostLifetimeChanged = the author makes one of their posts permanent or 24h, Profile = name and picture of the sender,
 /// Like = heart on a post (on/off), Comment = comment on a post,
 /// KeyRotation = the owner moved the bubble to a new key (see <see cref="BubbleMessage.Wraps"/>),
 /// Left = the sender left the bubble.
 /// </summary>
-public enum MessageKind { Post, LifetimeChanged, Profile, Like, Comment, KeyRotation, Left }
+public enum MessageKind { Post, LifetimeChanged, Profile, Like, Comment, KeyRotation, Left, PostLifetimeChanged }
 
 /// <summary>
 /// A bubble from a member's point of view. The root key is the shared secret;
@@ -26,6 +27,7 @@ public sealed class BubbleMembership
     public required string Name { get; set; }
     public required string Key { get; set; }
     public required string RelayUrl { get; set; }
+    /// <summary>The longest lifetime posts in this bubble may have. Set by the owner; each post picks its own up to this.</summary>
     public PostLifetime Lifetime { get; set; }
 
     /// <summary>
@@ -55,7 +57,7 @@ public sealed record BubbleMessage
     public required string AuthorName { get; init; }
     public required DateTimeOffset CreatedAt { get; init; }
 
-    /// <summary>For posts: the lifetime they were shared under. For LifetimeChanged: the new setting.</summary>
+    /// <summary>For posts: the lifetime they were shared under. For LifetimeChanged and PostLifetimeChanged: the new setting.</summary>
     public required PostLifetime Lifetime { get; init; }
 
     /// <summary>Old posts: top or flop. New posts use <see cref="Emoji"/>.</summary>
@@ -66,13 +68,13 @@ public sealed record BubbleMessage
 
     public string? Text { get; init; }
 
-    /// <summary>For Like and Comment: the message ID of the post.</summary>
+    /// <summary>For Like, Comment and PostLifetimeChanged: the message ID of the post.</summary>
     public string? TargetId { get; init; }
 
     /// <summary>For Like: true = heart set, false = heart taken back. The newest message counts.</summary>
     public bool? Active { get; init; }
 
-    /// <summary>For Like and Comment: when the post disappears – hearts and comments disappear with it.</summary>
+    /// <summary>For Like, Comment and PostLifetimeChanged: when the post disappears – they disappear with it.</summary>
     public DateTimeOffset? TargetExpiresAt { get; init; }
 
     /// <summary>JPEG, already stripped of metadata on the device. For Profile: the profile picture.</summary>
@@ -88,7 +90,7 @@ public sealed record BubbleMessage
     public DateTimeOffset? ExpiresAt => Kind switch
     {
         MessageKind.Post when Lifetime == PostLifetime.Story24h => CreatedAt.AddHours(24),
-        MessageKind.Like or MessageKind.Comment => TargetExpiresAt,
+        MessageKind.Like or MessageKind.Comment or MessageKind.PostLifetimeChanged => TargetExpiresAt,
         _ => null,
     };
 }
@@ -106,6 +108,9 @@ public sealed class Vault
 
     public List<BubbleMembership> Bubbles { get; set; } = [];
 
+    /// <summary>What the user chose last when sharing a highlight; the next one starts with it.</summary>
+    public PostLifetime DefaultPostLifetime { get; set; } = PostLifetime.Story24h;
+
     /// <summary>Set once a backup has been set up; from then on it is updated automatically on changes.</summary>
     public BackupState? Backup { get; set; }
 
@@ -120,7 +125,14 @@ public sealed class Vault
 
 // --- Relay protocol (shared by server and client) ---
 
-public sealed record RelayMessageIn(string Id, string Ciphertext, long? ExpiresAt);
+/// <summary>
+/// <paramref name="SecretHash"/> (Base64 of SHA-256 of the author's message secret) lets the author change the expiry or
+/// delete the message later. <paramref name="ParentId"/> ties hearts and comments to their post, so they follow its expiry.
+/// </summary>
+public sealed record RelayMessageIn(string Id, string Ciphertext, long? ExpiresAt, string? SecretHash = null, string? ParentId = null);
+
+/// <summary>New expiry of a message (Unix seconds); null = permanent.</summary>
+public sealed record ExpiryBody(long? ExpiresAt);
 
 public sealed record RelayMessageOut(long Seq, string Id, string Ciphertext, long? ExpiresAt);
 
@@ -155,6 +167,7 @@ public static class PushTypes
 [JsonSerializable(typeof(BackupBlob))]
 [JsonSerializable(typeof(Invite))]
 [JsonSerializable(typeof(RelayMessageIn))]
+[JsonSerializable(typeof(ExpiryBody))]
 [JsonSerializable(typeof(RelayMessageOut))]
 [JsonSerializable(typeof(List<RelayMessageOut>))]
 [JsonSerializable(typeof(BackupBody))]

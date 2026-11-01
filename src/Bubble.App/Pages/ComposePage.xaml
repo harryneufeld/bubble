@@ -33,6 +33,16 @@
                 <Label Text="Share in" Style="{StaticResource SectionText}" Margin="0,8,0,0" />
                 <FlexLayout x:Name="BubbleChips" Wrap="Wrap" JustifyContent="Start" />
 
+                <!-- Remember (permanent) or 24 h; the last choice is the default next time -->
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,8,0,0">
+                    <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                        <Label Text="Remember this highlight" Style="{StaticResource SectionText}" />
+                        <Label Text="Off: it disappears after 24 hours." Style="{StaticResource CaptionText}" />
+                    </VerticalStackLayout>
+                    <Switch x:Name="RememberSwitch" Grid.Column="1" Toggled="OnRememberToggled" VerticalOptions="Center"
+                            SemanticProperties.Description="Remember this highlight permanently instead of 24 hours" />
+                </Grid>
+
                 <Border Style="{StaticResource InfoBar}">
                     <Label x:Name="LifetimeLabel" Style="{StaticResource SmallText}" />
                 </Border>

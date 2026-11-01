@@ -49,19 +49,81 @@ public sealed class RelayStore
             );
             CREATE INDEX IF NOT EXISTS ix_push_mailboxes_mailbox ON push_mailboxes (mailbox);
             """);
+        AddColumn(db, "messages", "secret_hash", "BLOB NULL");
+        AddColumn(db, "messages", "parent_id", "TEXT NULL");
+        Execute(db, "CREATE INDEX IF NOT EXISTS ix_messages_parent ON messages (mailbox, parent_id) WHERE parent_id IS NOT NULL;");
+    }
+
+    static void AddColumn(SqliteConnection db, string table, string column, string definition)
+    {
+        using var info = db.CreateCommand();
+        info.CommandText = $"SELECT 1 FROM pragma_table_info('{table}') WHERE name = '{column}'";
+        if (info.ExecuteScalar() is null) Execute(db, $"ALTER TABLE {table} ADD COLUMN {column} {definition}");
     }
 
     /// <summary>False if the message ID already exists in this mailbox.</summary>
-    public bool AddMessage(string mailbox, string id, byte[] ciphertext, long? expiresAt)
+    public bool AddMessage(string mailbox, string id, byte[] ciphertext, long? expiresAt, byte[]? secretHash = null, string? parentId = null)
     {
         using var db = Open();
         using var cmd = db.CreateCommand();
-        cmd.CommandText = "INSERT OR IGNORE INTO messages (mailbox, id, ciphertext, expires_at) VALUES ($m, $id, $c, $e)";
+        cmd.CommandText = """
+            INSERT OR IGNORE INTO messages (mailbox, id, ciphertext, expires_at, secret_hash, parent_id)
+            VALUES ($m, $id, $c, $e, $s, $p)
+            """;
         cmd.Parameters.AddWithValue("$m", mailbox);
         cmd.Parameters.AddWithValue("$id", id);
         cmd.Parameters.AddWithValue("$c", ciphertext);
         cmd.Parameters.AddWithValue("$e", (object?)expiresAt ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$s", (object?)secretHash ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$p", (object?)parentId ?? DBNull.Value);
         return cmd.ExecuteNonQuery() == 1;
+    }
+
+    public enum MessageEdit { Done, NotFound, Forbidden }
+
+    /// <summary>Sets a new expiry (null = permanent) on a message and on the hearts and comments that belong to it.</summary>
+    public MessageEdit SetExpiry(string mailbox, string id, string secret, long? expiresAt)
+    {
+        using var db = Open();
+        using var tx = db.BeginTransaction();
+        if (CheckSecret(db, mailbox, id, secret) is { } failure) return failure;
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "UPDATE messages SET expires_at = $e WHERE mailbox = $m AND (id = $id OR parent_id = $id)";
+        cmd.Parameters.AddWithValue("$e", (object?)expiresAt ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$m", mailbox);
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
+        tx.Commit();
+        return MessageEdit.Done;
+    }
+
+    /// <summary>Deletes a message together with its hearts and comments.</summary>
+    public MessageEdit DeleteMessage(string mailbox, string id, string secret)
+    {
+        using var db = Open();
+        using var tx = db.BeginTransaction();
+        if (CheckSecret(db, mailbox, id, secret) is { } failure) return failure;
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "DELETE FROM messages WHERE mailbox = $m AND (id = $id OR parent_id = $id)";
+        cmd.Parameters.AddWithValue("$m", mailbox);
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
+        tx.Commit();
+        return MessageEdit.Done;
+    }
+
+    /// <summary>Null if the secret belongs to the message. Messages stored without a secret hash can never be changed.</summary>
+    static MessageEdit? CheckSecret(SqliteConnection db, string mailbox, string id, string secret)
+    {
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "SELECT secret_hash FROM messages WHERE mailbox = $m AND id = $id";
+        cmd.Parameters.AddWithValue("$m", mailbox);
+        cmd.Parameters.AddWithValue("$id", id);
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read()) return MessageEdit.NotFound;
+        if (reader.IsDBNull(0)) return MessageEdit.Forbidden;
+        var hash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(secret));
+        return CryptographicOperations.FixedTimeEquals((byte[])reader[0], hash) ? null : MessageEdit.Forbidden;
     }
 
     public List<RelayMessageOut> GetMessages(string mailbox, long after)

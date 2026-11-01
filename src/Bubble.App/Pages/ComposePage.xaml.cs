@@ -12,6 +12,7 @@ public partial class ComposePage : ContentPage
     readonly HashSet<string> _selected = [];
     string? _emoji;
     byte[]? _image;
+    bool _remember;
     bool _initialized;
 
     /// <summary>Optional: preselected bubble.</summary>
@@ -30,6 +31,9 @@ public partial class ComposePage : ContentPage
         base.OnAppearing();
         if (_initialized) return;
         _initialized = true;
+
+        _remember = _account.Vault!.DefaultPostLifetime == PostLifetime.Persistent;
+        RememberSwitch.IsToggled = _remember;
 
         var bubbles = _account.Vault!.Bubbles;
         if (_account.FindBubble(MailboxId) is { } preset) _selected.Add(preset.MailboxId);
@@ -76,16 +80,32 @@ public partial class ComposePage : ContentPage
         UpdateHints();
     }
 
+    /// <summary>The switch decides, but a bubble that allows only 24 hours wins.</summary>
+    void OnRememberToggled(object? sender, ToggledEventArgs e)
+    {
+        _remember = e.Value;
+        UpdateHints();
+    }
+
     void UpdateHints()
     {
         var chosen = _account.Vault!.Bubbles.Where(b => _selected.Contains(b.MailboxId)).ToList();
+        var limited = chosen.Where(b => b.Lifetime == PostLifetime.Story24h).ToList();
+
+        // Nothing to choose if no selected bubble keeps highlights; the saved default stays as it was.
+        var canRemember = chosen.Count == 0 || limited.Count < chosen.Count;
+        RememberSwitch.IsEnabled = canRemember;
+
         LifetimeLabel.Text = chosen.Count switch
         {
             0 => "Choose where you want to share your highlight.",
-            1 => chosen[0].Lifetime == PostLifetime.Story24h
+            _ when !_remember || !canRemember => chosen.Count == 1
                 ? $"⏳ Your highlight disappears from “{chosen[0].Name}” after 24 hours."
-                : $"📌 Your highlight stays in “{chosen[0].Name}” permanently.",
-            var n => $"Goes to {n} bubbles. ⏳ Depending on the bubble it disappears after 24 hours or stays permanently.",
+                : $"⏳ Your highlight disappears after 24 hours.",
+            _ when limited.Count == 0 => chosen.Count == 1
+                ? $"📌 Your highlight stays in “{chosen[0].Name}” permanently."
+                : "📌 Your highlight stays permanently.",
+            _ => $"📌 Stays permanently, except in {string.Join(", ", limited.Select(b => $"“{b.Name}”"))}: there it disappears after 24 hours.",
         };
         ShareButton.IsEnabled = chosen.Count > 0;
         ShareButton.Text = chosen.Count switch { 0 => "Choose a bubble", 1 => "Share", var n => $"Share in {n} bubbles" };
@@ -194,11 +214,18 @@ public partial class ComposePage : ContentPage
         ShareButton.IsEnabled = false;
         Busy.IsRunning = true;
         var failed = new List<string>();
+        var lifetime = _remember ? PostLifetime.Persistent : PostLifetime.Story24h;
         try
         {
+            // The last choice is the default for the next highlight (only if it was possible to choose).
+            if (RememberSwitch.IsEnabled && _account.Vault!.DefaultPostLifetime != lifetime)
+            {
+                _account.Vault.DefaultPostLifetime = lifetime;
+                await _account.SaveAsync();
+            }
             foreach (var bubble in _account.Vault!.Bubbles.Where(b => _selected.Contains(b.MailboxId)))
             {
-                try { await _account.Client.PostAsync(bubble, _emoji, TextEditor.Text, _image); }
+                try { await _account.Client.PostAsync(bubble, _emoji, TextEditor.Text, _image, lifetime); }
                 catch (HttpRequestException ex) { failed.Add($"“{bubble.Name}”: {Labels.ConnectionError(bubble.RelayUrl, ex)}"); }
             }
             if (failed.Count > 0)

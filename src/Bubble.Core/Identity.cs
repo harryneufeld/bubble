@@ -22,6 +22,13 @@ public sealed class Identity
 
     public byte[] Seed => _privateKey.GetEncoded();
 
+    /// <summary>
+    /// Proves authorship to the relay: only the author can compute it, and it is not stored anywhere,
+    /// so it survives a restore. The relay only keeps its hash (see <see cref="MessageCodec.SecretHash"/>).
+    /// </summary>
+    public string MessageSecret(string messageId) =>
+        Base64Url.Encode(Crypto.Derive(Seed, "bubble/v1/message-secret|" + messageId));
+
     public string PublicKey => Base64Url.Encode(_privateKey.GeneratePublicKey().GetEncoded());
 
     public byte[] Sign(byte[] message)

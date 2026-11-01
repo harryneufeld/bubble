@@ -11,18 +11,25 @@ static class Labels
         _ => "📌 Permanent",
     };
 
+    /// <summary>What a bubble allows: its posts last up to this long.</summary>
+    public static string MaxLifetime(PostLifetime max) => max switch
+    {
+        PostLifetime.Story24h => "⏳ Highlights last 24 hours",
+        _ => "📌 Highlights can be kept",
+    };
+
     /// <summary>Option rows for the lifetime; the current setting is marked.</summary>
     public static IReadOnlyList<Controls.SheetOption> LifetimeOptions(PostLifetime? current = null) =>
     [
-        new("24 hours", "Highlights disappear after a day, like stories.", "⏳", current == PostLifetime.Story24h),
-        new("Permanent", "Highlights stay until someone deletes them.", "📌", current == PostLifetime.Persistent),
+        new("24 hours only", "Every highlight disappears after a day, like stories.", "⏳", current == PostLifetime.Story24h),
+        new("Can be kept", "Whoever shares a highlight chooses: 24 hours or remember it.", "📌", current == PostLifetime.Persistent),
     ];
 
     public static PostLifetime LifetimeAt(int index) => index == 0 ? PostLifetime.Story24h : PostLifetime.Persistent;
 
-    public static string Remaining(BubbleMessage message)
+    public static string Remaining(DateTimeOffset? expiresAt)
     {
-        if (message.ExpiresAt is not { } expires) return "📌 stays";
+        if (expiresAt is not { } expires) return "📌 stays";
         var left = expires - DateTimeOffset.UtcNow;
         return left.TotalHours >= 1 ? $"⏳ {(int)left.TotalHours} h left" : $"⏳ {Math.Max(1, (int)left.TotalMinutes)} min left";
     }

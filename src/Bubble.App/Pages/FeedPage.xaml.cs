@@ -74,7 +74,8 @@ public partial class FeedPage : ContentPage
         var posts = _feed.PostsOf(bubble);
 
         NameLabel.Text = bubble.Name;
-        LifetimeLabel.Text = $"New highlights: {Labels.Lifetime(bubble.Lifetime)}";
+        LifetimeLabel.Text = Labels.MaxLifetime(bubble.Lifetime);
+        LifetimeButton.IsVisible = bubble.OwnerKey is null || _account.Client.IsOwner(bubble);
         PeopleLabel.Text = Labels.People(snapshot?.Members.Count ?? 1);
         var cover = posts.FirstOrDefault(p => p.Post.Message.Image is not null)?.Post.Message.Image;
         CoverImage.Source = cover is null ? null : ImageSource.FromStream(() => new MemoryStream(cover));
@@ -100,7 +101,7 @@ public partial class FeedPage : ContentPage
     {
         if (_bubble is null) return;
         var choice = await SheetPage.ChooseAsync(this, "Lifetime",
-            "Applies to new highlights. Existing ones keep their setting. All members see the change.",
+            "The longest a highlight may last. Choosing 24 hours also ends kept highlights 24 hours later. All members see the change.",
             Labels.LifetimeOptions(_bubble.Lifetime));
         if (choice is not { } index) return;
 
@@ -115,6 +116,10 @@ public partial class FeedPage : ContentPage
         catch (HttpRequestException ex)
         {
             await DisplayAlertAsync("Not changed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+        }
+        catch (InvalidOperationException ex)
+        {
+            await DisplayAlertAsync("Not possible", ex.Message, "OK");
         }
     }
 

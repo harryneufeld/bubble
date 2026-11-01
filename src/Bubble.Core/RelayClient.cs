@@ -13,6 +13,27 @@ public sealed class RelayClient(HttpClient http)
         response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>Gives a message a new expiry (null = permanent). Only its author can; hearts and comments follow.</summary>
+    public async Task SetExpiryAsync(string mailboxId, string messageId, string secret, DateTimeOffset? expiresAt, CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Patch, $"v1/mailboxes/{mailboxId}/messages/{messageId}")
+        {
+            Content = JsonContent.Create(new ExpiryBody(expiresAt?.ToUnixTimeSeconds()), CoreJson.Default.ExpiryBody),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", secret);
+        using var response = await http.SendAsync(request, ct);
+        if (response.StatusCode is not HttpStatusCode.NotFound) response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>Deletes a message together with its hearts and comments. Only its author can.</summary>
+    public async Task DeleteMessageAsync(string mailboxId, string messageId, string secret, CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"v1/mailboxes/{mailboxId}/messages/{messageId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", secret);
+        using var response = await http.SendAsync(request, ct);
+        if (response.StatusCode is not HttpStatusCode.NotFound) response.EnsureSuccessStatusCode();
+    }
+
     public async Task<List<RelayMessageOut>> GetMessagesAsync(string mailboxId, long after = 0, CancellationToken ct = default)
     {
         var all = new List<RelayMessageOut>();
