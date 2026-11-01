@@ -43,7 +43,10 @@ public sealed class AccountService
         return true;
     }
 
-    public BubbleClient Client => new(Vault ?? throw new InvalidOperationException("No account."), RelayFor);
+    /// <summary>The last loaded messages of every bubble, kept in the cache folder (the system may clear it; then it is just loaded again).</summary>
+    public FileMessageCache Cache { get; } = new(Path.Combine(FileSystem.CacheDirectory, "messages"));
+
+    public BubbleClient Client => new(Vault ?? throw new InvalidOperationException("No account."), RelayFor, cache: Cache);
 
     public async Task<bool> LoadAsync()
     {
@@ -68,6 +71,7 @@ public sealed class AccountService
     /// </summary>
     public void LogOut()
     {
+        Cache.Clear();
         SecureStorage.Default.Remove(VaultKey);
         Vault = null;
     }
@@ -117,6 +121,7 @@ public sealed class AccountService
     public async Task ForgetAsync(BubbleMembership bubble)
     {
         Vault!.Bubbles.Remove(bubble);
+        Cache.Delete(bubble.MailboxId);
         await SaveAsync();
     }
 

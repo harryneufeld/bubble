@@ -79,8 +79,8 @@ public partial class BubblesPage : ContentPage
         var name = await SheetPage.PromptAsync(page, "New bubble", "What should it be called?", "Next", "e.g. Family, Flatmates, Running group", maxLength: 40);
         if (string.IsNullOrWhiteSpace(name)) return;
 
-        var choice = await SheetPage.ChooseAsync(page, "How long should highlights stay visible?",
-            "This applies to new highlights and can be changed later.", Labels.LifetimeOptions(PostLifetime.Story24h));
+        var choice = await SheetPage.ChooseAsync(page, "How long may highlights stay?",
+            "This is the maximum. You can change it later, and it applies to all highlights in the bubble.", Labels.LifetimeOptions(PostLifetime.Persistent));
         if (choice is not { } index) return;
 
         var bubble = await account.CreateBubbleAsync(name, Labels.LifetimeAt(index));

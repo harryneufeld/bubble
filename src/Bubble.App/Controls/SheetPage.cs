@@ -26,7 +26,7 @@ public sealed class SheetPage : ContentPage
 
     public Task<object?> Result => _result.Task;
 
-    SheetPage(string title, string? message, View body, Entry? entry)
+    SheetPage(string title, string? message, View body, Entry? entry, string? icon = null)
     {
         _entry = entry;
         BackgroundColor = Colors.Transparent;
@@ -40,9 +40,27 @@ public sealed class SheetPage : ContentPage
             Color = Res<Color>("Hairline"), WidthRequest = 40, HeightRequest = 4, CornerRadius = 2,
             HorizontalOptions = LayoutOptions.Center, Margin = new Thickness(0, 0, 0, 8),
         });
-        content.Add(new Label { Text = title, FontFamily = "BodyBold", FontSize = 22, TextColor = Res<Color>("Ink") });
+        if (icon is not null)
+        {
+            content.Add(new Border
+            {
+                StrokeShape = new Ellipse(), WidthRequest = 64, HeightRequest = 64, BackgroundColor = Res<Color>("SurfaceRaised"),
+                HorizontalOptions = LayoutOptions.Center, Margin = new Thickness(0, 4, 0, 4),
+                Content = new Label { Text = icon, FontSize = 30, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center },
+            });
+        }
+        var centered = icon is not null;
+        content.Add(new Label
+        {
+            Text = title, FontFamily = "BodyBold", FontSize = 22, TextColor = Res<Color>("Ink"),
+            HorizontalTextAlignment = centered ? TextAlignment.Center : TextAlignment.Start,
+        });
         if (!string.IsNullOrWhiteSpace(message))
-            content.Add(new Label { Text = message, FontSize = 15, LineHeight = 1.3, TextColor = Res<Color>("InkSoft") });
+            content.Add(new Label
+            {
+                Text = message, FontSize = 15, LineHeight = 1.3, TextColor = Res<Color>("InkSoft"),
+                HorizontalTextAlignment = centered ? TextAlignment.Center : TextAlignment.Start,
+            });
         content.Add(body);
 
         _sheet = new Border
@@ -84,6 +102,99 @@ public sealed class SheetPage : ContentPage
             list.Add(Ghost(cancelText, () => _ = sheet!.CloseAsync(null)));
 
         sheet = new SheetPage(title, message, list, null);
+        await host.Navigation.PushModalAsync(sheet, false);
+        return await sheet.Result as int?;
+    }
+
+    static readonly string[] DestructiveVerbs = ["Delete", "Leave", "Log out", "Remove"];
+
+    /// <summary>Notice with one button, instead of a system alert. The icon follows the tone of the title.</summary>
+    public static async Task AlertAsync(Page host, string title, string message, string okText = "OK")
+    {
+        SheetPage? sheet = null;
+        var ok = new Button { Text = okText, Margin = new Thickness(0, 8, 0, 0) };
+        ok.Clicked += (_, _) => _ = sheet!.CloseAsync(true);
+        sheet = new SheetPage(title, message, ok, null, AlertIcon(title));
+        await host.Navigation.PushModalAsync(sheet, false);
+        await sheet.Result;
+    }
+
+    /// <summary>Question with a confirm and a cancel button; true if confirmed. Delete, leave and the like are red.</summary>
+    public static async Task<bool> ConfirmAsync(Page host, string title, string message, string confirmText, string cancelText)
+    {
+        SheetPage? sheet = null;
+        var destructive = DestructiveVerbs.Contains(confirmText);
+        var confirm = new Button { Text = confirmText };
+        if (destructive) confirm.Background = new SolidColorBrush(Res<Color>("Error"));
+        confirm.Clicked += (_, _) => _ = sheet!.CloseAsync(true);
+
+        var body = new VerticalStackLayout { Spacing = 10, Margin = new Thickness(0, 8, 0, 0) };
+        body.Add(confirm);
+        body.Add(Ghost(cancelText, () => _ = sheet!.CloseAsync(null)));
+
+        sheet = new SheetPage(title, message, body, null, destructive ? "⚠️" : "❓");
+        await host.Navigation.PushModalAsync(sheet, false);
+        return await sheet.Result is true;
+    }
+
+    static string AlertIcon(string title)
+    {
+        if (title.StartsWith("Copied", StringComparison.OrdinalIgnoreCase)) return "✅";
+        var problem = title.StartsWith("No ", StringComparison.OrdinalIgnoreCase)
+            || title.StartsWith("Not ", StringComparison.OrdinalIgnoreCase)
+            || title.Contains("not ", StringComparison.OrdinalIgnoreCase)
+            || title.Contains("invalid", StringComparison.OrdinalIgnoreCase)
+            || title.Contains("missing", StringComparison.OrdinalIgnoreCase);
+        return problem ? "⚠️" : "💬";
+    }
+
+    /// <summary>Choice from a grid of pictures with a caption each (e.g. icons): index of the chosen one, or null if cancelled.</summary>
+    public static async Task<int?> ChooseGridAsync(Page host, string title, string? message, IReadOnlyList<(string Name, ImageSource Image)> items, int columns = 4)
+    {
+        SheetPage? sheet = null;
+        var grid = new Grid { ColumnSpacing = 8, RowSpacing = 8, Margin = new Thickness(0, 8, 0, 0) };
+        for (var c = 0; c < columns; c++) grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+        for (var i = 0; i < items.Count; i++)
+        {
+            var index = i;
+            if (i % columns == 0) grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            var cell = new Border
+            {
+                BackgroundColor = Res<Color>("SurfaceRaised"),
+                StrokeShape = new RoundRectangle { CornerRadius = 16 },
+                StrokeThickness = 0,
+                Padding = new Thickness(6, 10),
+                Content = new VerticalStackLayout
+                {
+                    Spacing = 6,
+                    Children =
+                    {
+                        new Image { Source = items[i].Image, HeightRequest = 44, WidthRequest = 44, HorizontalOptions = LayoutOptions.Center },
+                        new Label
+                        {
+                            Text = items[i].Name, FontSize = 11, FontFamily = "BodyMedium", HorizontalTextAlignment = TextAlignment.Center,
+                            TextColor = Res<Color>("InkSoft"), LineBreakMode = LineBreakMode.TailTruncation,
+                        },
+                    },
+                },
+            };
+            SemanticProperties.SetDescription(cell, items[i].Name);
+            cell.GestureRecognizers.Add(new TapGestureRecognizer
+            {
+                Command = new Command(async () =>
+                {
+                    await cell.ScaleToAsync(0.94, 70);
+                    await cell.ScaleToAsync(1, 70);
+                    _ = sheet!.CloseAsync(index);
+                }),
+            });
+            grid.Add(cell, i % columns, i / columns);
+        }
+
+        var body = new VerticalStackLayout { Spacing = 10 };
+        body.Add(grid);
+        body.Add(Ghost("Cancel", () => _ = sheet!.CloseAsync(null)));
+        sheet = new SheetPage(title, message, body, null);
         await host.Navigation.PushModalAsync(sheet, false);
         return await sheet.Result as int?;
     }
@@ -206,4 +317,14 @@ public sealed class SheetPage : ContentPage
         await Navigation.PopModalAsync(false);
         _result.TrySetResult(result);
     }
+}
+
+/// <summary>Drop-in for the system alerts: <c>this.ShowAlertAsync(title, message, "OK")</c> or with a cancel text for a question.</summary>
+public static class Dialogs
+{
+    public static Task ShowAlertAsync(this Page host, string title, string message, string accept) =>
+        SheetPage.AlertAsync(host, title, message, accept);
+
+    public static Task<bool> ShowAlertAsync(this Page host, string title, string message, string accept, string cancel) =>
+        SheetPage.ConfirmAsync(host, title, message, accept, cancel);
 }

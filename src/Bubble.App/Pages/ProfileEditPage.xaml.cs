@@ -1,3 +1,4 @@
+using Bubble.App.Controls;
 using Bubble.App.Services;
 
 namespace Bubble.App.Pages;
@@ -42,7 +43,7 @@ public partial class ProfileEditPage : ContentPage
         }
         catch (InvalidDataException)
         {
-            await DisplayAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
+            await this.ShowAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
         }
     }
 
@@ -50,14 +51,14 @@ public partial class ProfileEditPage : ContentPage
     {
         if (string.IsNullOrWhiteSpace(NameEntry.Text))
         {
-            await DisplayAlertAsync("Name missing", "What should your people call you?", "OK");
+            await this.ShowAlertAsync("Name missing", "What should your people call you?", "OK");
             return;
         }
         SaveButton.IsEnabled = false;
         try
         {
             if (!await _account.UpdateProfileAsync(NameEntry.Text, BioEntry.Text, _avatar))
-                await DisplayAlertAsync("Not delivered everywhere", "At least one bubble was not reachable. It will see your new profile the next time you share something there.", "OK");
+                await this.ShowAlertAsync("Not delivered everywhere", "At least one bubble was not reachable. It will see your new profile the next time you share something there.", "OK");
             await Shell.Current.GoToAsync("..");
         }
         finally

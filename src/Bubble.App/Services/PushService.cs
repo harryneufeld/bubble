@@ -92,13 +92,14 @@ public sealed class PushService(AccountService account)
                 keysChanged |= before != bubble.Key;
                 if (snapshot.Removed) continue;
 
-                var fresh = known.TryGetValue(bubble.MailboxId, out var ids) ? PostNotifications.NewPosts(snapshot, ids) : [];
-                // The first time a bubble is seen its backlog is not announced.
-                known[bubble.MailboxId] = [.. snapshot.Posts.Select(p => p.Id)];
+                var fresh = known.TryGetValue(bubble.MailboxId, out var ids)
+                    ? PostNotifications.NewEvents(snapshot, ids).Where(e => NotificationPreferences.IsOn(e.Kind)).ToList()
+                    : [];
+                // Everything counts as announced, also what the settings filtered out, and the first time a bubble is seen its backlog.
+                known[bubble.MailboxId] = PostNotifications.KnownKeys(snapshot);
                 if (fresh.Count == 0) continue;
 
-                var text = fresh.Count == 1 ? PostNotifications.Describe(fresh[0]) : $"{fresh.Count} new highlights";
-                PushPlatform.ShowNotification(bubble.MailboxId, bubble.Name, text);
+                PushPlatform.ShowNotification(bubble.MailboxId, bubble.Name, PostNotifications.Summarize(fresh));
             }
 
             NotifiedPosts.Save(known);
@@ -148,7 +149,17 @@ public static class NotifiedPosts
     {
         if (!PushService.IsEnabled) return;
         var known = Load();
-        known[mailboxId] = [.. snapshot.Posts.Select(p => p.Id)];
+        known[mailboxId] = PostNotifications.KnownKeys(snapshot);
         Save(known);
     }
+}
+
+/// <summary>Which kinds of notifications the user wants. All are on by default.</summary>
+public static class NotificationPreferences
+{
+    public static bool IsOn(NotificationKind kind) => Preferences.Default.Get(Key(kind), true);
+
+    public static void Set(NotificationKind kind, bool on) => Preferences.Default.Set(Key(kind), on);
+
+    static string Key(NotificationKind kind) => $"bubble.push.kind.{kind}";
 }

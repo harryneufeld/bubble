@@ -1,3 +1,4 @@
+using Bubble.App.Controls;
 using Bubble.App.Services;
 using Bubble.Core;
 using ZXing.Net.Maui;
@@ -155,7 +156,7 @@ public partial class JoinPage : ContentPage
         var bubble = await _account.JoinAsync(_invite);
         if (bubble is null)
         {
-            await DisplayAlertAsync("Already in", $"You are already in “{_invite.Name}”.", "OK");
+            await this.ShowAlertAsync("Already in", $"You are already in “{_invite.Name}”.", "OK");
             return;
         }
         await Shell.Current.GoToAsync($"../{nameof(FeedPage)}?id={Uri.EscapeDataString(bubble.MailboxId)}");

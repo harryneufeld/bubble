@@ -36,9 +36,22 @@ public partial class FeedPage : ContentPage
             await Shell.Current.GoToAsync("..");
             return;
         }
+        _feed.Refreshed -= OnFeedRefreshed;
+        _feed.Refreshed += OnFeedRefreshed;
         Render();
         await LoadAsync();
     }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _feed.Refreshed -= OnFeedRefreshed;
+    }
+
+    void OnFeedRefreshed() => MainThread.BeginInvokeOnMainThread(() =>
+    {
+        if (_bubble is not null && _account.FindBubble(MailboxId) is not null) Render();
+    });
 
     async void OnRefreshing(object? sender, EventArgs e) => await LoadAsync();
 
@@ -51,7 +64,7 @@ public partial class FeedPage : ContentPage
             if (_feed.WasRemoved(_bubble))
             {
                 _feed.TakeRemoved();
-                await DisplayAlertAsync("Removed from bubble", $"The creator removed you from “{_bubble.Name}”.", "OK");
+                await this.ShowAlertAsync("Removed from bubble", $"The creator removed you from “{_bubble.Name}”.", "OK");
                 await Shell.Current.GoToAsync("..");
                 return;
             }
@@ -59,7 +72,7 @@ public partial class FeedPage : ContentPage
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Not loaded", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+            await this.ShowAlertAsync("Not loaded", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
         finally
         {
@@ -74,7 +87,8 @@ public partial class FeedPage : ContentPage
         var posts = _feed.PostsOf(bubble);
 
         NameLabel.Text = bubble.Name;
-        LifetimeLabel.Text = $"New highlights: {Labels.Lifetime(bubble.Lifetime)}";
+        LifetimeLabel.Text = Labels.MaxLifetime(bubble.Lifetime);
+        LifetimeButton.IsVisible = bubble.OwnerKey is null || _account.Client.IsOwner(bubble);
         PeopleLabel.Text = Labels.People(snapshot?.Members.Count ?? 1);
         var cover = posts.FirstOrDefault(p => p.Post.Message.Image is not null)?.Post.Message.Image;
         CoverImage.Source = cover is null ? null : ImageSource.FromStream(() => new MemoryStream(cover));
@@ -100,7 +114,7 @@ public partial class FeedPage : ContentPage
     {
         if (_bubble is null) return;
         var choice = await SheetPage.ChooseAsync(this, "Lifetime",
-            "Applies to new highlights. Existing ones keep their setting. All members see the change.",
+            "The longest a highlight may last. Choosing 24 hours also ends kept highlights 24 hours later. All members see the change.",
             Labels.LifetimeOptions(_bubble.Lifetime));
         if (choice is not { } index) return;
 
@@ -114,7 +128,11 @@ public partial class FeedPage : ContentPage
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Not changed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+            await this.ShowAlertAsync("Not changed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+        }
+        catch (InvalidOperationException ex)
+        {
+            await this.ShowAlertAsync("Not possible", ex.Message, "OK");
         }
     }
 
@@ -137,7 +155,7 @@ public partial class FeedPage : ContentPage
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Not removed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+            await this.ShowAlertAsync("Not removed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
         }
     }
 
@@ -148,7 +166,7 @@ public partial class FeedPage : ContentPage
         var message = owner
             ? $"You created “{_bubble.Name}”. Nobody will be able to remove members after you leave. You can only come back with a new invitation."
             : $"You will no longer see “{_bubble.Name}”. You can only come back with a new invitation.";
-        if (!await DisplayAlertAsync("Leave bubble?", message, "Leave", "Cancel")) return;
+        if (!await this.ShowAlertAsync("Leave bubble?", message, "Leave", "Cancel")) return;
 
         await _account.LeaveAsync(_bubble);
         await Shell.Current.GoToAsync("..");

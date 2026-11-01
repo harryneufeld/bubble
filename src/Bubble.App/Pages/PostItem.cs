@@ -1,3 +1,4 @@
+using Bubble.App.Controls;
 using System.ComponentModel;
 using Bubble.App.Services;
 using Bubble.Core;
@@ -24,7 +25,7 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, b
         : Labels.Ago(item.Post.Message.CreatedAt);
     public string Feeling { get; } = Labels.Feeling(item.Post.Message);
     public bool HasFeeling => Feeling.Length > 0;
-    public string Remaining { get; } = Labels.Remaining(item.Post.Message);
+    public string Remaining { get; } = Labels.Remaining(item.Post.ExpiresAt);
     public string? Text => _m.Text;
     public bool HasImage => _m.Image is { Length: > 0 };
     public bool IsTextOnly => !HasImage;
@@ -92,12 +93,12 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, b
         {
             Changed();
             if (Shell.Current is { } shell)
-                await shell.DisplayAlertAsync("Heart not sent", Labels.ConnectionError(item.Bubble.RelayUrl, ex), "OK");
+                await shell.ShowAlertAsync("Heart not sent", Labels.ConnectionError(item.Bubble.RelayUrl, ex), "OK");
         }
         catch (InvalidOperationException ex)
         {
             Changed();
-            if (Shell.Current is { } shell) await shell.DisplayAlertAsync("Not possible", ex.Message, "OK");
+            if (Shell.Current is { } shell) await shell.ShowAlertAsync("Not possible", ex.Message, "OK");
         }
     }
 

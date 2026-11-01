@@ -1,3 +1,4 @@
+using Bubble.App.Controls;
 using Bubble.App.Services;
 using Bubble.Core;
 
@@ -12,6 +13,7 @@ public partial class ComposePage : ContentPage
     readonly HashSet<string> _selected = [];
     string? _emoji;
     byte[]? _image;
+    bool _remember;
     bool _initialized;
 
     /// <summary>Optional: preselected bubble.</summary>
@@ -23,6 +25,14 @@ public partial class ComposePage : ContentPage
         _account = account;
         _feed = feed;
         BuildFeelings();
+        // Tapping next to the text field puts the keyboard away again.
+        Form.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(HideKeyboard) });
+    }
+
+    void HideKeyboard()
+    {
+        TextEditor.Unfocus();
+        _ = TextEditor.HideSoftInputAsync(CancellationToken.None);
     }
 
     protected override void OnAppearing()
@@ -30,6 +40,9 @@ public partial class ComposePage : ContentPage
         base.OnAppearing();
         if (_initialized) return;
         _initialized = true;
+
+        _remember = _account.Vault!.DefaultPostLifetime == PostLifetime.Persistent;
+        RememberSwitch.IsToggled = _remember;
 
         var bubbles = _account.Vault!.Bubbles;
         if (_account.FindBubble(MailboxId) is { } preset) _selected.Add(preset.MailboxId);
@@ -76,64 +89,80 @@ public partial class ComposePage : ContentPage
         UpdateHints();
     }
 
+    /// <summary>The switch decides, but a bubble that allows only 24 hours wins.</summary>
+    void OnRememberToggled(object? sender, ToggledEventArgs e)
+    {
+        _remember = e.Value;
+        UpdateHints();
+    }
+
     void UpdateHints()
     {
         var chosen = _account.Vault!.Bubbles.Where(b => _selected.Contains(b.MailboxId)).ToList();
+        var limited = chosen.Where(b => b.Lifetime == PostLifetime.Story24h).ToList();
+
+        // Nothing to choose if no selected bubble keeps highlights; the saved default stays as it was.
+        var canRemember = chosen.Count == 0 || limited.Count < chosen.Count;
+        RememberSwitch.IsEnabled = canRemember;
+
         LifetimeLabel.Text = chosen.Count switch
         {
             0 => "Choose where you want to share your highlight.",
-            1 => chosen[0].Lifetime == PostLifetime.Story24h
+            _ when !_remember || !canRemember => chosen.Count == 1
                 ? $"⏳ Your highlight disappears from “{chosen[0].Name}” after 24 hours."
-                : $"📌 Your highlight stays in “{chosen[0].Name}” permanently.",
-            var n => $"Goes to {n} bubbles. ⏳ Depending on the bubble it disappears after 24 hours or stays permanently.",
+                : $"⏳ Your highlight disappears after 24 hours.",
+            _ when limited.Count == 0 => chosen.Count == 1
+                ? $"📌 Your highlight stays in “{chosen[0].Name}” permanently."
+                : "📌 Your highlight stays permanently.",
+            _ => $"📌 Stays permanently, except in {string.Join(", ", limited.Select(b => $"“{b.Name}”"))}: there it disappears after 24 hours.",
         };
         ShareButton.IsEnabled = chosen.Count > 0;
         ShareButton.Text = chosen.Count switch { 0 => "Choose a bubble", 1 => "Share", var n => $"Share in {n} bubbles" };
     }
 
     /// <summary>Emoji tiles with labels. Tapping the chosen emoji again clears the selection.</summary>
+    readonly Dictionary<string, Border> _feelingTiles = [];
+
+    /// <summary>One row of round emoji buttons that scrolls sideways: it takes one line instead of a whole grid.</summary>
     void BuildFeelings()
     {
-        FeelingGrid.Children.Clear();
         foreach (var (emoji, label) in Labels.Feelings)
         {
-            var on = _emoji == emoji;
             var tile = new Border
             {
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 20 },
-                WidthRequest = 78, HeightRequest = 78, Margin = new Thickness(0, 0, 8, 8),
-                BackgroundColor = (Color)Application.Current!.Resources[on ? "SurfaceRaised" : "Surface"],
-                StrokeThickness = on ? 2.5 : 0,
-                Stroke = on ? (Brush)Application.Current.Resources["BubbleGradient"] : null,
-                Content = new VerticalStackLayout
-                {
-                    Spacing = 2, VerticalOptions = LayoutOptions.Center,
-                    Children =
-                    {
-                        new Label { Text = emoji, FontSize = on ? 32 : 28, HorizontalOptions = LayoutOptions.Center },
-                        new Label
-                        {
-                            Text = label, FontSize = 11, FontFamily = "BodyMedium", HorizontalOptions = LayoutOptions.Center,
-                            TextColor = (Color)Application.Current.Resources[on ? "Ink" : "InkSoft"],
-                        },
-                    },
-                },
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
+                WidthRequest = 52, HeightRequest = 52,
+                Content = new Label { Text = emoji, FontSize = 26, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center },
             };
             SemanticProperties.SetDescription(tile, label);
-            SemanticProperties.SetHint(tile, on ? "selected" : "");
             var picked = emoji;
             tile.GestureRecognizers.Add(new TapGestureRecognizer
             {
                 Command = new Command(() =>
                 {
                     _emoji = _emoji == picked ? null : picked;
-                    BuildFeelings();
+                    UpdateFeelings();
                 }),
             });
+            _feelingTiles[emoji] = tile;
             FeelingGrid.Children.Add(tile);
         }
+        UpdateFeelings();
+    }
+
+    void UpdateFeelings()
+    {
+        foreach (var (emoji, tile) in _feelingTiles)
+        {
+            var on = _emoji == emoji;
+            tile.BackgroundColor = (Color)Application.Current!.Resources[on ? "SurfaceRaised" : "Surface"];
+            tile.StrokeThickness = on ? 2.5 : 0;
+            tile.Stroke = on ? (Brush)Application.Current.Resources["BubbleGradient"] : null;
+            tile.Scale = on ? 1.1 : 1;
+            SemanticProperties.SetHint(tile, on ? "selected" : "");
+        }
         FeelingHint.Text = _emoji is null
-            ? "Tap an emoji that fits your day."
+            ? "Optional: swipe and tap an emoji that fits your day."
             : $"You feel {Labels.Feelings.First(f => f.Emoji == _emoji).Label.ToLowerInvariant()}.";
     }
 
@@ -153,7 +182,7 @@ public partial class ComposePage : ContentPage
         }
         catch (InvalidDataException)
         {
-            await DisplayAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
+            await this.ShowAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
         }
     }
 
@@ -187,22 +216,29 @@ public partial class ComposePage : ContentPage
     {
         if (string.IsNullOrWhiteSpace(TextEditor.Text) && _image is null)
         {
-            await DisplayAlertAsync("Nothing yet", "Write something or add a photo.", "OK");
+            await this.ShowAlertAsync("Nothing yet", "Write something or add a photo.", "OK");
             return;
         }
 
         ShareButton.IsEnabled = false;
         Busy.IsRunning = true;
         var failed = new List<string>();
+        var lifetime = _remember ? PostLifetime.Persistent : PostLifetime.Story24h;
         try
         {
+            // The last choice is the default for the next highlight (only if it was possible to choose).
+            if (RememberSwitch.IsEnabled && _account.Vault!.DefaultPostLifetime != lifetime)
+            {
+                _account.Vault.DefaultPostLifetime = lifetime;
+                await _account.SaveAsync();
+            }
             foreach (var bubble in _account.Vault!.Bubbles.Where(b => _selected.Contains(b.MailboxId)))
             {
-                try { await _account.Client.PostAsync(bubble, _emoji, TextEditor.Text, _image); }
+                try { await _account.Client.PostAsync(bubble, _emoji, TextEditor.Text, _image, lifetime); }
                 catch (HttpRequestException ex) { failed.Add($"“{bubble.Name}”: {Labels.ConnectionError(bubble.RelayUrl, ex)}"); }
             }
             if (failed.Count > 0)
-                await DisplayAlertAsync("Not shared everywhere", string.Join("\n", failed), "OK");
+                await this.ShowAlertAsync("Not shared everywhere", string.Join("\n", failed), "OK");
             await _feed.RefreshAsync();
             if (failed.Count < _selected.Count) await Shell.Current.GoToAsync("..");
         }

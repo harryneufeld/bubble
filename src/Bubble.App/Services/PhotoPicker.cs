@@ -39,7 +39,7 @@ public static class PhotoPicker
         }
         catch (PermissionException)
         {
-            await page.DisplayAlertAsync("No access", "Allow Bubble to access the camera or photos in the settings.", "OK");
+            await page.ShowAlertAsync("No access", "Allow Bubble to access the camera or photos in the settings.", "OK");
             return null;
         }
     }

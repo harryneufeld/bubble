@@ -43,7 +43,13 @@ messages.MapPost("/", (string mailbox, RelayMessageIn body, RelayStore store, Ti
     if (!TryDecode(body.Ciphertext, RelayLimits.MaxCiphertextBytes, out var ciphertext))
         return Results.BadRequest("Invalid or too large content.");
 
-    if (!store.AddMessage(mailbox, body.Id, ciphertext, body.ExpiresAt))
+    byte[]? secretHash = null;
+    if (body.SecretHash is not null && (!TryDecode(body.SecretHash, 32, out secretHash) || secretHash.Length != 32))
+        return Results.BadRequest("Invalid secret hash.");
+    if (body.ParentId is not null && !Ids.IsMessageId(body.ParentId))
+        return Results.BadRequest("Invalid ID.");
+
+    if (!store.AddMessage(mailbox, body.Id, ciphertext, body.ExpiresAt, secretHash, body.ParentId))
         return Results.Conflict();
 
     push.Notify(mailbox);
@@ -54,6 +60,23 @@ messages.MapGet("/", (string mailbox, long? after, RelayStore store) =>
     Ids.IsKeyId(mailbox)
         ? Results.Ok(store.GetMessages(mailbox, after ?? 0))
         : Results.BadRequest("Invalid ID."));
+
+messages.MapPatch("/{id}", (string mailbox, string id, ExpiryBody body, HttpRequest request, RelayStore store, TimeProvider time) =>
+{
+    if (!Ids.IsKeyId(mailbox) || !Ids.IsMessageId(id) || BearerToken(request) is not { } secret)
+        return Results.BadRequest();
+    var now = time.GetUtcNow();
+    if (body.ExpiresAt is { } exp && (exp <= now.ToUnixTimeSeconds() || exp > now.Add(RelayLimits.MaxStoryLifetime).ToUnixTimeSeconds()))
+        return Results.BadRequest("Invalid expiry date.");
+    return EditResult(store.SetExpiry(mailbox, id, secret, body.ExpiresAt));
+});
+
+messages.MapDelete("/{id}", (string mailbox, string id, HttpRequest request, RelayStore store) =>
+{
+    if (!Ids.IsKeyId(mailbox) || !Ids.IsMessageId(id) || BearerToken(request) is not { } secret)
+        return Results.BadRequest();
+    return EditResult(store.DeleteMessage(mailbox, id, secret));
+});
 
 var subscriptions = app.MapGroup("/v1/push/subscriptions");
 
@@ -141,6 +164,13 @@ app.MapGet("/v1/backups/{backupId}", (string backupId, HttpRequest request, Rela
 });
 
 app.Run();
+
+static IResult EditResult(RelayStore.MessageEdit result) => result switch
+{
+    RelayStore.MessageEdit.Done => Results.NoContent(),
+    RelayStore.MessageEdit.NotFound => Results.NotFound(),
+    _ => Results.StatusCode(StatusCodes.Status403Forbidden),
+};
 
 static bool TryDecode(string base64, int maxBytes, out byte[] bytes)
 {

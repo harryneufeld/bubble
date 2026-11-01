@@ -1,4 +1,5 @@
 using Bubble.App.Services;
+using Bubble.App.Controls;
 using Bubble.Core;
 
 namespace Bubble.App.Pages;
@@ -27,7 +28,11 @@ public partial class PostPage : ContentPage
         InitializeComponent();
         _account = account;
         _feed = feed;
+        _menu = new ToolbarItem { Text = "Manage" };
+        _menu.Clicked += OnManage;
     }
+
+    readonly ToolbarItem _menu;
 
     protected override async void OnAppearing()
     {
@@ -83,11 +88,52 @@ public partial class PostPage : ContentPage
         Card.BindingContext = _item;
         CommentList.ItemsSource = _item.Comments;
         Title = _item.Author == "You" ? "Your highlight" : $"Highlight from {_item.AuthorName}";
+        ToolbarItems.Clear();
+        if (post.Post.IsMine) ToolbarItems.Add(_menu);
         return true;
     }
 
     static string Sig(HomePost p) =>
-        $"{p.Post.Id}:{p.Snapshot.LikersOf(p.Post.Id).Count}:{p.Snapshot.CommentsOf(p.Post.Id).Count}";
+        $"{p.Post.Id}:{p.Post.ExpiresAt?.ToUnixTimeSeconds()}:{p.Snapshot.LikersOf(p.Post.Id).Count}:{p.Snapshot.CommentsOf(p.Post.Id).Count}";
+
+    /// <summary>The author keeps the highlight, lets it disappear, or deletes it.</summary>
+    async void OnManage(object? sender, EventArgs e)
+    {
+        if (_bubble is null || _item is null || _feed.FindPost(_bubble, PostId) is not { } post) return;
+
+        var options = new List<SheetOption>();
+        var keep = post.Post.ExpiresAt is not null && _bubble.Lifetime == PostLifetime.Persistent;
+        var expire = post.Post.ExpiresAt is null;
+        if (keep) options.Add(new SheetOption("Remember", "Stays until you delete it.", "📌"));
+        if (expire) options.Add(new SheetOption("Let it disappear", "Gone 24 hours from now, with its hearts and comments.", "⏳"));
+        options.Add(new SheetOption("Delete", "Removes it for everyone, with its hearts and comments.", "🗑", Destructive: true));
+
+        var choice = await SheetPage.ChooseAsync(this, "Your highlight", "", options);
+        if (choice is not { } index) return;
+
+        try
+        {
+            if (options[index].Destructive)
+            {
+                if (!await this.ShowAlertAsync("Delete highlight?", "It disappears for everyone in the bubble.", "Delete", "Cancel")) return;
+                await _account.Client.DeletePostAsync(_bubble, post.Post);
+                await _feed.RefreshAsync(_bubble);
+                await Shell.Current.GoToAsync("..");
+                return;
+            }
+            await _account.Client.SetPostLifetimeAsync(_bubble, post.Post, keep ? PostLifetime.Persistent : PostLifetime.Story24h);
+            await _feed.RefreshAsync(_bubble);
+            if (!Render()) await Shell.Current.GoToAsync("..");
+        }
+        catch (HttpRequestException ex)
+        {
+            await this.ShowAlertAsync("Not changed", Labels.ConnectionError(_bubble.RelayUrl, ex), "OK");
+        }
+        catch (InvalidOperationException ex)
+        {
+            await this.ShowAlertAsync("Not possible", ex.Message, "OK");
+        }
+    }
 
     async void OnSend(object? sender, EventArgs e)
     {
@@ -105,11 +151,11 @@ public partial class PostPage : ContentPage
         }
         catch (HttpRequestException ex)
         {
-            await DisplayAlertAsync("Comment not sent", Labels.ConnectionError(_bubble!.RelayUrl, ex), "OK");
+            await this.ShowAlertAsync("Comment not sent", Labels.ConnectionError(_bubble!.RelayUrl, ex), "OK");
         }
         catch (InvalidOperationException ex)
         {
-            await DisplayAlertAsync("Not possible", ex.Message, "OK");
+            await this.ShowAlertAsync("Not possible", ex.Message, "OK");
         }
         finally
         {

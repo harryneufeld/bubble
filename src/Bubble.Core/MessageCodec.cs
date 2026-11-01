@@ -23,8 +23,13 @@ public static class MessageCodec
 
         var id = Base64Url.Encode(Crypto.RandomBytes(16));
         var ciphertext = Crypto.Seal(bubble.ContentKey, signed, Aad(bubble, id));
-        return new RelayMessageIn(id, Convert.ToBase64String(ciphertext), message.ExpiresAt?.ToUnixTimeSeconds());
+        var parent = message.Kind is MessageKind.Like or MessageKind.Comment or MessageKind.PostLifetimeChanged ? message.TargetId : null;
+        return new RelayMessageIn(id, Convert.ToBase64String(ciphertext), message.ExpiresAt?.ToUnixTimeSeconds(),
+            SecretHash(author.MessageSecret(id)), parent);
     }
+
+    /// <summary>What the relay stores to recognize the author later (Base64 of SHA-256 of the secret).</summary>
+    public static string SecretHash(string secret) => Convert.ToBase64String(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(secret)));
 
     /// <summary>Returns null if the message cannot be decrypted or verified.</summary>
     public static BubbleMessage? Decrypt(BubbleMembership bubble, RelayMessageOut raw)

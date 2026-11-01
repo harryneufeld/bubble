@@ -3,7 +3,11 @@ using System.Security.Cryptography;
 namespace Bubble.Core;
 
 /// <summary>A decrypted post as the feed shows it. <see cref="Id"/> is the message ID on the relay.</summary>
-public sealed record FeedPost(string Id, BubbleMessage Message, bool IsMine);
+public sealed record FeedPost(string Id, BubbleMessage Message, bool IsMine)
+{
+    /// <summary>When the post disappears, after the author's changes and the bubble's maximum. Null = stays.</summary>
+    public DateTimeOffset? ExpiresAt { get; init; } = Message.ExpiresAt;
+}
 
 /// <summary>A member as they last described themselves in a Profile message.</summary>
 public sealed record Member(string Key, string Name, byte[]? Avatar, string? Bio, bool IsMe);
@@ -23,6 +27,9 @@ public sealed class BubbleSnapshot(
     Dictionary<string, List<Comment>> comments)
 {
     public IReadOnlyList<FeedPost> Posts => posts;
+
+    /// <summary>My own member key.</summary>
+    public string MyKey => myKey;
     public IReadOnlyList<Member> Members => members;
 
     /// <summary>True if the owner removed me from this bubble (the key was rotated without me).</summary>
@@ -57,7 +64,7 @@ public sealed class BubbleSnapshot(
 /// The logic of a bubble: load the feed, post, hearts and comments, change the lifetime, share the profile,
 /// remove members. Platform independent so the app and the tests use the same code.
 /// </summary>
-public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor, TimeProvider? time = null)
+public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor, TimeProvider? time = null, IMessageCache? cache = null)
 {
     public const int MaxCommentLength = 500;
     const int MaxRotationHops = 8;
@@ -82,9 +89,19 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
         }
     }
 
+    /// <summary>What the bubble looked like when it was last loaded, without asking the relay. Null if nothing is cached.</summary>
+    public async Task<BubbleSnapshot?> LoadCachedAsync(BubbleMembership bubble, CancellationToken ct = default) =>
+        cache?.Load(bubble.MailboxId) is { } raw ? (await BuildAsync(bubble, raw, sync: false, ct)).Snapshot : null;
+
     async Task<(BubbleSnapshot? Snapshot, byte[]? NewKey)> LoadOnceAsync(BubbleMembership bubble, CancellationToken ct)
     {
         var raw = await relayFor(bubble.RelayUrl).GetMessagesAsync(bubble.MailboxId, ct: ct);
+        cache?.Save(bubble.MailboxId, raw);
+        return await BuildAsync(bubble, raw, sync: true, ct);
+    }
+
+    async Task<(BubbleSnapshot? Snapshot, byte[]? NewKey)> BuildAsync(BubbleMembership bubble, List<RelayMessageOut> raw, bool sync, CancellationToken ct)
+    {
         var messages = raw
             .Select(r => (r.Id, Message: MessageCodec.Decrypt(bubble, r)))
             .Where(x => x.Message is not null)
@@ -106,15 +123,24 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
             }
         }
 
-        var lastSetting = messages.Select(m => m.Message).Where(m => m.Kind == MessageKind.LifetimeChanged).MaxBy(m => m.CreatedAt);
+        // Only the owner sets the maximum (bubbles from before owners existed: any member).
+        var lastSetting = messages.Select(m => m.Message)
+            .Where(m => m.Kind == MessageKind.LifetimeChanged && (bubble.OwnerKey is null || m.AuthorKey == bubble.OwnerKey))
+            .MaxBy(m => m.CreatedAt);
         if (lastSetting is not null) bubble.Lifetime = lastSetting.Lifetime;
 
         var now = _time.GetUtcNow();
+        var changes = messages.Select(m => m.Message).Where(m => m.Kind == MessageKind.PostLifetimeChanged && m.TargetId is not null).ToList();
         var posts = messages
-            .Where(m => m.Message.Kind == MessageKind.Post && (m.Message.ExpiresAt is null || m.Message.ExpiresAt > now))
-            .OrderByDescending(m => m.Message.CreatedAt)
-            .Select(m => new FeedPost(m.Id, m.Message, m.Message.AuthorKey == _identity.PublicKey))
+            .Where(m => m.Message.Kind == MessageKind.Post)
+            .Select(m => new FeedPost(m.Id, m.Message, m.Message.AuthorKey == _identity.PublicKey)
+            {
+                ExpiresAt = EffectiveExpiry(m.Id, m.Message, changes, bubble.Lifetime, lastSetting?.CreatedAt),
+            })
+            .Where(p => p.ExpiresAt is null || p.ExpiresAt > now)
+            .OrderByDescending(p => p.Message.CreatedAt)
             .ToList();
+        if (sync) await SyncExpiryAsync(bubble, posts, raw.ToDictionary(r => r.Id, r => r.ExpiresAt), ct);
         var postIds = posts.Select(p => p.Id).ToHashSet();
 
         // Members: whoever sent a profile or shared something, unless their latest message says they left; the newest details win.
@@ -151,6 +177,34 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
         return (new BubbleSnapshot(posts, members, _identity.PublicKey, likes, comments) { Removed = removed }, null);
     }
 
+    /// <summary>
+    /// The author's latest change wins over what the post was shared with. If the bubble allows only 24h,
+    /// a permanent post disappears 24h after the owner set that (or after the post, if that is later).
+    /// </summary>
+    static DateTimeOffset? EffectiveExpiry(string id, BubbleMessage post, List<BubbleMessage> changes, PostLifetime max, DateTimeOffset? maxSince)
+    {
+        var change = changes
+            .Where(c => c.TargetId == id && c.AuthorKey == post.AuthorKey && c.CreatedAt >= post.CreatedAt)
+            .MaxBy(c => c.CreatedAt);
+        var lifetime = change?.Lifetime ?? post.Lifetime;
+        var since = change?.CreatedAt ?? post.CreatedAt;
+        if (lifetime == PostLifetime.Story24h) return since.AddHours(24);
+        if (max == PostLifetime.Persistent) return null;
+        return (maxSince is { } s && s > since ? s : since).AddHours(24);
+    }
+
+    /// <summary>Brings the relay's expiry of my own posts in line with what the rules above say. Best effort.</summary>
+    async Task SyncExpiryAsync(BubbleMembership bubble, List<FeedPost> posts, Dictionary<string, long?> onRelay, CancellationToken ct)
+    {
+        foreach (var post in posts.Where(p => p.IsMine))
+        {
+            var wanted = post.ExpiresAt?.ToUnixTimeSeconds();
+            if (!onRelay.TryGetValue(post.Id, out var current) || current == wanted) continue;
+            try { await relayFor(bubble.RelayUrl).SetExpiryAsync(bubble.MailboxId, post.Id, _identity.MessageSecret(post.Id), post.ExpiresAt, ct); }
+            catch (HttpRequestException) { /* messages from older versions cannot be changed; the next load tries again */ }
+        }
+    }
+
     static bool HasLeft(List<BubbleMessage> byAuthor)
     {
         var left = byAuthor.Where(m => m.Kind == MessageKind.Left).Select(m => m.CreatedAt).DefaultIfEmpty().Max();
@@ -160,8 +214,12 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
     public async Task<IReadOnlyList<FeedPost>> LoadFeedAsync(BubbleMembership bubble, CancellationToken ct = default) =>
         (await LoadAsync(bubble, ct)).Posts;
 
-    /// <summary>Shares a highlight with an emoji for the feeling. There is no daily limit.</summary>
-    public async Task PostAsync(BubbleMembership bubble, string? emoji, string? text, byte[]? image, CancellationToken ct = default)
+    /// <summary>
+    /// Shares a highlight with an emoji for the feeling. There is no daily limit. The post lasts as long as
+    /// <paramref name="lifetime"/> says (default: what the bubble allows), but never longer than the bubble allows.
+    /// </summary>
+    public async Task PostAsync(BubbleMembership bubble, string? emoji, string? text, byte[]? image,
+        PostLifetime? lifetime = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(text) && image is null)
             throw new ArgumentException("A post needs text or an image.");
@@ -172,7 +230,8 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
             AuthorKey = _identity.PublicKey,
             AuthorName = vault.DisplayName,
             CreatedAt = _time.GetUtcNow(),
-            Lifetime = bubble.Lifetime,
+            Lifetime = (lifetime ?? bubble.Lifetime) == PostLifetime.Story24h || bubble.Lifetime == PostLifetime.Story24h
+                ? PostLifetime.Story24h : PostLifetime.Persistent,
             Emoji = string.IsNullOrWhiteSpace(emoji) ? null : emoji.Trim(),
             Text = string.IsNullOrWhiteSpace(text) ? null : text.Trim(),
             Image = image,
@@ -192,7 +251,7 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
             Lifetime = PostLifetime.Persistent,
             TargetId = post.Id,
             Active = liked,
-            TargetExpiresAt = post.Message.ExpiresAt,
+            TargetExpiresAt = post.ExpiresAt,
         }, ct);
     }
 
@@ -214,20 +273,56 @@ public sealed class BubbleClient(Vault vault, Func<string, RelayClient> relayFor
             Lifetime = PostLifetime.Persistent,
             TargetId = post.Id,
             Text = text,
-            TargetExpiresAt = post.Message.ExpiresAt,
+            TargetExpiresAt = post.ExpiresAt,
         }, ct);
         return new Comment(id, _identity.PublicKey, vault.DisplayName, createdAt, text);
     }
 
     void EnsureOpen(FeedPost post)
     {
-        if (post.Message.ExpiresAt is { } expires && expires <= _time.GetUtcNow())
+        if (post.ExpiresAt is { } expires && expires <= _time.GetUtcNow())
             throw new InvalidOperationException("This highlight has already disappeared.");
     }
 
-    /// <summary>Changes the lifetime for future posts. Existing posts keep their rule.</summary>
+    /// <summary>
+    /// The author makes one of their posts permanent or lets it disappear 24 hours from now.
+    /// Permanent only works if the bubble allows it.
+    /// </summary>
+    public async Task SetPostLifetimeAsync(BubbleMembership bubble, FeedPost post, PostLifetime lifetime, CancellationToken ct = default)
+    {
+        if (!post.IsMine) throw new InvalidOperationException("Only the author can change a highlight.");
+        EnsureOpen(post);
+        if (lifetime == PostLifetime.Persistent && bubble.Lifetime == PostLifetime.Story24h)
+            throw new InvalidOperationException("This bubble does not keep highlights permanently.");
+
+        var now = _time.GetUtcNow();
+        DateTimeOffset? expires = lifetime == PostLifetime.Story24h ? now.AddHours(24) : null;
+        await SendAsync(bubble, new BubbleMessage
+        {
+            Kind = MessageKind.PostLifetimeChanged,
+            AuthorKey = _identity.PublicKey,
+            AuthorName = vault.DisplayName,
+            CreatedAt = now,
+            Lifetime = lifetime,
+            TargetId = post.Id,
+            TargetExpiresAt = expires,
+        }, ct);
+        try { await relayFor(bubble.RelayUrl).SetExpiryAsync(bubble.MailboxId, post.Id, _identity.MessageSecret(post.Id), expires, ct); }
+        catch (HttpRequestException) { /* the next load brings the relay in line */ }
+    }
+
+    /// <summary>The author removes their highlight for everyone, including its hearts and comments.</summary>
+    public async Task DeletePostAsync(BubbleMembership bubble, FeedPost post, CancellationToken ct = default)
+    {
+        if (!post.IsMine) throw new InvalidOperationException("Only the author can delete a highlight.");
+        await relayFor(bubble.RelayUrl).DeleteMessageAsync(bubble.MailboxId, post.Id, _identity.MessageSecret(post.Id), ct);
+    }
+
+    /// <summary>Sets the longest lifetime posts in the bubble may have. Owner only; posts that last longer end 24 hours later.</summary>
     public async Task SetLifetimeAsync(BubbleMembership bubble, PostLifetime lifetime, CancellationToken ct = default)
     {
+        if (bubble.OwnerKey is { } owner && owner != _identity.PublicKey)
+            throw new InvalidOperationException("Only the owner of the bubble can change this.");
         await SendAsync(bubble, new BubbleMessage
         {
             Kind = MessageKind.LifetimeChanged,

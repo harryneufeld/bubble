@@ -52,7 +52,7 @@ public partial class OnboardingPage : ContentPage
         }
         catch (InvalidDataException)
         {
-            await DisplayAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
+            await this.ShowAlertAsync("Photo not readable", "Unfortunately this image format is not supported.", "OK");
         }
     }
 
@@ -71,12 +71,12 @@ public partial class OnboardingPage : ContentPage
     {
         if (!AccountService.TryNormalizeRelayUrl(input, out var url))
         {
-            await DisplayAlertAsync("Invalid server address", "Example: 192.168.1.20:5080", "OK");
+            await this.ShowAlertAsync("Invalid server address", "Example: 192.168.1.20:5080", "OK");
             return false;
         }
         if (!await AccountService.IsReachableAsync(url))
         {
-            await DisplayAlertAsync("Server not reachable", $"No Bubble relay answers at {Labels.Host(url)}. Check the address under “Change server”.", "OK");
+            await this.ShowAlertAsync("Server not reachable", $"No Bubble relay answers at {Labels.Host(url)}. Check the address under “Change server”.", "OK");
             return false;
         }
         AccountService.DefaultRelayUrl = url;
@@ -87,7 +87,7 @@ public partial class OnboardingPage : ContentPage
     {
         if (string.IsNullOrWhiteSpace(NameEntry.Text))
         {
-            await DisplayAlertAsync("Name missing", "What should your people call you?", "OK");
+            await this.ShowAlertAsync("Name missing", "What should your people call you?", "OK");
             NameEntry.Focus();
             return;
         }
@@ -109,15 +109,15 @@ public partial class OnboardingPage : ContentPage
                 if (await _account.RestoreAsync(CodeEntry.Text ?? ""))
                     await Shell.Current.GoToAsync("..");
                 else
-                    await DisplayAlertAsync("Not found", $"There is no backup for this code on {Labels.Host(AccountService.DefaultRelayUrl)}. If your account was on another server, change the server first.", "OK");
+                    await this.ShowAlertAsync("Not found", $"There is no backup for this code on {Labels.Host(AccountService.DefaultRelayUrl)}. If your account was on another server, change the server first.", "OK");
             }
             catch (FormatException)
             {
-                await DisplayAlertAsync("Invalid code", "The code has 25 characters, e.g. ABCDE-12345-…", "OK");
+                await this.ShowAlertAsync("Invalid code", "The code has 25 characters, e.g. ABCDE-12345-…", "OK");
             }
             catch (HttpRequestException)
             {
-                await DisplayAlertAsync("No connection", $"{Labels.Host(AccountService.DefaultRelayUrl)} is not reachable right now.", "OK");
+                await this.ShowAlertAsync("No connection", $"{Labels.Host(AccountService.DefaultRelayUrl)} is not reachable right now.", "OK");
             }
         });
     }

@@ -211,44 +211,4 @@ public class PushRegistrarTests : IDisposable
 
         Assert.DoesNotContain("secret-device-token", _store.Value);
     }
-
-    [Fact]
-    public void PostNotifications_AnnounceOnlyNewPostsByOthers()
-    {
-        BubbleMessage Message(string author, string? text, DateTimeOffset at) => new()
-        {
-            Kind = MessageKind.Post, AuthorKey = author, AuthorName = author, CreatedAt = at,
-            Lifetime = PostLifetime.Story24h, Emoji = "🥳", Text = text,
-        };
-        var now = DateTimeOffset.UtcNow;
-        var snapshot = new BubbleSnapshot(
-            [
-                new FeedPost("new-2", Message("Ben", "Second\nline", now), false),
-                new FeedPost("new-1", Message("Anna", "First", now.AddMinutes(-5)), false),
-                new FeedPost("seen", Message("Anna", "Old", now.AddHours(-1)), false),
-                new FeedPost("mine", Message("Me", "Mine", now), true),
-            ],
-            [], "me", [], []);
-
-        var fresh = PostNotifications.NewPosts(snapshot, new HashSet<string> { "seen" });
-
-        Assert.Equal(["new-1", "new-2"], fresh.Select(p => p.Id));
-        Assert.Equal("Anna 🥳 First", PostNotifications.Describe(fresh[0]));
-        Assert.Equal("Ben 🥳 Second line", PostNotifications.Describe(fresh[1]));
-    }
-
-    [Fact]
-    public void PostNotifications_ShortenLongTexts()
-    {
-        var post = new FeedPost("x", new BubbleMessage
-        {
-            Kind = MessageKind.Post, AuthorKey = "a", AuthorName = "Anna", CreatedAt = DateTimeOffset.UtcNow,
-            Lifetime = PostLifetime.Story24h, Text = new string('w', 500),
-        }, false);
-
-        var line = PostNotifications.Describe(post);
-
-        Assert.True(line.Length <= 100);
-        Assert.EndsWith("…", line);
-    }
 }

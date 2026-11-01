@@ -35,6 +35,20 @@
                         <Switch x:Name="NotificationsSwitch" Grid.Column="2" Toggled="OnNotificationsToggled" VerticalOptions="Center"
                                 SemanticProperties.Description="Notifications" />
                     </Grid>
+                    <VerticalStackLayout x:Name="NotificationKindsList" Padding="50,0,14,8" Spacing="0" IsVisible="False">
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                            <Label Text="New highlights" Style="{StaticResource SoftText}" VerticalOptions="Center" />
+                            <Switch x:Name="PostsSwitch" Grid.Column="1" Toggled="OnKindToggled" SemanticProperties.Description="Notify about new highlights" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                            <Label Text="Hearts on your highlights" Style="{StaticResource SoftText}" VerticalOptions="Center" />
+                            <Switch x:Name="HeartsSwitch" Grid.Column="1" Toggled="OnKindToggled" SemanticProperties.Description="Notify about hearts on your highlights" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                            <Label Text="Comments on your highlights" Style="{StaticResource SoftText}" VerticalOptions="Center" />
+                            <Switch x:Name="CommentsSwitch" Grid.Column="1" Toggled="OnKindToggled" SemanticProperties.Description="Notify about comments on your highlights" />
+                        </Grid>
+                    </VerticalStackLayout>
                     <BoxView x:Name="NotificationsDivider" Style="{StaticResource Divider}" Margin="14,0" IsVisible="False" />
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Padding="14,14">
                         <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnServer" /></Grid.GestureRecognizers>

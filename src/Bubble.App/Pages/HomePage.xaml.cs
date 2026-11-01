@@ -36,10 +36,25 @@ public partial class HomePage : ContentPage
             await Shell.Current.GoToAsync(nameof(OnboardingPage));
             return;
         }
+        _feed.Refreshed -= OnFeedRefreshed;
+        _feed.Refreshed += OnFeedRefreshed;
         Render(); // immediately, with whatever is already loaded
         ShareInbox.MarkReady();
+        await _feed.LoadCachedAsync(); // last known posts right away, also without a connection
+        Render();
         await LoadAsync();
     }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _feed.Refreshed -= OnFeedRefreshed;
+    }
+
+    void OnFeedRefreshed() => MainThread.BeginInvokeOnMainThread(() =>
+    {
+        if (_account.Vault is not null) Render();
+    });
 
     async void OnRefreshing(object? sender, EventArgs e) => await LoadAsync();
 
@@ -52,7 +67,7 @@ public partial class HomePage : ContentPage
             if (_account.Vault!.Bubbles.Count > 0) await _feed.RefreshAsync();
             Render();
             foreach (var name in _feed.TakeRemoved())
-                await DisplayAlertAsync("Removed from bubble", $"The creator removed you from “{name}”.", "OK");
+                await this.ShowAlertAsync("Removed from bubble", $"The creator removed you from “{name}”.", "OK");
         }
         finally
         {
@@ -153,7 +168,7 @@ public partial class HomePage : ContentPage
     {
         if (_account.Vault!.Bubbles.Count == 0)
         {
-            await DisplayAlertAsync("No bubble yet", "Create a bubble first or join one.", "OK");
+            await this.ShowAlertAsync("No bubble yet", "Create a bubble first or join one.", "OK");
             return;
         }
         await Shell.Current.GoToAsync(nameof(ComposePage));
