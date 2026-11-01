@@ -385,6 +385,7 @@ public partial class EditorPage : ContentPage
                 Tool("🖼️", "Photo", () => _ = AddPhotoAsync());
                 Tool("🔤", "Text", () => EditText(null, isNew: true));
                 Tool("🔷", "Shape", () => _ = AddShapeAsync());
+                Tool("✨", "Icons", () => _ = AddIconAsync());
                 Tool("🎨", "Background", () => TogglePanel(Panel.Background), _panel == Panel.Background);
                 Tool("🧩", "Templates", () => _ = ChooseTemplateAsync());
                 break;
@@ -696,6 +697,23 @@ public partial class EditorPage : ContentPage
         Checkpoint();
         _design.Layers.Add(shape);
         Select(shape);
+    }
+
+    /// <summary>Flat icons: they are shapes, so color, gradient, size and rotation work as usual.</summary>
+    async Task AddIconAsync()
+    {
+        var items = IconShapes.All
+            .Select(i => (i.Name, (ImageSource)ImageSource.FromStream(() => new MemoryStream(IconShapes.Preview(i.Kind, 128, SKColors.White)))))
+            .ToList();
+        if (await SheetPage.ChooseGridAsync(this, "Add icon", null, items) is not { } index) return;
+        var icon = new ShapeLayer
+        {
+            Kind = IconShapes.All[index].Kind, X = Design.Width / 2, Y = _design.Height / 2,
+            Width = 400, Height = 400, Gradient = true,
+        };
+        Checkpoint();
+        _design.Layers.Add(icon);
+        Select(icon);
     }
 
     async Task ChooseTemplateAsync()

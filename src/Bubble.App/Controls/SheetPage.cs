@@ -148,6 +148,57 @@ public sealed class SheetPage : ContentPage
         return problem ? "⚠️" : "💬";
     }
 
+    /// <summary>Choice from a grid of pictures with a caption each (e.g. icons): index of the chosen one, or null if cancelled.</summary>
+    public static async Task<int?> ChooseGridAsync(Page host, string title, string? message, IReadOnlyList<(string Name, ImageSource Image)> items, int columns = 4)
+    {
+        SheetPage? sheet = null;
+        var grid = new Grid { ColumnSpacing = 8, RowSpacing = 8, Margin = new Thickness(0, 8, 0, 0) };
+        for (var c = 0; c < columns; c++) grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+        for (var i = 0; i < items.Count; i++)
+        {
+            var index = i;
+            if (i % columns == 0) grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            var cell = new Border
+            {
+                BackgroundColor = Res<Color>("SurfaceRaised"),
+                StrokeShape = new RoundRectangle { CornerRadius = 16 },
+                StrokeThickness = 0,
+                Padding = new Thickness(6, 10),
+                Content = new VerticalStackLayout
+                {
+                    Spacing = 6,
+                    Children =
+                    {
+                        new Image { Source = items[i].Image, HeightRequest = 44, WidthRequest = 44, HorizontalOptions = LayoutOptions.Center },
+                        new Label
+                        {
+                            Text = items[i].Name, FontSize = 11, FontFamily = "BodyMedium", HorizontalTextAlignment = TextAlignment.Center,
+                            TextColor = Res<Color>("InkSoft"), LineBreakMode = LineBreakMode.TailTruncation,
+                        },
+                    },
+                },
+            };
+            SemanticProperties.SetDescription(cell, items[i].Name);
+            cell.GestureRecognizers.Add(new TapGestureRecognizer
+            {
+                Command = new Command(async () =>
+                {
+                    await cell.ScaleToAsync(0.94, 70);
+                    await cell.ScaleToAsync(1, 70);
+                    _ = sheet!.CloseAsync(index);
+                }),
+            });
+            grid.Add(cell, i % columns, i / columns);
+        }
+
+        var body = new VerticalStackLayout { Spacing = 10 };
+        body.Add(grid);
+        body.Add(Ghost("Cancel", () => _ = sheet!.CloseAsync(null)));
+        sheet = new SheetPage(title, message, body, null);
+        await host.Navigation.PushModalAsync(sheet, false);
+        return await sheet.Result as int?;
+    }
+
     /// <summary>Text input: the entered text, or null if cancelled.</summary>
     public static async Task<string?> PromptAsync(Page host, string title, string? message, string confirmText,
         string? placeholder = null, string? initialValue = null, int maxLength = 80, Keyboard? keyboard = null)

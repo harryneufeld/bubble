@@ -374,6 +374,7 @@ public static class DesignRenderer
 
     static SKPath ShapePath(ShapeKind kind, SKRect box)
     {
+        if (IconShapes.IsIcon(kind)) return IconShapes.PathIn(kind, box);
         var path = new SKPath();
         float cx = box.MidX, cy = box.MidY, rx = box.Width / 2, ry = box.Height / 2;
         switch (kind)

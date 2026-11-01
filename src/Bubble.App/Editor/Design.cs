@@ -104,7 +104,12 @@ public sealed class TextLayer : Layer
     public override float BaseHeight => Measured.Height;
 }
 
-public enum ShapeKind { Rectangle, Circle, Blob, Heart, Star, Line, Arrow }
+public enum ShapeKind
+{
+    Rectangle, Circle, Blob, Heart, Star, Line, Arrow,
+    // Flat icons (see IconShapes); new ones go to the end so saved designs keep their meaning.
+    Sun, Moon, Cloud, Bolt, Flower, Tree, Flame, Sparkle, Smiley, Speech, Crown, Note, Camera, Pin, Home, Coffee,
+}
 
 public sealed class ShapeLayer : Layer
 {
