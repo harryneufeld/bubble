@@ -65,11 +65,13 @@ public sealed class FcmSender : IWakeSender
             using var response = await _http.SendAsync(request, ct);
 
             if (response.IsSuccessStatusCode) return WakeResult.Sent;
-            if (response.StatusCode == HttpStatusCode.NotFound) return WakeResult.Gone; // UNREGISTERED
-            if (response.StatusCode == HttpStatusCode.BadRequest && (await response.Content.ReadAsStringAsync(ct)).Contains("INVALID_ARGUMENT"))
-                return WakeResult.Gone; // not a valid token at all
 
-            _logger.LogWarning("FCM answered {Status}", (int)response.StatusCode);
+            // FCM's error reply names the reason (e.g. UNREGISTERED, INVALID_ARGUMENT, SENDER_ID_MISMATCH) and holds no token.
+            var reply = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogWarning("FCM answered {Status}: {Reply}", (int)response.StatusCode, reply.Length > 400 ? reply[..400] : reply);
+            if (response.StatusCode == HttpStatusCode.NotFound) return WakeResult.Gone; // UNREGISTERED
+            if (response.StatusCode == HttpStatusCode.BadRequest && reply.Contains("INVALID_ARGUMENT"))
+                return WakeResult.Gone; // not a valid token at all
             return WakeResult.Failed;
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or Google.GoogleApiException or InvalidOperationException && !ct.IsCancellationRequested)
