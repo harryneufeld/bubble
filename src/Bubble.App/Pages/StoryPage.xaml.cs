@@ -89,22 +89,9 @@ public partial class StoryPage : ContentPage
         MoodLabel.Text = Labels.Feeling(m);
         MoodChip.IsVisible = MoodLabel.Text.Length > 0;
 
-        if (m.Image is { } bytes)
-        {
-            StoryImage.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
-            StoryImage.IsVisible = true;
-            TextStage.IsVisible = false;
-            Caption.Text = m.Text;
-            Caption.IsVisible = m.Text is not null;
-        }
-        else
-        {
-            StoryImage.IsVisible = false;
-            TextStage.IsVisible = true;
-            TextStage.Background = Gradients.For(story.Post.Id);
-            StoryText.Text = m.Text;
-            Caption.IsVisible = false;
-        }
+        Polaroid.Show(_current);
+        Caption.Text = m.Text;
+        Caption.IsVisible = m.Image is not null && m.Text is not null;
         SemanticScreenReader.Announce($"{AuthorLabel.Text}: {m.Text}");
     }
 

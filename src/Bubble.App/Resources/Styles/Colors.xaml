@@ -27,6 +27,10 @@
     <Color x:Key="OnCta">#FFFFFF</Color>
     <Color x:Key="Accent">#B9A2FF</Color>
 
+    <!-- Prints and polaroids -->
+    <Color x:Key="Paper">#F3EEE3</Color>
+    <Color x:Key="PaperInk">#2A2633</Color>
+
     <!-- Semantik -->
     <Color x:Key="Error">#FF5A6E</Color>
     <Color x:Key="Success">#4ADE80</Color>

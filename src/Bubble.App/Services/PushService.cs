@@ -18,8 +18,20 @@ public sealed class PushService(AccountService account)
     /// <summary>Whether this build can do push at all (it needs the Firebase settings from push.props).</summary>
     public static bool IsAvailable => PushPlatform.IsSupported();
 
-    /// <summary>Notifications are opt-in.</summary>
+    /// <summary>On by default (see <see cref="EnableByDefaultAsync"/>); whoever switches them off stays off.</summary>
     public static bool IsEnabled => IsAvailable && Preferences.Default.Get(EnabledKey, false);
+
+    /// <summary>
+    /// The first time there is an account: asks the system for permission and switches notifications on.
+    /// Only a refused permission switches them off for good; if a server can't be reached, the next sync tries again.
+    /// </summary>
+    public async Task EnableByDefaultAsync()
+    {
+        if (!IsAvailable || Preferences.Default.ContainsKey(EnabledKey)) return;
+        var allowed = await PushPlatform.RequestNotificationPermissionAsync();
+        Preferences.Default.Set(EnabledKey, allowed);
+        if (allowed) await SyncAsync();
+    }
 
     /// <summary>Call once when the app starts.</summary>
     public void Start()

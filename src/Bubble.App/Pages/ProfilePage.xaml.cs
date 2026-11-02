@@ -40,25 +40,34 @@ public partial class ProfilePage : ContentPage
         CommentsSwitch.IsToggled = NotificationPreferences.IsOn(NotificationKind.Comment);
         NotificationKindsList.IsVisible = PushService.IsEnabled;
         _settingSwitch = false;
-        VersionLabel.Text = $"Version {AppInfo.Current.VersionString} ({AppInfo.Current.BuildString})";
+        VersionLabel.Text = $"Version {AppInfo.Current.VersionString}, credits and links";
+        ShowHomeMode();
     }
 
-    async void OnGitHub(object? sender, TappedEventArgs e) => await OpenAsync("https://github.com/harryneufeld/bubble");
+    async void OnAbout(object? sender, TappedEventArgs e) => await Shell.Current.GoToAsync(nameof(AboutPage));
 
-    async void OnWebsite(object? sender, TappedEventArgs e) => await OpenAsync("https://harry-neufeld.de");
+    void OnClassicMode(object? sender, TappedEventArgs e) => SetHomeMode(HomeLayout.Classic);
 
-    async Task OpenAsync(string url)
+    void OnBoxMode(object? sender, TappedEventArgs e) => SetHomeMode(HomeLayout.Box);
+
+    void SetHomeMode(HomeLayout layout)
     {
-        try
-        {
-            if (!await Launcher.Default.OpenAsync(new Uri(url)))
-                await this.ShowAlertAsync("Link not opened", $"Please open {url} in your browser yourself.", "OK");
-        }
-        catch (Exception)
-        {
-            // no browser found or not allowed
-            await this.ShowAlertAsync("Link not opened", $"Please open {url} in your browser yourself.", "OK");
-        }
+        HomeMode.Current = layout;
+        ShowHomeMode();
+    }
+
+    void ShowHomeMode()
+    {
+        var box = HomeMode.Current == HomeLayout.Box;
+        Mark(ClassicOption, "Classic", !box);
+        Mark(BoxOption, "Box of memories", box);
+    }
+
+    static void Mark(Border option, string name, bool selected)
+    {
+        option.Stroke = (Color)Application.Current!.Resources[selected ? "Accent" : "Hairline"];
+        option.StrokeThickness = selected ? 2 : 1;
+        SemanticProperties.SetDescription(option, selected ? $"Home screen: {name}, selected" : $"Home screen: {name}");
     }
 
     async void OnEdit(object? sender, EventArgs e) => await Shell.Current.GoToAsync(nameof(ProfileEditPage));

@@ -34,8 +34,38 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, b
         ? Sources.GetValue(bytes, b => ImageSource.FromStream(() => new MemoryStream(b)))
         : null;
     static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], ImageSource> Sources = new();
+
+    /// <summary>A small copy for prints and cards. Empty until it is ready; the binding then gets it.</summary>
+    public ImageSource? Thumbnail
+    {
+        get
+        {
+            if (_thumbnail is null && !_loadingThumbnail && _m.Image is { Length: > 0 } photo)
+            {
+                _loadingThumbnail = true;
+                _ = LoadThumbnailAsync(photo);
+            }
+            return _thumbnail;
+        }
+    }
+    ImageSource? _thumbnail;
+    bool _loadingThumbnail;
+
+    async Task LoadThumbnailAsync(byte[] photo)
+    {
+        _thumbnail = await Thumbnails.ForAsync(photo);
+        MainThread.BeginInvokeOnMainThread(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumbnail))));
+    }
     public string ImageDescription => $"Photo by {AuthorName}";
     public Brush TextBackground { get; } = Gradients.For(item.Post.Id);
+
+    /// <summary>The handwriting on a polaroid: the caption, or who shared it and when if a text already fills the picture or there is none.</summary>
+    public string PolaroidCaption => HasCaption ? Text! : $"{AuthorFirstName}, {ShortDate}";
+    public string ThumbLabel => $"{AuthorFirstName} · {ShortDate}";
+    public string ThumbDescription => $"Highlight from {AuthorName}, {ShortDate}. {Text}";
+    string AuthorFirstName => item.Post.IsMine ? "You" : First(AuthorName);
+    string ShortDate => _m.CreatedAt.ToLocalTime().ToString(
+        _m.CreatedAt.ToLocalTime().Year == DateTime.Now.Year ? "d MMM" : "MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
 
     // ── Hearts and comments ──────────────────────────────
 

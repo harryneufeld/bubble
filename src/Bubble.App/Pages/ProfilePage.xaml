@@ -13,7 +13,45 @@
             <Label x:Name="StatsLabel" Style="{StaticResource CaptionText}" HorizontalTextAlignment="Center" />
             <Button Text="Edit profile" ImageSource="ic_edit.png" Clicked="OnEdit" Style="{StaticResource SecondaryButton}" HorizontalOptions="Center" Margin="0,4,0,12" />
 
-            <Label Text="Account" Style="{StaticResource SectionText}" />
+            <Label Text="Home screen" Style="{StaticResource SectionText}" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Border x:Name="ClassicOption" Style="{StaticResource Card}" Padding="10" StrokeShape="RoundRectangle 20">
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnClassicMode" /></Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10">
+                        <Border BackgroundColor="{StaticResource Canvas}" StrokeShape="RoundRectangle 12" HeightRequest="132" Padding="10" InputTransparent="True">
+                            <VerticalStackLayout Spacing="6">
+                                <HorizontalStackLayout Spacing="4">
+                                    <Ellipse WidthRequest="34" HeightRequest="34" Fill="{StaticResource BubbleGradient}" />
+                                    <Ellipse WidthRequest="24" HeightRequest="24" Fill="{StaticResource Violet}" VerticalOptions="End" />
+                                    <Ellipse WidthRequest="16" HeightRequest="16" Fill="{StaticResource Cyan}" VerticalOptions="End" />
+                                </HorizontalStackLayout>
+                                <Border BackgroundColor="{StaticResource SurfaceRaised}" StrokeShape="RoundRectangle 8" HeightRequest="28" />
+                                <Border BackgroundColor="{StaticResource SurfaceRaised}" StrokeShape="RoundRectangle 8" HeightRequest="18" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Label Text="Classic" Style="{StaticResource HeadingText}" FontSize="15" />
+                        <Label Text="Tidy summaries of what was kept" Style="{StaticResource CaptionText}" FontSize="12" TextColor="{StaticResource InkSoft}" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Column="1" x:Name="BoxOption" Style="{StaticResource Card}" Padding="10" StrokeShape="RoundRectangle 20">
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnBoxMode" /></Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10">
+                        <Border BackgroundColor="{StaticResource Canvas}" StrokeShape="RoundRectangle 12" HeightRequest="132" InputTransparent="True">
+                            <Grid>
+                                <Ellipse WidthRequest="30" HeightRequest="30" Fill="{StaticResource BubbleGradient}" HorizontalOptions="Start" VerticalOptions="Start" Margin="10,8,0,0" />
+                                <Ellipse WidthRequest="20" HeightRequest="20" Fill="{StaticResource Violet}" HorizontalOptions="Start" VerticalOptions="Start" Margin="46,14,0,0" />
+                                <BoxView Color="{StaticResource Paper}" WidthRequest="44" HeightRequest="52" Rotation="-9" HorizontalOptions="Start" VerticalOptions="Start" Margin="8,48,0,0" />
+                                <BoxView Color="{StaticResource Paper}" WidthRequest="44" HeightRequest="52" Rotation="7" HorizontalOptions="Start" VerticalOptions="Start" Margin="60,42,0,0" />
+                                <BoxView Color="{StaticResource Paper}" WidthRequest="44" HeightRequest="52" Rotation="4" HorizontalOptions="Start" VerticalOptions="Start" Margin="30,88,0,0" />
+                            </Grid>
+                        </Border>
+                        <Label Text="Box of memories" Style="{StaticResource HeadingText}" FontSize="15" />
+                        <Label Text="Rummage through a pile of photos" Style="{StaticResource CaptionText}" FontSize="12" TextColor="{StaticResource InkSoft}" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <Label Text="Account" Style="{StaticResource SectionText}" Margin="0,12,0,0" />
             <Border Style="{StaticResource Card}" Padding="4">
                 <VerticalStackLayout>
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Padding="14,14">
@@ -71,41 +109,17 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Label Text="About Bubble" Style="{StaticResource SectionText}" Margin="0,12,0,0" />
+            <Label Text="More" Style="{StaticResource SectionText}" Margin="0,12,0,0" />
             <Border Style="{StaticResource Card}" Padding="4">
-                <VerticalStackLayout>
-                    <VerticalStackLayout Padding="14,14,14,12" Spacing="2">
-                        <Label Text="Bubble" Style="{StaticResource HeadingText}" FontSize="16" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14" Padding="14,14">
+                    <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnAbout" /></Grid.GestureRecognizers>
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="About this app" Style="{StaticResource HeadingText}" FontSize="16" />
                         <Label x:Name="VersionLabel" Style="{StaticResource CaptionText}" />
-                        <Label Text="© 2026 Harry Neufeld" Style="{StaticResource CaptionText}" TextColor="{StaticResource InkSoft}" />
                     </VerticalStackLayout>
-                    <BoxView Style="{StaticResource Divider}" Margin="14,0" />
-                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Padding="14,14"
-                          SemanticProperties.Description="Bubble on GitHub" SemanticProperties.Hint="Opens the browser">
-                        <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnGitHub" /></Grid.GestureRecognizers>
-                        <Image Source="ic_link.png" WidthRequest="22" HeightRequest="22" />
-                        <VerticalStackLayout Grid.Column="1" Spacing="2">
-                            <Label Text="Source code on GitHub" Style="{StaticResource HeadingText}" FontSize="16" />
-                            <Label Text="github.com/harryneufeld/bubble" Style="{StaticResource CaptionText}" />
-                        </VerticalStackLayout>
-                        <Image Grid.Column="2" Source="ic_chevron.png" WidthRequest="18" HeightRequest="18" Opacity="0.6" />
-                    </Grid>
-                    <BoxView Style="{StaticResource Divider}" Margin="14,0" />
-                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Padding="14,14"
-                          SemanticProperties.Description="Harry Neufeld's website" SemanticProperties.Hint="Opens the browser">
-                        <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnWebsite" /></Grid.GestureRecognizers>
-                        <Image Source="ic_link.png" WidthRequest="22" HeightRequest="22" />
-                        <VerticalStackLayout Grid.Column="1" Spacing="2">
-                            <Label Text="Website" Style="{StaticResource HeadingText}" FontSize="16" />
-                            <Label Text="harry-neufeld.de" Style="{StaticResource CaptionText}" />
-                        </VerticalStackLayout>
-                        <Image Grid.Column="2" Source="ic_chevron.png" WidthRequest="18" HeightRequest="18" Opacity="0.6" />
-                    </Grid>
-                </VerticalStackLayout>
+                    <Image Grid.Column="1" Source="ic_chevron.png" WidthRequest="18" HeightRequest="18" Opacity="0.6" />
+                </Grid>
             </Border>
-
-            <Label Style="{StaticResource CaptionText}" Margin="4,12,4,0" HorizontalTextAlignment="Center"
-                   Text="Bubble only stores encrypted data. Your key lives on this device – no account, no phone number." />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

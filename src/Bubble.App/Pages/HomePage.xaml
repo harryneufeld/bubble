@@ -7,76 +7,134 @@
              x:DataType="pages:HomePage"
              Shell.NavBarIsVisible="False"
              Title="Today">
-    <RefreshView x:Name="Refresher" Refreshing="OnRefreshing">
-        <CollectionView x:Name="Feed" SelectionMode="None" MaximumWidthRequest="600">
-            <CollectionView.Header>
-                <VerticalStackLayout Spacing="4" Padding="0,12,0,8">
-                    <!-- Kopfzeile -->
-                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="16,4">
-                        <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-                            <Label Text="bubble" Style="{StaticResource Wordmark}" />
-                            <Ellipse WidthRequest="9" HeightRequest="9" Fill="{StaticResource BubbleGradient}" VerticalOptions="End" Margin="0,0,0,9" />
-                        </HorizontalStackLayout>
-                        <ImageButton Grid.Column="1" Source="ic_scan.png" Style="{StaticResource IconButton}" Clicked="OnJoin"
-                                     SemanticProperties.Description="Join bubble" ToolTipProperties.Text="Join bubble" />
-                        <ImageButton Grid.Column="2" Source="ic_plus.png" Style="{StaticResource IconButton}" Clicked="OnCompose"
-                                     Background="{StaticResource CtaGradient}"
-                                     SemanticProperties.Description="Share highlight" ToolTipProperties.Text="Share highlight" />
-                    </Grid>
+    <Grid RowDefinitions="Auto,Auto,*" MaximumWidthRequest="600">
+        <!-- Kopfzeile -->
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="16,16,16,4">
+            <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                <Label Text="bubble" Style="{StaticResource Wordmark}" />
+                <Ellipse WidthRequest="9" HeightRequest="9" Fill="{StaticResource BubbleGradient}" VerticalOptions="End" Margin="0,0,0,9" />
+            </HorizontalStackLayout>
+            <ImageButton Grid.Column="1" Source="ic_scan.png" Style="{StaticResource IconButton}" Clicked="OnJoin"
+                         SemanticProperties.Description="Join bubble" ToolTipProperties.Text="Join bubble" />
+            <ImageButton Grid.Column="2" Source="ic_plus.png" Style="{StaticResource IconButton}" Clicked="OnCompose"
+                         Background="{StaticResource CtaGradient}"
+                         SemanticProperties.Description="Share highlight" ToolTipProperties.Text="Share highlight" />
+        </Grid>
 
-                    <!-- Stories -->
-                    <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" HeightRequest="112" Margin="0,8,0,0">
-                        <HorizontalStackLayout x:Name="StoriesRow" Spacing="14" Padding="16,0">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="pages:StoryRing">
-                                    <VerticalStackLayout Spacing="6" WidthRequest="76" SemanticProperties.Description="{Binding Description}">
-                                        <VerticalStackLayout.GestureRecognizers>
-                                            <TapGestureRecognizer Tapped="OnStoryTapped" CommandParameter="{Binding .}" />
-                                        </VerticalStackLayout.GestureRecognizers>
-                                        <controls:AvatarView Size="74" Image="{Binding Image}" Name="{Binding Name}" Ring="{Binding Ring}" ShowPlus="{Binding ShowPlus}" PlusTapped="OnPlusTapped" />
-                                        <Label Text="{Binding Title}" FontSize="12" FontFamily="BodyMedium" HorizontalTextAlignment="Center"
-                                               LineBreakMode="TailTruncation" TextColor="{Binding TitleColor}" />
+        <Border Grid.Row="1" x:Name="OfflineBar" Style="{StaticResource InfoBar}" Margin="16,8,16,0" IsVisible="False">
+            <Label x:Name="OfflineLabel" Style="{StaticResource SmallText}" />
+        </Border>
+
+        <!-- Classic: bubbles and tidy summaries per period -->
+        <RefreshView Grid.Row="2" x:Name="Refresher" Refreshing="OnRefreshing">
+            <ScrollView>
+                <VerticalStackLayout Padding="0,0,0,24">
+                    <Label x:Name="TodayLabel" Text="Today" Style="{StaticResource TitleText}" FontSize="20" Margin="16,8,16,0" />
+                    <ContentView x:Name="ClassicBubbles" />
+
+                    <VerticalStackLayout x:Name="Cards" Spacing="10" Padding="12,0">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="pages:DigestItem">
+                                <Border Style="{StaticResource Card}" Padding="0">
+                                    <VerticalStackLayout>
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Padding="16,14,14,14" MinimumHeightRequest="84"
+                                              SemanticProperties.Description="{Binding Description}">
+                                            <Grid.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnDigestTapped" CommandParameter="{Binding .}" />
+                                            </Grid.GestureRecognizers>
+                                            <VerticalStackLayout VerticalOptions="Center" Spacing="3">
+                                                <Label Text="{Binding Title}" Style="{StaticResource HeadingText}" FontSize="18" FontFamily="BodyBold" />
+                                                <Label Text="{Binding Summary}" Style="{StaticResource SmallText}" FontSize="13" />
+                                                <Label Text="{Binding Detail}" IsVisible="{Binding HasDetail}" FontSize="14" />
+                                            </VerticalStackLayout>
+                                            <HorizontalStackLayout Grid.Column="1" Spacing="-14" VerticalOptions="Center" BindableLayout.ItemsSource="{Binding Covers}" InputTransparent="True">
+                                                <BindableLayout.ItemTemplate>
+                                                    <DataTemplate x:DataType="pages:PostItem">
+                                                        <Border StrokeShape="RoundRectangle 12" Stroke="{StaticResource Surface}" StrokeThickness="2"
+                                                                WidthRequest="44" HeightRequest="56" Background="{Binding TextBackground}">
+                                                            <controls:FadeImage Source="{Binding Thumbnail}" Aspect="AspectFill" IsVisible="{Binding HasImage}" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </BindableLayout.ItemTemplate>
+                                            </HorizontalStackLayout>
+                                            <Image Grid.Column="2" Source="ic_chevron.png" WidthRequest="18" HeightRequest="18" Opacity="0.6" VerticalOptions="Center" Rotation="{Binding ChevronRotation}" />
+                                        </Grid>
+                                        <VerticalStackLayout IsVisible="{Binding IsOpen}" Padding="10,0,10,10" Spacing="6">
+                                            <FlexLayout Wrap="Wrap" JustifyContent="Start" BindableLayout.ItemsSource="{Binding Shown}">
+                                                <BindableLayout.ItemTemplate>
+                                                    <DataTemplate x:DataType="pages:PostItem">
+                                                        <controls:MemoryThumb FlexLayout.Basis="33.33%" Padding="3">
+                                                            <controls:MemoryThumb.GestureRecognizers>
+                                                                <TapGestureRecognizer Tapped="OnMemoryTapped" CommandParameter="{Binding .}" />
+                                                            </controls:MemoryThumb.GestureRecognizers>
+                                                        </controls:MemoryThumb>
+                                                    </DataTemplate>
+                                                </BindableLayout.ItemTemplate>
+                                            </FlexLayout>
+                                            <Button Text="{Binding OpenAllText}" Style="{StaticResource SecondaryButton}" Clicked="OnOpenAll" CommandParameter="{Binding .}" />
+                                        </VerticalStackLayout>
                                     </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout x:Name="EmptyState" Padding="24,20" Spacing="12" IsVisible="False">
+                        <Grid HeightRequest="150" WidthRequest="200" HorizontalOptions="Center">
+                            <Ellipse WidthRequest="120" HeightRequest="120" Fill="{StaticResource BubbleGradient}" Opacity="0.85" HorizontalOptions="Start" VerticalOptions="End" />
+                            <Ellipse WidthRequest="70" HeightRequest="70" Fill="{StaticResource CtaGradient}" HorizontalOptions="End" VerticalOptions="Start" Margin="0,4,18,0" />
+                            <Ellipse WidthRequest="26" HeightRequest="26" Fill="{StaticResource BubbleGradient}" Opacity="0.7" HorizontalOptions="End" VerticalOptions="End" Margin="0,0,46,18" />
+                        </Grid>
+                        <Label x:Name="EmptyTitle" Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
+                        <Label x:Name="EmptyText" Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
+                        <Button x:Name="EmptyAction" Clicked="OnEmptyAction" Margin="0,12,0,0" />
+                        <Button x:Name="EmptySecondary" Text="Enter invitation code" Clicked="OnJoin" Style="{StaticResource GhostButton}" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+
+        <!-- Box of memories: bubbles on top, a table of prints to push around below -->
+        <Grid Grid.Row="2" x:Name="BoxStage" RowDefinitions="Auto,*" IsVisible="False">
+            <ContentView x:Name="BoxBubbles" />
+            <Border Grid.Row="1" BackgroundColor="{StaticResource Surface}" Stroke="{StaticResource Hairline}" StrokeThickness="1" StrokeShape="RoundRectangle 28,28,0,0">
+                <Grid RowDefinitions="Auto,Auto,*">
+                    <Grid ColumnDefinitions="*,Auto,Auto" Padding="16,12,8,0">
+                        <Label Text="Box of memories" FontFamily="Display" FontSize="24" VerticalOptions="Center" />
+                        <Button Grid.Column="1" x:Name="BoxCount" Style="{StaticResource GhostButton}" FontSize="13" Clicked="OnOpenBox" SemanticProperties.Hint="Shows all of them as a list" />
+                        <Grid Grid.Column="2" WidthRequest="44" HeightRequest="44">
+                            <ImageButton x:Name="BoxRefresh" Source="ic_refresh.png" Style="{StaticResource IconButton}" BackgroundColor="Transparent" Clicked="OnBoxRefresh"
+                                         SemanticProperties.Description="Look for new memories" ToolTipProperties.Text="Look for new memories" />
+                            <ActivityIndicator x:Name="BoxLoading" WidthRequest="22" HeightRequest="22" IsVisible="False" />
+                        </Grid>
+                    </Grid>
+                    <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                        <HorizontalStackLayout x:Name="Chips" Spacing="6" Padding="16,0,16,6">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="pages:PeriodChip">
+                                    <Grid HeightRequest="44" SemanticProperties.Description="{Binding Description}">
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnChipTapped" CommandParameter="{Binding .}" />
+                                        </Grid.GestureRecognizers>
+                                        <Border StrokeShape="RoundRectangle 16" StrokeThickness="1" Padding="12,6" VerticalOptions="Center"
+                                                Stroke="{Binding BorderColor}" BackgroundColor="{Binding Fill}">
+                                            <HorizontalStackLayout Spacing="4">
+                                                <Label Text="{Binding Name}" FontFamily="BodyMedium" FontSize="13" TextColor="{Binding TextColor}" VerticalOptions="Center" />
+                                                <Image Source="ic_chevron.png" WidthRequest="12" HeightRequest="12" Rotation="90" Opacity="0.7" VerticalOptions="Center" IsVisible="{Binding HasMenu}" />
+                                            </HorizontalStackLayout>
+                                        </Border>
+                                    </Grid>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </HorizontalStackLayout>
                     </ScrollView>
-
-                    <Border x:Name="OfflineBar" Style="{StaticResource InfoBar}" Margin="16,8,16,0" IsVisible="False">
-                        <Label x:Name="OfflineLabel" Style="{StaticResource SmallText}" />
-                    </Border>
-
-                    <Label x:Name="FeedTitle" Text="Highlights" Style="{StaticResource TitleText}" Margin="16,16,16,4" />
-                </VerticalStackLayout>
-            </CollectionView.Header>
-
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="pages:PostItem">
-                    <controls:PostCard Margin="12,0">
-                        <controls:PostCard.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnPostTapped" CommandParameter="{Binding .}" />
-                        </controls:PostCard.GestureRecognizers>
-                    </controls:PostCard>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-
-            <CollectionView.EmptyView>
-                <VerticalStackLayout x:Name="EmptyState" Padding="24,32" Spacing="12">
-                    <Grid HeightRequest="150" WidthRequest="200" HorizontalOptions="Center">
-                        <Ellipse WidthRequest="120" HeightRequest="120" Fill="{StaticResource BubbleGradient}" Opacity="0.85" HorizontalOptions="Start" VerticalOptions="End" />
-                        <Ellipse WidthRequest="70" HeightRequest="70" Fill="{StaticResource CtaGradient}" HorizontalOptions="End" VerticalOptions="Start" Margin="0,4,18,0" />
-                        <Ellipse WidthRequest="26" HeightRequest="26" Fill="{StaticResource BubbleGradient}" Opacity="0.7" HorizontalOptions="End" VerticalOptions="End" Margin="0,0,46,18" />
-                    </Grid>
-                    <Label x:Name="EmptyTitle" Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
-                    <Label x:Name="EmptyText" Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
-                    <Button x:Name="EmptyAction" Clicked="OnEmptyAction" Margin="0,12,0,0" />
-                    <Button x:Name="EmptySecondary" Text="Enter invitation code" Clicked="OnJoin" Style="{StaticResource GhostButton}" />
-                </VerticalStackLayout>
-            </CollectionView.EmptyView>
-
-            <CollectionView.Footer>
-                <BoxView HeightRequest="24" Color="Transparent" />
-            </CollectionView.Footer>
-        </CollectionView>
-    </RefreshView>
+                    <controls:MemoryTable Grid.Row="2" x:Name="Table" MemoryTapped="OnTableMemoryTapped" />
+                    <VerticalStackLayout Grid.Row="2" x:Name="BoxEmpty" Padding="32,0" Spacing="8" VerticalOptions="Center" IsVisible="False">
+                        <Label x:Name="BoxEmptyTitle" Style="{StaticResource HeadingText}" HorizontalTextAlignment="Center" />
+                        <Label x:Name="BoxEmptyText" Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
 </ContentPage>

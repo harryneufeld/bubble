@@ -71,5 +71,29 @@ static class Labels
         return local.ToString("d MMM, HH:mm", System.Globalization.CultureInfo.InvariantCulture);
     }
 
+    /// <summary>"This week", "November", "2026", "Earlier".</summary>
+    public static string Period(MemoryPeriod period) => period switch
+    {
+        MemoryPeriod.Week => "This week",
+        MemoryPeriod.Month => DateTime.Now.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture),
+        MemoryPeriod.Year => DateTime.Now.Year.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        _ => "Earlier",
+    };
+
+    /// <summary>"This week", "This month", "October", "October 2025", "This year", "2025".</summary>
+    public static string Filter(MemoryFilter filter, DateTimeOffset now) => filter.Range switch
+    {
+        MemoryRange.Week => "This week",
+        MemoryRange.Month when filter.Year == now.Year && filter.Month == now.Month => "This month",
+        MemoryRange.Month when filter.Year == now.Year => MonthName(filter.Month),
+        MemoryRange.Month => $"{MonthName(filter.Month)} {filter.Year}",
+        _ when filter.Year == now.Year => "This year",
+        _ => filter.Year.ToString(System.Globalization.CultureInfo.InvariantCulture),
+    };
+
+    public static string MonthName(int month) => System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month);
+
+    public static string Highlights(int count) => count == 1 ? "1 highlight" : $"{count} highlights";
+
     public static string People(int count) => count == 1 ? "1 person" : $"{count} people";
 }

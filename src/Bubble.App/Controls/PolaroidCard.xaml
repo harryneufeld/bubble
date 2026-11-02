@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- An opened highlight: who shared it, the polaroid, heart bubble and comments -->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Bubble.App.Controls"
+             xmlns:pages="clr-namespace:Bubble.App.Pages"
+             x:Class="Bubble.App.Controls.PolaroidCard"
+             x:DataType="pages:PostItem">
+    <VerticalStackLayout Spacing="10" Margin="0,0,0,12">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Padding="2,8,2,0">
+            <controls:AvatarView Size="40" Image="{Binding AuthorAvatar}" Name="{Binding AuthorName}" />
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="1">
+                <Label Text="{Binding Author}" Style="{StaticResource HeadingText}" FontSize="15" />
+                <Label Text="{Binding Meta}" Style="{StaticResource CaptionText}" LineBreakMode="TailTruncation" />
+            </VerticalStackLayout>
+            <Border Grid.Column="2" Style="{StaticResource SoftPill}" IsVisible="{Binding HasFeeling}"
+                    SemanticProperties.Description="{Binding Feeling, StringFormat='Feeling: {0}'}">
+                <Label Text="{Binding Feeling}" Style="{StaticResource FeelingText}" />
+            </Border>
+        </Grid>
+
+        <Grid x:Name="Media">
+            <controls:PolaroidView x:Name="Polaroid" />
+            <Image x:Name="BigHeart" Source="ic_heart_bubble_on.png" WidthRequest="110" HeightRequest="110" Opacity="0"
+                   HorizontalOptions="Center" VerticalOptions="Center" InputTransparent="True" />
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" Padding="0,0,4,0">
+            <ImageButton x:Name="LikeButton" Source="{Binding LikeIcon}" WidthRequest="48" HeightRequest="48" Padding="10"
+                         BackgroundColor="Transparent" Clicked="OnLikeClicked"
+                         SemanticProperties.Description="{Binding LikeDescription}" ToolTipProperties.Text="{Binding LikeDescription}" />
+            <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center" IsVisible="{Binding HasLikers}">
+                <HorizontalStackLayout Spacing="-8" BindableLayout.ItemsSource="{Binding Likers}" VerticalOptions="Center">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="pages:Face">
+                            <Border StrokeShape="Ellipse" Stroke="{StaticResource Canvas}" StrokeThickness="2">
+                                <controls:AvatarView Size="26" Image="{Binding Image}" Name="{Binding Name}" />
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </HorizontalStackLayout>
+                <Label Text="{Binding LikersText}" Style="{StaticResource CaptionText}" VerticalOptions="Center" LineBreakMode="TailTruncation" />
+            </HorizontalStackLayout>
+            <Label Grid.Column="2" Text="{Binding Remaining}" Style="{StaticResource CaptionText}" VerticalOptions="Center" />
+        </Grid>
+    </VerticalStackLayout>
+</ContentView>

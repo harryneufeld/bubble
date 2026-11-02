@@ -26,12 +26,16 @@ colors:
   cta-end: "#6D3CF5"
   on-cta: "#FFFFFF"
 
+  # Prints and polaroids
+  paper: "#F3EEE3"
+  paper-ink: "#2A2633"
+
   # Semantics
   error: "#FF5A6E"
   success: "#4ADE80"
 
 typography:
-  # Display: Fraunces (wordmark only) · UI: Inter (SIL OFL). Both ship as TTF inside the app.
+  # Display: Fraunces (wordmark and the box of memories title) · UI: Inter (SIL OFL). Both ship as TTF inside the app.
   wordmark: { fontFamily: Fraunces, fontSize: 30, fontWeight: 400 }
   hero:     { fontFamily: Inter, fontSize: 36, fontWeight: 700, lineHeight: 1.05, letterSpacing: -1 }
   title:    { fontFamily: Inter, fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }
@@ -112,9 +116,13 @@ Bubble feels like **the story bar of a social app, only for your closest people*
 
 **Avatar.** Round. Without a photo: initials on a stable gradient per name. Optionally with a story ring (`new` = gradient, `seen` = subtle) and a plus badge ("You" in the story bar).
 
-**Story bar (Today).** Horizontal row: first "You" (share), then one bubble per circle with highlights from the last 24 h. Unseen ones first with a gradient ring, seen ones subtle. Tapping opens the full-screen view.
+**Floating bubbles (Today).** Today's bubbles drift slowly at the top: one per circle with highlights from the last 24 h, plus "You" (share). More unseen highlights make a bubble bigger, seen ones are small with a subtle ring. Sideways scroll if they don't fit. No movement if the system has animations off. Tapping opens the story view.
 
-**Story view.** Full screen on black: progress bars at the top (6 s per story), sender and close button, feeling pill and caption at the bottom on a shadow. Tap right = next, left = back. Starts at the first unseen story.
+**Home modes.** Chosen under Profile, stored per device. **Classic** (default): one card per period (this week from Monday, the rest of this month, the rest of this year, earlier) that opens to show its highlights. **Box of memories**: a table of paper prints to push around in every direction, with filters on top: this week (from Monday), a month and a year. Tapping the selected month or year picks another one that has memories. A box under 48 memories has edges; from 48 on the table wraps around. A button above the table looks for new memories, because dragging moves the table. Both show every highlight that still exists, own ones and today's stories included, and nothing is ever loaded on demand.
+
+**Polaroid.** An opened highlight on the post page: `paper` frame, slightly tilted, the photo in its own proportions, handwriting (Caveat Brush) on the wide bottom edge. Pinch zooms the photo inside its frame, one finger moves it while zoomed. Text-only highlights stay large on their gradient, with who and when as the handwriting.
+
+**Story view.** On `canvas`, each highlight nearly full screen, straight and still, in a thin `paper` frame: progress bars at the top (6 s per story, plays on by itself), sender and close button, feeling pill, caption and heart bubble at the bottom on a shadow. Tap right = next, left = back. Starts at the first unseen story.
 
 **Post card.**
 ```
@@ -172,7 +180,7 @@ Text-only posts: large white text centered on a glowing gradient, the same heigh
 - Server addresses and causes of errors are named concretely, e.g. "192.168.1.20:5080 is not reachable".
 
 **No attention traps**
-- No endless feed (only highlights from the bubbles, no infinite loading), no streaks, no leaderboards, no "X hasn't posted yet" hints, no counters for unread items.
+- No endless feed (only highlights from the bubbles, no infinite loading; the box of memories only ever shows what is already there), no streaks, no leaderboards, no "X hasn't posted yet" hints, no counters for unread items.
 - Hearts show **faces and names** ("Mia and Tom"), not a big number. A comment counter ("2 comments") is allowed.
 - Emoji reactions (later) follow the same rule.
 - Notifications at most once a day and content-free.
@@ -224,4 +232,4 @@ Opened from Compose ("Design"). The canvas is **9:16** (1080×1920) or **4:5** (
 
 ## 12. Prompt help for AI agents
 
-> Build the UI according to `DESIGN.md`: dark base (`canvas` #0B0A10), cards in `surface` without borders and with a 24 pt radius, exactly one pill button in the pink-violet gradient per view. Inter bold for headlines, Fraunces only for the wordmark. Photos edge to edge and large, text posts on a glowing gradient. Story rings in the pink-violet-cyan gradient. Every post shows the feeling as an emoji pill and the lifetime, with the heart bubble below. No streaks, no external resources. English, warm and short.
+> Build the UI according to `DESIGN.md`: dark base (`canvas` #0B0A10), cards in `surface` without borders and with a 24 pt radius, exactly one pill button in the pink-violet gradient per view. Inter bold for headlines, Fraunces only for the wordmark and the box of memories title. Photos edge to edge and large, text posts on a glowing gradient. Story rings in the pink-violet-cyan gradient. Every post shows the feeling as an emoji pill and the lifetime, with the heart bubble below. No streaks, no external resources. English, warm and short.

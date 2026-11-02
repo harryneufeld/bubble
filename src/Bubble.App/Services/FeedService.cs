@@ -136,8 +136,8 @@ public sealed class FeedService(AccountService account)
         ? s.Posts.Select(p => new HomePost(bubble, p, s.MemberFor(p.Message.AuthorKey), s)).ToList()
         : [];
 
-    /// <summary>What others have shared, newest first. Own posts only appear in the "You" circle, not in the timeline.</summary>
-    public IReadOnlyList<HomePost> TimelinePosts() => AllPosts().Where(p => !p.Post.IsMine).ToList();
+    /// <summary>Every highlight that still exists, own ones and today's stories included, newest first.</summary>
+    public IReadOnlyList<HomePost> Memories() => AllPosts();
 
     /// <summary>Stories of others from a bubble (posts of the last 24 hours), oldest first.</summary>
     public IReadOnlyList<HomePost> StoriesOf(BubbleMembership bubble) => LastDay(PostsOf(bubble).Where(p => !p.Post.IsMine));
