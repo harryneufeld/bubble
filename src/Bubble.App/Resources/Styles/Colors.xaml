@@ -17,31 +17,26 @@
     <Color x:Key="InkSoft">#C9C4D6</Color>
     <Color x:Key="Muted">#8F89A0</Color>
 
-    <!-- Schillern: Pink → Violett → Cyan -->
+    <!-- One primary color: bubble violet. Pink and cyan only as small accents. -->
     <Color x:Key="Pink">#FF4F9A</Color>
     <Color x:Key="Violet">#8B5CF6</Color>
     <Color x:Key="Cyan">#22D3EE</Color>
-    <!-- darker shades for surfaces with white text (>= 4.5:1) -->
-    <Color x:Key="CtaStart">#D9246F</Color>
-    <Color x:Key="CtaEnd">#6D3CF5</Color>
-    <Color x:Key="OnCta">#FFFFFF</Color>
+    <!-- Primary: filled buttons and today's date, white text on it >= 4.5:1 -->
+    <Color x:Key="Primary">#6D3CF5</Color>
+    <Color x:Key="OnPrimary">#FFFFFF</Color>
+    <!-- Lighter violet for text, links, selection and story rings on dark surfaces -->
     <Color x:Key="Accent">#B9A2FF</Color>
+
+    <!-- Prints and polaroids -->
+    <Color x:Key="Paper">#F3EEE3</Color>
 
     <!-- Semantik -->
     <Color x:Key="Error">#FF5A6E</Color>
     <Color x:Key="Success">#4ADE80</Color>
 
-    <!-- Gradients -->
-    <LinearGradientBrush x:Key="BubbleGradient" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="{StaticResource Pink}" Offset="0" />
-        <GradientStop Color="{StaticResource Violet}" Offset="0.55" />
-        <GradientStop Color="{StaticResource Cyan}" Offset="1" />
-    </LinearGradientBrush>
-
-    <LinearGradientBrush x:Key="CtaGradient" StartPoint="0,0" EndPoint="1,0">
-        <GradientStop Color="{StaticResource CtaStart}" Offset="0" />
-        <GradientStop Color="{StaticResource CtaEnd}" Offset="1" />
-    </LinearGradientBrush>
+    <!-- Brushes: solid, no more shimmer gradients -->
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}" />
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource Violet}" />
 
     <!-- Dark gradient at the bottom of photos so white text stays readable -->
     <LinearGradientBrush x:Key="PhotoShade" StartPoint="0,0" EndPoint="0,1">

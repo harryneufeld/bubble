@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Every highlight that is still there, month by month: filter by person or feeling, scrub through time on the right -->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Bubble.App.Controls"
+             xmlns:pages="clr-namespace:Bubble.App.Pages"
+             x:Class="Bubble.App.Pages.RewindPage"
+             Shell.TabBarIsVisible="False"
+             Title="Rewind">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Surprise me" Clicked="OnSurprise" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*" MaximumWidthRequest="600">
+        <!-- Filter: who and which feeling -->
+        <Border Style="{StaticResource Card}" Padding="0,8,0,4" Margin="12,4,12,8">
+            <VerticalStackLayout Spacing="2">
+                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                    <HorizontalStackLayout x:Name="People" Spacing="8" Padding="12,0">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="pages:PersonChip">
+                                <VerticalStackLayout Spacing="4" WidthRequest="58" SemanticProperties.Description="{Binding Description}">
+                                    <VerticalStackLayout.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnPersonTapped" CommandParameter="{Binding .}" />
+                                    </VerticalStackLayout.GestureRecognizers>
+                                    <Border StrokeShape="Ellipse" Stroke="{Binding Ring}" StrokeThickness="2" Padding="2" WidthRequest="48" HeightRequest="48" HorizontalOptions="Center">
+                                        <controls:AvatarView Size="40" Image="{Binding Image}" Name="{Binding Name}" InputTransparent="True" />
+                                    </Border>
+                                    <Label Text="{Binding Name}" FontSize="11" FontFamily="BodyMedium" TextColor="{Binding TextColor}" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </HorizontalStackLayout>
+                </ScrollView>
+                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                    <HorizontalStackLayout x:Name="Feelings" Spacing="6" Padding="12,0">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="pages:FeelingChip">
+                                <Grid HeightRequest="44" SemanticProperties.Description="{Binding Description}">
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnFeelingTapped" CommandParameter="{Binding .}" />
+                                    </Grid.GestureRecognizers>
+                                    <Border StrokeShape="RoundRectangle 16" StrokeThickness="1" Padding="12,6" VerticalOptions="Center"
+                                            Stroke="{Binding BorderColor}" BackgroundColor="{Binding Fill}">
+                                        <Label Text="{Binding Text}" FontSize="14" TextColor="{Binding TextColor}" />
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </HorizontalStackLayout>
+                </ScrollView>
+            </VerticalStackLayout>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <CollectionView x:Name="Months" IsGrouped="True" SelectionMode="None" Margin="12,0,44,0" Scrolled="OnScrolled">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="3" HorizontalItemSpacing="6" VerticalItemSpacing="6" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="pages:MonthItems">
+                        <Grid ColumnDefinitions="*,Auto" HeightRequest="44">
+                            <Label Text="{Binding Title}" Style="{StaticResource HeadingText}" FontFamily="BodyBold" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="{Binding Summary}" Style="{StaticResource CaptionText}" FontSize="12" VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="pages:PostItem">
+                        <controls:MemoryThumb>
+                            <controls:MemoryThumb.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPostTapped" CommandParameter="{Binding .}" />
+                            </controls:MemoryThumb.GestureRecognizers>
+                        </controls:MemoryThumb>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView>
+                    <Label x:Name="EmptyLabel" Text="Nothing here yet." Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" Margin="24,40" />
+                </CollectionView.EmptyView>
+                <CollectionView.Footer>
+                    <BoxView HeightRequest="24" Color="Transparent" />
+                </CollectionView.Footer>
+            </CollectionView>
+
+            <!-- Scrubber: drag the handle, or tap the rail, to jump through time -->
+            <BoxView WidthRequest="4" CornerRadius="2" Color="{StaticResource SurfaceRaised}" HorizontalOptions="End" Margin="0,8,18,8" InputTransparent="True" />
+            <Border x:Name="Knob" WidthRequest="14" HeightRequest="28" StrokeShape="RoundRectangle 7" BackgroundColor="{StaticResource Ink}"
+                    HorizontalOptions="End" VerticalOptions="Start" Margin="0,8,13,0" InputTransparent="True" />
+            <Border x:Name="ScrubLabel" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource Ink}" Padding="12,6"
+                    HorizontalOptions="End" VerticalOptions="Start" Margin="0,4,40,0" IsVisible="False" InputTransparent="True">
+                <Label x:Name="ScrubText" TextColor="{StaticResource Canvas}" FontFamily="BodyBold" FontSize="13" />
+            </Border>
+            <BoxView x:Name="ScrubArea" WidthRequest="44" Color="Transparent" HorizontalOptions="End"
+                     SemanticProperties.Description="Scrub through time" SemanticProperties.Hint="Drag up or down to jump between months" />
+        </Grid>
+    </Grid>
+</ContentPage>

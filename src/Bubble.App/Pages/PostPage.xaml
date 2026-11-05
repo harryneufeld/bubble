@@ -52,7 +52,7 @@
                        SemanticProperties.Description="Write a comment" />
             </Border>
             <ImageButton Grid.Column="1" x:Name="SendButton" Source="ic_send.png" Clicked="OnSend"
-                         Background="{StaticResource CtaGradient}" CornerRadius="25" WidthRequest="50" HeightRequest="50" Padding="14"
+                         Background="{StaticResource PrimaryBrush}" CornerRadius="25" WidthRequest="50" HeightRequest="50" Padding="14"
                          SemanticProperties.Description="Send comment" ToolTipProperties.Text="Send comment" />
         </Grid>
     </Grid>

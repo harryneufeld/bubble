@@ -439,7 +439,7 @@ public partial class EditorPage : ContentPage
         {
             StrokeShape = new RoundRectangle { CornerRadius = 16 },
             StrokeThickness = active ? 2 : 0,
-            Stroke = active ? (Brush)Res("BubbleGradient") : null,
+            Stroke = active ? (Brush)Res("AccentBrush") : null,
             BackgroundColor = (Color)Res(active ? "Surface" : "SurfaceRaised"),
             WidthRequest = 72, Padding = new Thickness(4, 8),
             Content = new VerticalStackLayout
@@ -562,7 +562,7 @@ public partial class EditorPage : ContentPage
         {
             StrokeShape = new RoundRectangle { CornerRadius = 999 },
             StrokeThickness = on ? 2 : 0,
-            Stroke = on ? (Brush)Res("BubbleGradient") : null,
+            Stroke = on ? (Brush)Res("AccentBrush") : null,
             BackgroundColor = (Color)Res("Surface"),
             Padding = new Thickness(14, 6), HeightRequest = 40,
             Content = new Label { Text = text, FontFamily = fontFamily, FontSize = 17, VerticalOptions = LayoutOptions.Center, TextColor = (Color)Res("Ink") },

@@ -71,5 +71,20 @@ static class Labels
         return local.ToString("d MMM, HH:mm", System.Globalization.CultureInfo.InvariantCulture);
     }
 
+    public static string MonthName(int month) => System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month);
+
+    /// <summary>"October", or "October 2025" outside this year.</summary>
+    public static string Month(int year, int month) => year == DateTime.Now.Year ? MonthName(month) : $"{MonthName(month)} {year}";
+
+    public static string Highlights(int count) => count == 1 ? "1 highlight" : $"{count} highlights";
+
+    /// <summary>"A month ago today", "A year ago today", "3 years ago today".</summary>
+    public static string Recall(int monthsAgo) => monthsAgo switch
+    {
+        1 => "A month ago today",
+        12 => "A year ago today",
+        var m => $"{m / 12} years ago today",
+    };
+
     public static string People(int count) => count == 1 ? "1 person" : $"{count} people";
 }

@@ -34,6 +34,32 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, b
         ? Sources.GetValue(bytes, b => ImageSource.FromStream(() => new MemoryStream(b)))
         : null;
     static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], ImageSource> Sources = new();
+
+    /// <summary>A small copy for tiles. Empty until it is ready; the binding then gets it.</summary>
+    public ImageSource? Thumbnail
+    {
+        get
+        {
+            if (_thumbnail is null && !_loadingThumbnail && _m.Image is { Length: > 0 } photo)
+            {
+                _loadingThumbnail = true;
+                _ = LoadThumbnailAsync(photo);
+            }
+            return _thumbnail;
+        }
+    }
+    ImageSource? _thumbnail;
+    bool _loadingThumbnail;
+
+    async Task LoadThumbnailAsync(byte[] photo)
+    {
+        _thumbnail = await Thumbnails.ForAsync(photo);
+        MainThread.BeginInvokeOnMainThread(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumbnail))));
+    }
+
+    public string BubbleName => item.Bubble.Name;
+    public string ThumbLabel => $"{(item.Post.IsMine ? "You" : First(AuthorName))} · {_m.CreatedAt.ToLocalTime().Day}";
+    public string ThumbDescription => $"Highlight from {Author}, {_m.CreatedAt.ToLocalTime():d MMMM}. {Text}";
     public string ImageDescription => $"Photo by {AuthorName}";
     public Brush TextBackground { get; } = Gradients.For(item.Post.Id);
 

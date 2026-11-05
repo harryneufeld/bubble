@@ -15,7 +15,7 @@
                     <ImageButton Grid.Column="1" Source="ic_scan.png" Style="{StaticResource IconButton}" Clicked="OnJoin"
                                  SemanticProperties.Description="Join bubble" ToolTipProperties.Text="Join bubble" />
                     <ImageButton Grid.Column="2" Source="ic_plus.png" Style="{StaticResource IconButton}" Clicked="OnCreate"
-                                 Background="{StaticResource CtaGradient}"
+                                 Background="{StaticResource PrimaryBrush}"
                                  SemanticProperties.Description="Create bubble" ToolTipProperties.Text="Create bubble" />
                 </Grid>
             </CollectionView.Header>
@@ -32,7 +32,7 @@
                         <Grid>
                             <controls:FadeImage Source="{Binding Cover}" Aspect="AspectFill" IsVisible="{Binding HasCover}" />
                             <BoxView Background="{StaticResource PhotoShade}" />
-                            <Ellipse WidthRequest="10" HeightRequest="10" Fill="{StaticResource BubbleGradient}" IsVisible="{Binding HasNew}"
+                            <Ellipse WidthRequest="10" HeightRequest="10" Fill="{StaticResource AccentBrush}" IsVisible="{Binding HasNew}"
                                      HorizontalOptions="End" VerticalOptions="Start" Margin="14" SemanticProperties.Description="New" />
                             <VerticalStackLayout VerticalOptions="End" Padding="14" Spacing="8">
                                 <HorizontalStackLayout Spacing="-10" BindableLayout.ItemsSource="{Binding Faces}">

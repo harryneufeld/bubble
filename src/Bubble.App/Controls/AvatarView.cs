@@ -63,7 +63,7 @@ public sealed class AvatarView : ContentView
         _circle.Content = new Grid { Children = { _initialsBackground, _photo } };
 
         _plus.Stroke = new SolidColorBrush((Color)resources["Canvas"]);
-        _plus.Background = (Brush)resources["CtaGradient"];
+        _plus.Background = (Brush)resources["PrimaryBrush"];
         _plus.Content = _plusIcon;
         _plus.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => PlusTapped?.Invoke(this, EventArgs.Empty)) });
         SemanticProperties.SetDescription(_plus, "Share highlight");
@@ -88,7 +88,7 @@ public sealed class AvatarView : ContentView
         if (hasRing)
         {
             _ring.StrokeThickness = ring;
-            _ring.Stroke = Ring == AvatarRing.New ? (Brush)Application.Current!.Resources["BubbleGradient"] : SeenRingBrush;
+            _ring.Stroke = Ring == AvatarRing.New ? (Brush)Application.Current!.Resources["AccentBrush"] : SeenRingBrush;
         }
 
         _circle.WidthRequest = _circle.HeightRequest = inner;

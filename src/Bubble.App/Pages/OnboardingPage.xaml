@@ -9,11 +9,11 @@
     <Grid>
         <!-- Decoration: iridescent bubbles in the background -->
         <Ellipse WidthRequest="340" HeightRequest="340" Opacity="0.55" HorizontalOptions="End" VerticalOptions="Start" Margin="0,-90,-120,0"
-                 Fill="{StaticResource BubbleGradient}" InputTransparent="True" />
+                 Fill="{StaticResource AccentBrush}" InputTransparent="True" />
         <Ellipse WidthRequest="180" HeightRequest="180" Opacity="0.35" HorizontalOptions="Start" VerticalOptions="Start" Margin="-60,210,0,0"
-                 Fill="{StaticResource CtaGradient}" InputTransparent="True" />
+                 Fill="{StaticResource PrimaryBrush}" InputTransparent="True" />
         <Ellipse WidthRequest="70" HeightRequest="70" Opacity="0.5" HorizontalOptions="End" VerticalOptions="Start" Margin="0,280,48,0"
-                 Fill="{StaticResource BubbleGradient}" InputTransparent="True" />
+                 Fill="{StaticResource AccentBrush}" InputTransparent="True" />
         <BoxView InputTransparent="True">
             <BoxView.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
