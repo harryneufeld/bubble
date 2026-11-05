@@ -159,6 +159,8 @@ public partial class HomePage : ContentPage
         WeekDays.Children.Clear();
         _weekCells.Clear();
         if (_weekDay < start || _weekDay > DateTime.Today) _weekDay = DateTime.Today;
+        // A week without photos shows just its dates, not seven empty stacks
+        var anyPhotos = Enumerable.Range(0, 7).Any(i => PostsOn(start.AddDays(i)).Count > 0);
 
         for (var i = 0; i < 7; i++)
         {
@@ -166,7 +168,7 @@ public partial class HomePage : ContentPage
             var posts = PostsOn(date);
             var future = date > DateTime.Today;
 
-            var stack = new Grid { WidthRequest = 38, HeightRequest = 62, HorizontalOptions = LayoutOptions.Center, InputTransparent = true };
+            var stack = new Grid { WidthRequest = 38, HeightRequest = 62, HorizontalOptions = LayoutOptions.Center, InputTransparent = true, IsVisible = anyPhotos };
             double[] tilt = [-6, 5, -3];
             for (var k = 0; k < Math.Min(3, posts.Count); k++)
             {
@@ -198,7 +200,7 @@ public partial class HomePage : ContentPage
                         new Label { Text = date.ToString("ddd", Invariant), FontSize = 11, FontFamily = "BodyMedium", TextColor = (Color)Application.Current!.Resources["InkSoft"], HorizontalOptions = LayoutOptions.Center },
                         number,
                         stack,
-                        new Label { Text = posts.Count > 3 ? $"+{posts.Count - 3}" : posts.Count == 0 ? "·" : " ", Style = (Style)Application.Current.Resources["CaptionText"], FontSize = 11, HorizontalOptions = LayoutOptions.Center },
+                        new Label { Text = posts.Count > 3 ? $"+{posts.Count - 3}" : posts.Count == 0 ? "·" : " ", Style = (Style)Application.Current.Resources["CaptionText"], FontSize = 11, HorizontalOptions = LayoutOptions.Center, IsVisible = anyPhotos },
                     },
                 },
             };
