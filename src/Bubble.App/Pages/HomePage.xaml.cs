@@ -290,7 +290,7 @@ public partial class HomePage : ContentPage
             return;
         }
         var earliest = EarliestMonth();
-        RewindText.Text = $"{Labels.Highlights(_posts.Count)} since {Labels.Month(earliest.Year, earliest.Month)}. Scrub back through time, or find someone.";
+        RewindText.Text = $"{Labels.Highlights(_posts.Count)} since {Labels.Month(earliest.Year, earliest.Month)}. Scrub back through time, or pick a bubble.";
     }
 
     async void OnRewind(object? sender, TappedEventArgs e) => await Shell.Current.GoToAsync(nameof(RewindPage));
