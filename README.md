@@ -13,11 +13,22 @@ Bubble has no ads, no tracking and no investors. It is built in my spare time, a
 
 Thank you!
 
+## What's in the app (1.6.0)
+
+- **Stories:** a row of rings on top, "You" first. Highlights from the last 24 hours play one after another, 6 seconds each.
+- **This week:** Monday to Sunday, each day with a small stack of its photos; tap a day to see its highlights.
+- **On this day:** what was shared a year ago today (or more years, else a month ago), when there is something.
+- **Most loved:** the highlights your people loved most, from months and years ago. Only highlights older than four weeks count; hearts plus twice the comments, at most one per month.
+- **Rewind:** every highlight that is still there, month by month. Filter by all, mine or one bubble, scrub through time on the right, or let "Surprise me" pick one.
+- **Highlights full screen:** opened highlights keep their own format (4:5 or 9:16) and are never cut off; caption, hearts and comments follow when you scroll down.
+- **Profiles of friends:** tap someone's face to see their picture, bio, the bubbles you share and their highlights.
+- **Nothing is kept longer than the post:** a highlight that is not remembered disappears after 24 hours, from the relay and from every view in the app. There is no local archive.
+
 ## Projects
 
 | Project | Contents |
 |---|---|
-| `src/Bubble.Core` | Crypto, message format, invitations, backup, relay client, feed logic. Platform independent. |
+| `src/Bubble.Core` | Crypto, message format, invitations, backup, relay client, feed logic, timeline (weeks, months, on this day, most loved). Platform independent. |
 | `src/Bubble.Relay` | ASP.NET Core relay with SQLite. Only stores encrypted blobs. |
 | `src/Bubble.App` | .NET MAUI app (Android, iOS, Windows). |
 | `tests/Bubble.Tests` | Tests for core and relay, including end-to-end through an in-memory relay. |
@@ -122,7 +133,7 @@ BUBBLE_RELAY_URL=http://<server>:5080/ dotnet test --filter LiveRelayTests
 
 - **Member management is basic:** removal needs the owner online and only reaches members the owner has seen in the bubble; there is no admin transfer and no way for others to veto. Ideally this moves to MLS later.
 - **No rate limiting** and no storage quotas on the relay.
-- **Data loading:** the feed is loaded completely every time it opens, there is no local cache.
+- **Data loading:** every bubble is loaded completely on each refresh; the app first shows what it loaded last time from a cache on the device.
 - **Short invitation codes are guessable:** 50 bits, but only valid for 24 h and slowed down by Argon2id. Prefer the QR code or link if in doubt.
 - **Push notifications** work on Android through FCM only if the build has Firebase settings and the relay has a push gateway, see [docs/push.md](docs/push.md). Not yet: UnifiedPush in the app, iOS.
 - **Not included yet:** passkey, emoji reactions.
