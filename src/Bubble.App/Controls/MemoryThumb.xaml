@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- A small highlight tile: photo (or text on a gradient) with who and which day -->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Bubble.App.Controls"
+             xmlns:pages="clr-namespace:Bubble.App.Pages"
+             x:Class="Bubble.App.Controls.MemoryThumb"
+             x:DataType="pages:PostItem">
+    <Border StrokeShape="RoundRectangle 12" Background="{Binding TextBackground}" HeightRequest="112" SemanticProperties.Description="{Binding ThumbDescription}">
+        <Grid>
+            <controls:FadeImage Source="{Binding Thumbnail}" Aspect="AspectFill" IsVisible="{Binding HasImage}" />
+            <Label Text="{Binding Text}" IsVisible="{Binding IsTextOnly}" FontFamily="BodyBold" FontSize="13" TextColor="White"
+                   Margin="8" MaxLines="3" LineBreakMode="TailTruncation" />
+            <BoxView Background="{StaticResource PhotoShade}" />
+            <Label Text="{Binding ThumbLabel}" FontFamily="BodySemibold" FontSize="11" TextColor="White" VerticalOptions="End"
+                   Margin="7,0,5,5" LineBreakMode="TailTruncation" />
+        </Grid>
+    </Border>
+</ContentView>

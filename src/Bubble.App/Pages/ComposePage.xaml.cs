@@ -66,7 +66,7 @@ public partial class ComposePage : ContentPage
             {
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 999 },
                 Padding = new Thickness(14, 9), Margin = new Thickness(0, 0, 8, 8),
-                Background = on ? (Brush)Application.Current!.Resources["CtaGradient"] : new SolidColorBrush((Color)Application.Current!.Resources["SurfaceRaised"]),
+                Background = on ? (Brush)Application.Current!.Resources["PrimaryBrush"] : new SolidColorBrush((Color)Application.Current!.Resources["SurfaceRaised"]),
                 Content = new Label
                 {
                     Text = bubble.Name, FontFamily = "BodySemibold", FontSize = 14,
@@ -157,7 +157,7 @@ public partial class ComposePage : ContentPage
             var on = _emoji == emoji;
             tile.BackgroundColor = (Color)Application.Current!.Resources[on ? "SurfaceRaised" : "Surface"];
             tile.StrokeThickness = on ? 2.5 : 0;
-            tile.Stroke = on ? (Brush)Application.Current.Resources["BubbleGradient"] : null;
+            tile.Stroke = on ? (Brush)Application.Current.Resources["AccentBrush"] : null;
             tile.Scale = on ? 1.1 : 1;
             SemanticProperties.SetHint(tile, on ? "selected" : "");
         }

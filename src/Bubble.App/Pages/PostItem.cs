@@ -5,7 +5,7 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-public sealed record CommentItem(string Name, byte[]? Avatar, string Text, string When, bool IsMine);
+public sealed record CommentItem(string Name, byte[]? Avatar, string Text, string When, bool IsMine, string AuthorKey = "");
 
 /// <summary>Display data of a post card (home, bubble page and post page). Hearts and comments change live.</summary>
 public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, bool showFaces = false) : INotifyPropertyChanged
@@ -15,6 +15,8 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, b
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public HomePost Source => item;
+    public string AuthorKey => _m.AuthorKey;
+    public bool IsMine => item.Post.IsMine;
     public string Id => item.Post.Id;
     public string MailboxId => item.Bubble.MailboxId;
     public string Author { get; } = item.Post.IsMine ? "You" : item.Author?.Name ?? item.Post.Message.AuthorName;
@@ -34,6 +36,34 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, b
         ? Sources.GetValue(bytes, b => ImageSource.FromStream(() => new MemoryStream(b)))
         : null;
     static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], ImageSource> Sources = new();
+
+    /// <summary>A small copy for tiles. Empty until it is ready; the binding then gets it.</summary>
+    public ImageSource? Thumbnail
+    {
+        get
+        {
+            if (_thumbnail is null && !_loadingThumbnail && _m.Image is { Length: > 0 } photo)
+            {
+                _loadingThumbnail = true;
+                _ = LoadThumbnailAsync(photo);
+            }
+            return _thumbnail;
+        }
+    }
+    ImageSource? _thumbnail;
+    bool _loadingThumbnail;
+
+    async Task LoadThumbnailAsync(byte[] photo)
+    {
+        _thumbnail = await Thumbnails.ForAsync(photo);
+        MainThread.BeginInvokeOnMainThread(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumbnail))));
+    }
+
+    public string BubbleName => item.Bubble.Name;
+    public string AuthorAndBubble => $"{Author} · {item.Bubble.Name}";
+    public string Since => Labels.Since(_m.CreatedAt);
+    public string ThumbLabel => $"{(item.Post.IsMine ? "You" : First(AuthorName))} · {_m.CreatedAt.ToLocalTime().Day}";
+    public string ThumbDescription => $"Highlight from {Author}, {_m.CreatedAt.ToLocalTime():d MMMM}. {Text}";
     public string ImageDescription => $"Photo by {AuthorName}";
     public Brush TextBackground { get; } = Gradients.For(item.Post.Id);
 
@@ -69,7 +99,7 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, b
         {
             var member = item.Snapshot.MemberFor(c.AuthorKey);
             var mine = member?.IsMe == true;
-            return new CommentItem(mine ? "You" : member?.Name ?? c.AuthorName, member?.Avatar, c.Text, Labels.Ago(c.CreatedAt), mine);
+            return new CommentItem(mine ? "You" : member?.Name ?? c.AuthorName, member?.Avatar, c.Text, Labels.Ago(c.CreatedAt), mine, c.AuthorKey);
         })
         .ToList();
 

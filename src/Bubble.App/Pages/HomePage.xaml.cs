@@ -1,6 +1,8 @@
+using System.Globalization;
 using Bubble.App.Controls;
 using Bubble.App.Services;
 using Bubble.Core;
+using Microsoft.Maui.Controls.Shapes;
 
 namespace Bubble.App.Pages;
 
@@ -16,10 +18,17 @@ public sealed record StoryRing(string Title, string Name, byte[]? Image, AvatarR
 
 public partial class HomePage : ContentPage
 {
+    static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
+
     readonly AccountService _account;
     readonly FeedService _feed;
     bool _loading;
-    string _ringSig = "", _feedSig = "";
+    string _ringSig = "", _postSig = "";
+    IReadOnlyList<HomePost> _posts = [];
+    DateTimeOffset _now = DateTimeOffset.Now;
+    DateTime _weekDay = DateTime.Today;
+    readonly List<(DateTime Date, Border View)> _weekCells = [];
+    HomePost? _recall;
 
     public HomePage(AccountService account, FeedService feed)
     {
@@ -106,29 +115,23 @@ public partial class HomePage : ContentPage
             BindableLayout.SetItemsSource(StoriesRow, rings);
         }
 
-        var posts = _feed.TimelinePosts();
-        var feedSig = string.Join('|', posts.Select(p => PostSig(p))) + $"#{DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 60}";
-        if (feedSig != _feedSig)
-        {
-            _feedSig = feedSig;
-            Feed.ItemsSource = posts.Select(p => new PostItem(p, _feed, showBubble: true)).ToList();
-        }
-        FeedTitle.IsVisible = bubbles.Count > 0;
+        var hasBubbles = bubbles.Count > 0;
+        EmptyState.IsVisible = !hasBubbles;
+        WeekCard.IsVisible = RewindCard.IsVisible = hasBubbles;
 
-        if (bubbles.Count == 0)
+        var posts = _feed.AllPosts();
+        var postSig = string.Join('|', posts.Select(p => p.Post.Id)) + $"#{DateTime.Today:yyyyMMdd}";
+        if (postSig != _postSig)
         {
-            EmptyTitle.Text = "Start your first bubble";
-            EmptyText.Text = "A bubble is a small, private circle – family, flatmates, best friends. Create one or join with a QR code.";
-            EmptyAction.Text = "Create bubble";
-            EmptySecondary.IsVisible = true;
+            _postSig = postSig;
+            _posts = posts;
+            _now = DateTimeOffset.Now;
+            RenderWeek();
+            RenderRecall();
+            RenderLoved();
+            RenderRewind();
         }
-        else
-        {
-            EmptyTitle.Text = "Still quiet here";
-            EmptyText.Text = "Nothing new from your people yet. You'll find your own highlights at the top, in the “You” circle.";
-            EmptyAction.Text = "Share my highlight";
-            EmptySecondary.IsVisible = false;
-        }
+        if (!hasBubbles) RecallCard.IsVisible = LovedCard.IsVisible = false;
 
         OfflineBar.IsVisible = _feed.Unreachable.Count > 0;
         OfflineLabel.Text = _feed.Unreachable.Count switch
@@ -139,8 +142,187 @@ public partial class HomePage : ContentPage
         };
     }
 
-    static string PostSig(HomePost p) =>
-        $"{p.Post.Id}:{p.Snapshot.LikersOf(p.Post.Id).Count}:{p.Snapshot.IsLikedByMe(p.Post.Id)}:{p.Snapshot.CommentsOf(p.Post.Id).Count}";
+    DateTime DateOf(HomePost post) => Timeline.LocalDate(post.Post.Message.CreatedAt, _now);
+
+    List<HomePost> PostsOn(DateTime date) => _posts.Where(p => DateOf(p) == date).ToList();
+
+    PostItem ToItem(HomePost post) => new(post, _feed, showBubble: true);
+
+    // ── This week ─────────────────────────────────────────
+
+    void RenderWeek()
+    {
+        var start = Timeline.WeekStart(_now).Date;
+        WeekRange.Text = $"{start.ToString("d MMM", Invariant)} – {start.AddDays(6).ToString("d MMM", Invariant)}";
+        WeekDays.Children.Clear();
+        _weekCells.Clear();
+        if (_weekDay < start || _weekDay > DateTime.Today) _weekDay = DateTime.Today;
+        // A week without photos shows just its dates, not seven empty stacks
+        var anyPhotos = Enumerable.Range(0, 7).Any(i => PostsOn(start.AddDays(i)).Count > 0);
+
+        for (var i = 0; i < 7; i++)
+        {
+            var date = start.AddDays(i);
+            var posts = PostsOn(date);
+            var future = date > DateTime.Today;
+
+            var stack = new Grid { WidthRequest = 38, HeightRequest = 62, HorizontalOptions = LayoutOptions.Center, InputTransparent = true, IsVisible = anyPhotos };
+            double[] tilt = [-6, 5, -3];
+            for (var k = 0; k < Math.Min(3, posts.Count); k++)
+            {
+                var tile = Tile(ToItem(posts[k]), 34, 34, 7);
+                tile.Stroke = (Color)Application.Current!.Resources["Surface"];
+                tile.StrokeThickness = 2;
+                tile.Rotation = tilt[k];
+                tile.Margin = new Thickness(2 + k % 2 * 2, k * 13, 0, 0);
+                stack.Add(tile);
+            }
+
+            var isToday = date == DateTime.Today;
+            var number = new Border
+            {
+                StrokeShape = new Ellipse(), WidthRequest = 28, HeightRequest = 28, HorizontalOptions = LayoutOptions.Center,
+                BackgroundColor = isToday ? (Color)Application.Current!.Resources["Primary"] : Colors.Transparent,
+                Content = new Label { Text = date.Day.ToString(Invariant), FontFamily = "BodyBold", FontSize = 14, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center },
+            };
+            var cell = new Border
+            {
+                StrokeShape = new RoundRectangle { CornerRadius = 16 },
+                Padding = new Thickness(0, 8),
+                Opacity = future ? 0.4 : 1,
+                Content = new VerticalStackLayout
+                {
+                    Spacing = 6,
+                    Children =
+                    {
+                        new Label { Text = date.ToString("ddd", Invariant), FontSize = 11, FontFamily = "BodyMedium", TextColor = (Color)Application.Current!.Resources["InkSoft"], HorizontalOptions = LayoutOptions.Center },
+                        number,
+                        stack,
+                        new Label { Text = posts.Count > 3 ? $"+{posts.Count - 3}" : posts.Count == 0 ? "·" : " ", Style = (Style)Application.Current.Resources["CaptionText"], FontSize = 11, HorizontalOptions = LayoutOptions.Center, IsVisible = anyPhotos },
+                    },
+                },
+            };
+            SemanticProperties.SetDescription(cell, $"{date.ToString("dddd d MMMM", Invariant)}, {Labels.Highlights(posts.Count)}");
+            if (!future) cell.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => SelectWeekDay(date)) });
+            WeekDays.Add(cell, i, 0);
+            _weekCells.Add((date, cell));
+        }
+        SelectWeekDay(_weekDay);
+    }
+
+    void SelectWeekDay(DateTime date)
+    {
+        _weekDay = date;
+        foreach (var (day, view) in _weekCells)
+            view.BackgroundColor = day == date ? (Color)Application.Current!.Resources["SurfaceRaised"] : Colors.Transparent;
+        var posts = PostsOn(date);
+        var name = date == DateTime.Today ? "Today" : date.ToString("dddd", Invariant);
+        WeekDayTitle.Text = posts.Count == 0 ? $"{name} · nothing shared" : $"{name} · {Labels.Highlights(posts.Count)}";
+        BindableLayout.SetItemsSource(WeekDayPosts, posts.Select(ToItem).ToList());
+    }
+
+    // ── On this day ───────────────────────────────────────
+
+    void RenderRecall()
+    {
+        var recall = Timeline.OnThisDay(_posts, p => p.Post.Message.CreatedAt, _now);
+        RecallCard.IsVisible = recall is not null;
+        _recall = recall?.Items[0];
+        if (recall is null || _recall is null) return;
+
+        var item = ToItem(_recall);
+        RecallTitle.Text = Labels.Recall(recall.MonthsAgo);
+        RecallCaption.Text = item.Text ?? item.Feeling;
+        RecallCaption.IsVisible = RecallCaption.Text.Length > 0;
+        RecallMeta.Text = recall.Items.Count > 1 ? $"{item.Author} · {item.BubbleName} · and {recall.Items.Count - 1} more" : $"{item.Author} · {item.BubbleName}";
+        RecallPhoto.Content = Tile(item, 84, 84, 0);
+    }
+
+    async void OnRecallTapped(object? sender, TappedEventArgs e)
+    {
+        if (_recall is { } post) await OpenPost(post.Bubble.MailboxId, post.Post.Id);
+    }
+
+    // ── Most loved ────────────────────────────────────────
+
+    void RenderLoved()
+    {
+        var loved = Timeline.MostLoved(_posts, p => p.Post.Message.CreatedAt,
+            p => (p.Snapshot.LikersOf(p.Post.Id).Count, p.Snapshot.CommentsOf(p.Post.Id).Count), _now);
+        LovedCard.IsVisible = loved.Count > 0;
+        BindableLayout.SetItemsSource(LovedPosts, loved.Select(ToItem).ToList());
+    }
+
+    // ── Rewind ────────────────────────────────────────────
+
+    (int Year, int Month) EarliestMonth()
+    {
+        if (_posts.Count == 0) return (DateTime.Today.Year, DateTime.Today.Month);
+        var first = _posts.Min(DateOf);
+        return (first.Year, first.Month);
+    }
+
+    void RenderRewind()
+    {
+        var months = Timeline.LastMonths(_now, 12);
+        var counts = months.Select(m => _posts.Count(p => DateOf(p) is var d && d.Year == m.Year && d.Month == m.Month)).ToList();
+        var max = Math.Max(1, counts.Max());
+        var resources = Application.Current!.Resources;
+
+        Bars.Children.Clear();
+        Bars.ColumnDefinitions.Clear();
+        for (var i = 0; i < months.Count; i++)
+        {
+            Bars.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            Bars.Add(new BoxView
+            {
+                HeightRequest = 4 + 36.0 * counts[i] / max,
+                VerticalOptions = LayoutOptions.End,
+                CornerRadius = 3,
+                Color = counts[i] > 0 ? (Color)resources["Violet"] : (Color)resources["Hairline"],
+            }, i, 0);
+        }
+        BarsFrom.Text = Labels.Month(months[0].Year, months[0].Month);
+
+        if (_posts.Count == 0)
+        {
+            RewindText.Text = "Nothing shared yet. Everything that is still there shows up here, month by month.";
+            return;
+        }
+        var earliest = EarliestMonth();
+        RewindText.Text = $"{Labels.Highlights(_posts.Count)} since {Labels.Month(earliest.Year, earliest.Month)}. Scrub back through time, or pick a bubble.";
+    }
+
+    async void OnRewind(object? sender, TappedEventArgs e) => await Shell.Current.GoToAsync(nameof(RewindPage));
+
+    // ── Tiles ─────────────────────────────────────────────
+
+    /// <summary>A photo (as a small thumbnail) or a text highlight's gradient, in a rounded frame. Size -1 fills the cell.</summary>
+    static Border Tile(PostItem item, double width, double height, double radius)
+    {
+        var border = new Border
+        {
+            StrokeShape = new RoundRectangle { CornerRadius = radius },
+            StrokeThickness = 0,
+            Background = item.TextBackground,
+            WidthRequest = width,
+            HeightRequest = height,
+            HorizontalOptions = width < 0 ? LayoutOptions.Fill : LayoutOptions.Start,
+            VerticalOptions = height < 0 ? LayoutOptions.Fill : LayoutOptions.Start,
+            InputTransparent = true,
+        };
+        if (item.Source.Post.Message.Image is { Length: > 0 } photo)
+        {
+            var image = new FadeImage { Aspect = Aspect.AspectFill };
+            border.Content = image;
+            _ = ShowThumbnailAsync(image, photo);
+        }
+        return border;
+    }
+
+    static async Task ShowThumbnailAsync(Image image, byte[] photo) => image.Source = await Thumbnails.ForAsync(photo);
+
+    // ── Navigation ────────────────────────────────────────
 
     async void OnStoryTapped(object? sender, TappedEventArgs e)
     {
@@ -158,9 +340,11 @@ public partial class HomePage : ContentPage
 
     async void OnPostTapped(object? sender, TappedEventArgs e)
     {
-        if (e.Parameter is PostItem post)
-            await Shell.Current.GoToAsync($"{nameof(PostPage)}?id={Uri.EscapeDataString(post.MailboxId)}&post={Uri.EscapeDataString(post.Id)}");
+        if (e.Parameter is PostItem post) await OpenPost(post.MailboxId, post.Id);
     }
+
+    static Task OpenPost(string mailboxId, string postId) =>
+        Shell.Current.GoToAsync($"{nameof(PostPage)}?id={Uri.EscapeDataString(mailboxId)}&post={Uri.EscapeDataString(postId)}");
 
     async void OnCompose(object? sender, EventArgs e) => await Compose();
 
@@ -176,9 +360,5 @@ public partial class HomePage : ContentPage
 
     async void OnJoin(object? sender, EventArgs e) => await Shell.Current.GoToAsync(nameof(JoinPage));
 
-    async void OnEmptyAction(object? sender, EventArgs e)
-    {
-        if (_account.Vault!.Bubbles.Count == 0) await BubblesPage.CreateBubbleFlowAsync(this, _account);
-        else await Compose();
-    }
+    async void OnCreateBubble(object? sender, EventArgs e) => await BubblesPage.CreateBubbleFlowAsync(this, _account);
 }

@@ -1,7 +1,7 @@
 ---
 version: 2
 name: Bubble
-description: A dark, vivid social app for small private circles. Deep black-violet as the base, photos and glowing gradients (pink → violet → cyan, like the shimmer of a soap bubble) as the visual language. Story bar, full-screen stories and photo cards like in social apps – but without streaks, leaderboards or endless feeds.
+description: A dark, calm social app for small private circles. Deep black-violet as the base, photos first, one primary color – bubble violet – for actions, rings and selection. Story bar, full-screen stories and a look back at the week, the month and further – but without streaks, leaderboards or endless feeds.
 
 colors:
   # Surfaces (dark)
@@ -15,15 +15,15 @@ colors:
   ink-soft: "#C9C4D6"     # >= 4.5:1 on canvas and surface
   muted: "#8F89A0"        # metadata only, >= 4.5:1 on canvas
 
-  # Shimmer – accent gradient for rings, covers, decoration
+  # Bubble violet – the one primary color. Pink and cyan only as small accents in content, never in the interface.
   pink: "#FF4F9A"
   violet: "#8B5CF6"
   cyan: "#22D3EE"
   accent: "#B9A2FF"       # text links and ghost buttons
 
-  # Primary action: gradient cta-start → cta-end, white text (>= 4.5:1)
-  cta-start: "#D9246F"
-  cta-end: "#6D3CF5"
+  # Primary action: solid primary, white text (>= 4.5:1)
+  primary: "#6D3CF5"
+  paper: "#F3EEE3"       # paper frame of the small polaroid on "On this day"
   on-cta: "#FFFFFF"
 
   # Semantics
@@ -56,15 +56,15 @@ spacing:
   xl: 32
 
 components:
-  button-primary:   { background: "gradient(cta-start → cta-end)", textColor: "{colors.on-cta}", rounded: "{rounded.full}", height: 56 }
+  button-primary:   { backgroundColor: "{colors.primary}", textColor: "{colors.on-cta}", rounded: "{rounded.full}", height: 56 }
   button-secondary: { backgroundColor: "{colors.surface-raised}", textColor: "{colors.ink}", rounded: "{rounded.full}", height: 48 }
   button-ghost:     { backgroundColor: transparent, textColor: "{colors.accent}", rounded: "{rounded.full}" }
   icon-button:      { backgroundColor: "{colors.surface-raised}", rounded: "{rounded.full}", size: 44 }
   card:             { backgroundColor: "{colors.surface}", rounded: "{rounded.card}", padding: 0 }
   text-input:       { backgroundColor: "{colors.surface}", borderColor: "{colors.hairline}", rounded: "{rounded.field}", height: 54 }
-  secret-box:       { backgroundColor: "{colors.surface}", border: "2px gradient(pink → violet → cyan)", rounded: "{rounded.card}" }
+  secret-box:       { backgroundColor: "{colors.surface}", border: "2px {colors.violet}", rounded: "{rounded.card}" }
   avatar:           { shape: circle, fallback: "initials on a gradient, stable per name" }
-  story-ring:       { new: "gradient(pink → violet → cyan)", seen: "#3A3548" }
+  story-ring:       { new: "{colors.violet}", seen: "#3A3548" }
 ---
 
 # Bubble – Design Guidelines
@@ -76,7 +76,7 @@ This file is binding for every Bubble surface. People and AI agents build agains
 Bubble feels like **the story bar of a social app, only for your closest people**: dark, vivid, photo-heavy. The interface steps back; photos and glowing gradients carry the design.
 
 - **Dark base.** The app is always dark (`UserAppTheme = Dark`). Not pure black, but `canvas` with a hint of violet.
-- **Shimmer instead of flat color.** Pink → violet → cyan appears in a few places: story rings, covers, the main button, decoration. Never as a text color or as a background for running text.
+- **One color, used sparingly.** Bubble violet marks what you can do and what is new: the main button, story rings, today's date, the selection. No shimmer gradients in the interface; gradients stay only where content needs them (text posts, initials).
 - **Photos first.** Cards run edge to edge. Text posts get a glowing gradient so they feel like photos.
 - **Social, but calm.** See section 7: no counters, no streaks, no pull.
 
@@ -84,13 +84,13 @@ Bubble feels like **the story bar of a social app, only for your closest people*
 
 | Role | Token | Rule |
 |---|---|---|
-| Main action | `cta-start → cta-end` | **Exactly one** per view ("Share", "Get started", "Join"). A round `+` icon button in the same gradient may also appear in headers. |
+| Main action | `primary` | **Exactly one** per view ("Share", "Get started", "Join"). A round `+` icon button in the same color may also appear in headers. |
 | Base | `canvas` | Page background. |
 | Cards, fields | `surface` (+ `hairline` for fields) | No borders around cards, just surface on base. |
 | Emphasis | `surface-raised` | Secondary buttons, chips, icon buttons. |
 | Running text | `ink`, `ink-soft` | `muted` only for metadata like time and server. |
 | Links, ghost actions | `accent` | Not for running text. |
-| Shimmer | `pink`, `violet`, `cyan` | Rings, covers, decoration (see above). |
+| Accent | `violet`, `accent` | Story rings, selection, links, decoration. |
 | Feeling | `surface-raised` | Neutral pill with emoji and word ("😍 In love"). No judgment colors: a bad day is not an error. |
 | Heart | `pink` | Only the set heart in the heart bubble. |
 | Error | `error` | Only for real errors, never for a feeling. |
@@ -112,9 +112,21 @@ Bubble feels like **the story bar of a social app, only for your closest people*
 
 **Avatar.** Round. Without a photo: initials on a stable gradient per name. Optionally with a story ring (`new` = gradient, `seen` = subtle) and a plus badge ("You" in the story bar).
 
-**Story bar (Today).** Horizontal row: first "You" (share), then one bubble per circle with highlights from the last 24 h. Unseen ones first with a gradient ring, seen ones subtle. Tapping opens the full-screen view.
+**Story bar (Today).** Horizontal row: first "You" (share), then one bubble per circle with highlights from the last 24 h. Unseen ones first with a violet ring, seen ones subtle. Tapping opens the full-screen view.
+
+**Today below the stories.** Cards that group what belongs together, each on `surface`:
+- **This week:** seven columns, Monday to Sunday, each with a small fanned stack of that day's photos (at most three, then "+n"); today's date on `primary`, days still to come faded. The selected day's highlights sit in a row inside the same card.
+- **On this day:** a small tilted polaroid of what was shared a year ago today (or more years, else a month ago). Only shown when there is one.
+- **Most loved:** large cards of what your people loved most, from months and years ago. Only highlights older than four weeks count; each scores hearts plus twice its comments; at most one per month, best six first. Hidden when nothing qualifies.
+- **Rewind:** a bar per month for the last twelve months, leading to Rewind.
+
+**Rewind.** Every highlight that still exists, month by month in a three-column grid. One filter row on top: all, mine, then each bubble with its newest photo as the circle. A scrubber on the right jumps through the months and shows which month you are in while dragging. "Surprise me" opens a random highlight. Nothing is kept locally: when a post is gone, it is gone here too.
 
 **Story view.** Full screen on black: progress bars at the top (6 s per story), sender and close button, feeling pill and caption at the bottom on a shadow. Tap right = next, left = back. Starts at the first unseen story.
+
+**Profile of someone else.** Opened by tapping a face: the author over a highlight or story, a commenter, a member on the bubble page. Large avatar (with a ring and "View today's stories" when they shared something in the last 24 h), name, bio, the bubbles you share as pills, then their highlights that are still there, month by month. Only what your bubbles already hold; your own face leads to the Profile tab.
+
+**Highlight (opened).** Full screen on `canvas`: the photo edge to edge in its own proportions – 4:5 or 9:16 as the editor makes them – so nothing is cut off; only a photo taller than the screen is fitted in. Text highlights get 4:5 on their gradient. Who shared it, "Manage" (own highlights) and close float over the top on a shadow. Scrolling down: caption, feeling and lifetime pills, heart bubble with faces, comments. The comment field stays at the bottom. Double tap on the photo gives a heart.
 
 **Post card.**
 ```
@@ -136,9 +148,9 @@ Text-only posts: large white text centered on a glowing gradient, the same heigh
 
 **Bubble page.** Cover header with name, lifetime and people pills; member row (the creator can tap a member to remove them); "Invite people" and "Lifetime"; "Leave bubble" as a quiet ghost action; the highlights below. Share button at the bottom.
 
-**Secret box.** Frame in the shimmer gradient, always contains: the value, a copy action and a sentence on where to keep it safe.
+**Secret box.** Violet frame, always contains: the value, a copy action and a sentence on where to keep it safe.
 
-**Empty states.** Decoration of three gradient bubbles, a headline, one sentence, the one fitting action.
+**Empty states.** Decoration of three violet bubbles, a headline, one sentence, the one fitting action.
 
 ## 5. Layout
 
@@ -187,14 +199,14 @@ Text-only posts: large white text centered on a glowing gradient, the same heigh
 
 ### Do
 - Use `canvas` as the background of every page, cards in `surface`.
-- Put exactly one main button in the gradient per view.
+- Put exactly one main button in `primary` per view.
 - Show photos large and edge to edge; text on photos only over a shadow.
 - Show the lifetime on every post.
 - Explain why something is disabled (e.g. "Choose a bubble" on the share button).
 - Use line icons from `Resources/Images` (no emojis as navigation).
 
 ### Don't
-- Don't use the shimmer for running text or for large areas behind low-contrast text.
+- Don't use pink or cyan in the interface, and never violet for running text on large areas.
 - Don't mark feelings with judgment colors (green/red).
 - Don't load fonts or images from external servers.
 - Don't add streaks, leaderboards or gamification; don't show hearts as a number.
@@ -224,4 +236,4 @@ Opened from Compose ("Design"). The canvas is **9:16** (1080×1920) or **4:5** (
 
 ## 12. Prompt help for AI agents
 
-> Build the UI according to `DESIGN.md`: dark base (`canvas` #0B0A10), cards in `surface` without borders and with a 24 pt radius, exactly one pill button in the pink-violet gradient per view. Inter bold for headlines, Fraunces only for the wordmark. Photos edge to edge and large, text posts on a glowing gradient. Story rings in the pink-violet-cyan gradient. Every post shows the feeling as an emoji pill and the lifetime, with the heart bubble below. No streaks, no external resources. English, warm and short.
+> Build the UI according to `DESIGN.md`: dark base (`canvas` #0B0A10), cards in `surface` without borders and with a 24 pt radius, exactly one pill button in bubble violet (`primary` #6D3CF5) per view. Inter bold for headlines, Fraunces only for the wordmark. Photos edge to edge and large, text posts on a glowing gradient. Story rings in violet, no gradients in the interface. Every post shows the feeling as an emoji pill and the lifetime, with the heart bubble below. No streaks, no external resources. English, warm and short.

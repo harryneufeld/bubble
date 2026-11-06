@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!-- Today: stories on top, then this week, on this day, the most loved highlights, and the way into Rewind -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:Bubble.App.Controls"
@@ -7,76 +8,168 @@
              x:DataType="pages:HomePage"
              Shell.NavBarIsVisible="False"
              Title="Today">
-    <RefreshView x:Name="Refresher" Refreshing="OnRefreshing">
-        <CollectionView x:Name="Feed" SelectionMode="None" MaximumWidthRequest="600">
-            <CollectionView.Header>
-                <VerticalStackLayout Spacing="4" Padding="0,12,0,8">
-                    <!-- Kopfzeile -->
-                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="16,4">
-                        <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-                            <Label Text="bubble" Style="{StaticResource Wordmark}" />
-                            <Ellipse WidthRequest="9" HeightRequest="9" Fill="{StaticResource BubbleGradient}" VerticalOptions="End" Margin="0,0,0,9" />
-                        </HorizontalStackLayout>
-                        <ImageButton Grid.Column="1" Source="ic_scan.png" Style="{StaticResource IconButton}" Clicked="OnJoin"
-                                     SemanticProperties.Description="Join bubble" ToolTipProperties.Text="Join bubble" />
-                        <ImageButton Grid.Column="2" Source="ic_plus.png" Style="{StaticResource IconButton}" Clicked="OnCompose"
-                                     Background="{StaticResource CtaGradient}"
-                                     SemanticProperties.Description="Share highlight" ToolTipProperties.Text="Share highlight" />
-                    </Grid>
+    <ContentPage.Resources>
+        <!-- A highlight of the selected day -->
+        <DataTemplate x:Key="DayCard" x:DataType="pages:PostItem">
+            <Border StrokeShape="RoundRectangle 16" WidthRequest="112" HeightRequest="148" Background="{Binding TextBackground}"
+                    SemanticProperties.Description="{Binding ThumbDescription}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnPostTapped" CommandParameter="{Binding .}" />
+                </Border.GestureRecognizers>
+                <Grid>
+                    <controls:FadeImage Source="{Binding Thumbnail}" Aspect="AspectFill" IsVisible="{Binding HasImage}" />
+                    <Label Text="{Binding Text}" IsVisible="{Binding IsTextOnly}" FontFamily="BodyBold" FontSize="13" TextColor="White"
+                           Margin="9" MaxLines="4" LineBreakMode="TailTruncation" />
+                    <BoxView Background="{StaticResource PhotoShade}" />
+                    <VerticalStackLayout VerticalOptions="End" Padding="9,0,8,8" Spacing="1">
+                        <Label Text="{Binding Author}" FontFamily="BodySemibold" FontSize="13" TextColor="White" />
+                        <Label Text="{Binding BubbleName}" FontSize="11" TextColor="{StaticResource InkSoft}" LineBreakMode="TailTruncation" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </DataTemplate>
 
-                    <!-- Stories -->
-                    <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" HeightRequest="112" Margin="0,8,0,0">
-                        <HorizontalStackLayout x:Name="StoriesRow" Spacing="14" Padding="16,0">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="pages:StoryRing">
-                                    <VerticalStackLayout Spacing="6" WidthRequest="76" SemanticProperties.Description="{Binding Description}">
-                                        <VerticalStackLayout.GestureRecognizers>
-                                            <TapGestureRecognizer Tapped="OnStoryTapped" CommandParameter="{Binding .}" />
-                                        </VerticalStackLayout.GestureRecognizers>
-                                        <controls:AvatarView Size="74" Image="{Binding Image}" Name="{Binding Name}" Ring="{Binding Ring}" ShowPlus="{Binding ShowPlus}" PlusTapped="OnPlusTapped" />
-                                        <Label Text="{Binding Title}" FontSize="12" FontFamily="BodyMedium" HorizontalTextAlignment="Center"
-                                               LineBreakMode="TailTruncation" TextColor="{Binding TitleColor}" />
-                                    </VerticalStackLayout>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </HorizontalStackLayout>
-                    </ScrollView>
-
-                    <Border x:Name="OfflineBar" Style="{StaticResource InfoBar}" Margin="16,8,16,0" IsVisible="False">
-                        <Label x:Name="OfflineLabel" Style="{StaticResource SmallText}" />
+        <!-- A most loved highlight -->
+        <DataTemplate x:Key="LovedTile" x:DataType="pages:PostItem">
+            <Border StrokeShape="RoundRectangle 18" WidthRequest="172" HeightRequest="236" Background="{Binding TextBackground}"
+                    SemanticProperties.Description="{Binding ThumbDescription}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnPostTapped" CommandParameter="{Binding .}" />
+                </Border.GestureRecognizers>
+                <Grid>
+                    <controls:FadeImage Source="{Binding Thumbnail}" Aspect="AspectFill" IsVisible="{Binding HasImage}" />
+                    <Label Text="{Binding Text}" IsVisible="{Binding IsTextOnly}" FontFamily="BodyBold" FontSize="16" TextColor="White"
+                           Margin="12,44,12,0" MaxLines="5" LineBreakMode="TailTruncation" />
+                    <BoxView Background="{StaticResource PhotoShade}" />
+                    <Border Style="{StaticResource GlassPill}" VerticalOptions="Start" Margin="10">
+                        <Label Text="{Binding Since}" Style="{StaticResource PillText}" TextColor="White" />
                     </Border>
+                    <VerticalStackLayout VerticalOptions="End" Padding="11,0,10,10" Spacing="3">
+                        <Label Text="{Binding Text}" IsVisible="{Binding HasCaption}" FontFamily="BodyBold" FontSize="14" TextColor="White" MaxLines="2" LineBreakMode="TailTruncation" />
+                        <Label Text="{Binding AuthorAndBubble}" FontSize="11" TextColor="{StaticResource InkSoft}" LineBreakMode="TailTruncation" />
+                        <Label Text="{Binding LikersText, StringFormat='♥ {0}'}" IsVisible="{Binding HasLikers}" FontSize="11" TextColor="White" LineBreakMode="TailTruncation" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </ContentPage.Resources>
 
-                    <Label x:Name="FeedTitle" Text="Highlights" Style="{StaticResource TitleText}" Margin="16,16,16,4" />
-                </VerticalStackLayout>
-            </CollectionView.Header>
+    <RefreshView x:Name="Refresher" Refreshing="OnRefreshing">
+        <ScrollView>
+            <VerticalStackLayout MaximumWidthRequest="600" Padding="0,12,0,24" Spacing="12">
+                <!-- Kopfzeile -->
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="16,4">
+                    <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                        <Label Text="bubble" Style="{StaticResource Wordmark}" />
+                        <Ellipse WidthRequest="9" HeightRequest="9" Fill="{StaticResource AccentBrush}" VerticalOptions="End" Margin="0,0,0,9" />
+                    </HorizontalStackLayout>
+                    <ImageButton Grid.Column="1" Source="ic_scan.png" Style="{StaticResource IconButton}" Clicked="OnJoin"
+                                 SemanticProperties.Description="Join bubble" ToolTipProperties.Text="Join bubble" />
+                    <ImageButton Grid.Column="2" Source="ic_plus.png" Style="{StaticResource IconButton}" Clicked="OnCompose"
+                                 Background="{StaticResource PrimaryBrush}"
+                                 SemanticProperties.Description="Share highlight" ToolTipProperties.Text="Share highlight" />
+                </Grid>
 
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="pages:PostItem">
-                    <controls:PostCard Margin="12,0">
-                        <controls:PostCard.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnPostTapped" CommandParameter="{Binding .}" />
-                        </controls:PostCard.GestureRecognizers>
-                    </controls:PostCard>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
+                <!-- Stories -->
+                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" HeightRequest="100">
+                    <HorizontalStackLayout x:Name="StoriesRow" Spacing="12" Padding="16,0">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="pages:StoryRing">
+                                <VerticalStackLayout Spacing="5" WidthRequest="70" SemanticProperties.Description="{Binding Description}">
+                                    <VerticalStackLayout.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnStoryTapped" CommandParameter="{Binding .}" />
+                                    </VerticalStackLayout.GestureRecognizers>
+                                    <controls:AvatarView Size="68" Image="{Binding Image}" Name="{Binding Name}" Ring="{Binding Ring}" ShowPlus="{Binding ShowPlus}" PlusTapped="OnPlusTapped" HorizontalOptions="Center" />
+                                    <Label Text="{Binding Title}" FontSize="12" FontFamily="BodyMedium" HorizontalTextAlignment="Center"
+                                           LineBreakMode="TailTruncation" TextColor="{Binding TitleColor}" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </HorizontalStackLayout>
+                </ScrollView>
+                <BoxView Style="{StaticResource Divider}" />
 
-            <CollectionView.EmptyView>
-                <VerticalStackLayout x:Name="EmptyState" Padding="24,32" Spacing="12">
-                    <Grid HeightRequest="150" WidthRequest="200" HorizontalOptions="Center">
-                        <Ellipse WidthRequest="120" HeightRequest="120" Fill="{StaticResource BubbleGradient}" Opacity="0.85" HorizontalOptions="Start" VerticalOptions="End" />
-                        <Ellipse WidthRequest="70" HeightRequest="70" Fill="{StaticResource CtaGradient}" HorizontalOptions="End" VerticalOptions="Start" Margin="0,4,18,0" />
-                        <Ellipse WidthRequest="26" HeightRequest="26" Fill="{StaticResource BubbleGradient}" Opacity="0.7" HorizontalOptions="End" VerticalOptions="End" Margin="0,0,46,18" />
+                <Border x:Name="OfflineBar" Style="{StaticResource InfoBar}" Margin="16,0" IsVisible="False">
+                    <Label x:Name="OfflineLabel" Style="{StaticResource SmallText}" />
+                </Border>
+
+                <!-- This week: one column per day, the selected day's highlights below -->
+                <Border x:Name="WeekCard" Style="{StaticResource Card}" Padding="0,0,0,12" Margin="12,0">
+                    <VerticalStackLayout>
+                        <Grid ColumnDefinitions="*,Auto" Padding="16,14,16,8">
+                            <Label Text="This week" Style="{StaticResource HeadingText}" FontFamily="BodyBold" FontSize="18" />
+                            <Label Grid.Column="1" x:Name="WeekRange" Style="{StaticResource CaptionText}" VerticalOptions="Center" />
+                        </Grid>
+                        <Grid x:Name="WeekDays" ColumnDefinitions="*,*,*,*,*,*,*" ColumnSpacing="4" Padding="8,0" />
+                        <Label x:Name="WeekDayTitle" Style="{StaticResource SmallText}" FontFamily="BodySemibold" Margin="16,12,16,6" />
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout x:Name="WeekDayPosts" Spacing="10" Padding="16,0" BindableLayout.ItemTemplate="{StaticResource DayCard}" />
+                        </ScrollView>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- On this day -->
+                <Border x:Name="RecallCard" Style="{StaticResource Card}" Padding="14" Margin="12,0" IsVisible="False">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnRecallTapped" />
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+                        <Border BackgroundColor="{StaticResource Paper}" StrokeShape="RoundRectangle 3" Padding="6,6,6,18" WidthRequest="96" Rotation="-4" VerticalOptions="Center">
+                            <Border x:Name="RecallPhoto" StrokeShape="Rectangle" HeightRequest="84" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                            <Label Text="On this day" Style="{StaticResource SectionText}" TextColor="{StaticResource Accent}" />
+                            <Label x:Name="RecallTitle" Style="{StaticResource HeadingText}" />
+                            <Label x:Name="RecallCaption" FontFamily="CaveatBrush" FontSize="20" TextColor="{StaticResource InkSoft}" MaxLines="2" LineBreakMode="TailTruncation" />
+                            <Label x:Name="RecallMeta" Style="{StaticResource CaptionText}" />
+                        </VerticalStackLayout>
                     </Grid>
-                    <Label x:Name="EmptyTitle" Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
-                    <Label x:Name="EmptyText" Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
-                    <Button x:Name="EmptyAction" Clicked="OnEmptyAction" Margin="0,12,0,0" />
-                    <Button x:Name="EmptySecondary" Text="Enter invitation code" Clicked="OnJoin" Style="{StaticResource GhostButton}" />
-                </VerticalStackLayout>
-            </CollectionView.EmptyView>
+                </Border>
 
-            <CollectionView.Footer>
-                <BoxView HeightRequest="24" Color="Transparent" />
-            </CollectionView.Footer>
-        </CollectionView>
+                <!-- Most loved: what your people loved most, from months and years ago -->
+                <Border x:Name="LovedCard" Style="{StaticResource Card}" Padding="0,0,0,14" Margin="12,0" IsVisible="False">
+                    <VerticalStackLayout>
+                        <VerticalStackLayout Padding="16,14,16,10" Spacing="2">
+                            <Label Text="Most loved" Style="{StaticResource HeadingText}" FontFamily="BodyBold" FontSize="18" />
+                            <Label Text="What your people loved most, from months and years ago" Style="{StaticResource CaptionText}" />
+                        </VerticalStackLayout>
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout x:Name="LovedPosts" Spacing="10" Padding="16,0" BindableLayout.ItemTemplate="{StaticResource LovedTile}" />
+                        </ScrollView>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- The way back further -->
+                <Border x:Name="RewindCard" Style="{StaticResource Card}" Margin="12,0" SemanticProperties.Description="Rewind" SemanticProperties.Hint="Opens all highlights, month by month">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnRewind" />
+                    </Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Rewind" Style="{StaticResource HeadingText}" FontFamily="BodyBold" FontSize="20" />
+                            <Label Grid.Column="1" Text="Open" FontFamily="BodySemibold" FontSize="14" TextColor="{StaticResource Accent}" VerticalOptions="Center" />
+                        </Grid>
+                        <Label x:Name="RewindText" Style="{StaticResource SmallText}" FontSize="13" />
+                        <Grid x:Name="Bars" HeightRequest="40" ColumnSpacing="3" InputTransparent="True" />
+                        <Grid ColumnDefinitions="*,*">
+                            <Label x:Name="BarsFrom" Style="{StaticResource CaptionText}" FontSize="11" />
+                            <Label Grid.Column="1" Text="This month" Style="{StaticResource CaptionText}" FontSize="11" HorizontalTextAlignment="End" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout x:Name="EmptyState" Padding="24,32" Spacing="12" IsVisible="False">
+                    <Grid HeightRequest="150" WidthRequest="200" HorizontalOptions="Center">
+                        <Ellipse WidthRequest="120" HeightRequest="120" Fill="{StaticResource AccentBrush}" Opacity="0.85" HorizontalOptions="Start" VerticalOptions="End" />
+                        <Ellipse WidthRequest="70" HeightRequest="70" Fill="{StaticResource PrimaryBrush}" HorizontalOptions="End" VerticalOptions="Start" Margin="0,4,18,0" />
+                        <Ellipse WidthRequest="26" HeightRequest="26" Fill="{StaticResource AccentBrush}" Opacity="0.7" HorizontalOptions="End" VerticalOptions="End" Margin="0,0,46,18" />
+                    </Grid>
+                    <Label Text="Start your first bubble" Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
+                    <Label Text="A bubble is a small, private circle – family, flatmates, best friends. Create one or join with a QR code." Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
+                    <Button Text="Create bubble" Clicked="OnCreateBubble" Margin="0,12,0,0" />
+                    <Button Text="Enter invitation code" Clicked="OnJoin" Style="{StaticResource GhostButton}" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
     </RefreshView>
 </ContentPage>

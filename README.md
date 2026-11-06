@@ -13,11 +13,22 @@ Bubble has no ads, no tracking and no investors. It is built in my spare time, a
 
 Thank you!
 
+## What's in the app (1.6.0)
+
+- **Stories:** a row of rings on top, "You" first. Highlights from the last 24 hours play one after another, 6 seconds each.
+- **This week:** Monday to Sunday, each day with a small stack of its photos; tap a day to see its highlights.
+- **On this day:** what was shared a year ago today (or more years, else a month ago), when there is something.
+- **Most loved:** the highlights your people loved most, from months and years ago. Only highlights older than four weeks count; hearts plus twice the comments, at most one per month.
+- **Rewind:** every highlight that is still there, month by month. Filter by all, mine or one bubble, scrub through time on the right, or let "Surprise me" pick one.
+- **Highlights full screen:** opened highlights keep their own format (4:5 or 9:16) and are never cut off; caption, hearts and comments follow when you scroll down.
+- **Profiles of friends:** tap someone's face to see their picture, bio, the bubbles you share and their highlights.
+- **Nothing is kept longer than the post:** a highlight that is not remembered disappears after 24 hours, from the relay and from every view in the app. There is no local archive.
+
 ## Projects
 
 | Project | Contents |
 |---|---|
-| `src/Bubble.Core` | Crypto, message format, invitations, backup, relay client, feed logic. Platform independent. |
+| `src/Bubble.Core` | Crypto, message format, invitations, backup, relay client, feed logic, timeline (weeks, months, on this day, most loved). Platform independent. |
 | `src/Bubble.Relay` | ASP.NET Core relay with SQLite. Only stores encrypted blobs. |
 | `src/Bubble.App` | .NET MAUI app (Android, iOS, Windows). |
 | `tests/Bubble.Tests` | Tests for core and relay, including end-to-end through an in-memory relay. |
@@ -34,23 +45,23 @@ dotnet run --project src/Bubble.Relay
 
 The relay then runs on `http://localhost:5080`. Start the app from Visual Studio, e.g. as a Windows app or in the Android emulator; the emulator reaches the relay at `10.0.2.2:5080`. For a real phone, start the relay with `--urls http://0.0.0.0:5080` and enter your PC's IP address in the app under "Server".
 
-### Leistung prüfen
+### Checking performance
 
-Flüssigkeit beim Scrollen und Seitenwechseln lässt sich nur mit einem **Release-Build** beurteilen: Der Debug-Build wird zur Laufzeit übersetzt und ruckelt etwa dreimal so oft. Für Android:
+Smooth scrolling and page transitions can only be judged with a **release build**: the debug build is compiled at runtime and stutters about three times as often. For Android:
 
 ```bash
 dotnet build src/Bubble.App -f net10.0-android -c Release -p:AndroidPackageFormat=apk -p:RuntimeIdentifier=android-arm64
 ```
 
-Messen lässt sich mit `adb shell dumpsys gfxinfo org.bubble.social` (ruckelnde Frames, Perzentile) nach einem Scrollen über mehrere Karten.
+Measure with `adb shell dumpsys gfxinfo org.bubble.social` (janky frames, percentiles) after scrolling through a few screens.
 
-### Signierter Release-Build (Android)
+### Signed release build (Android)
 
-App-ID ist `org.bubble.social`. Release-Builds werden mit einem eigenen Schlüssel signiert, der **nicht im Repo** liegt: `~/.bubble-signing/` enthält `bubble-release.keystore`, die Passwortdateien `storepass.txt` und `keypass.txt` und `signing.props`, die das Projekt automatisch einbindet (nur bei `-c Release`; ohne die Datei wird mit dem Debug-Schlüssel signiert). Den Ordner sichern, denn mit einem neuen Schlüssel lässt sich eine installierte App nicht mehr aktualisieren, und niemals einchecken.
+The app ID is `org.bubble.social`. Release builds are signed with their own key, which is **not in the repo**: `~/.bubble-signing/` holds `bubble-release.keystore`, the password files `storepass.txt` and `keypass.txt`, and `signing.props`, which the project picks up automatically (only with `-c Release`; without the file the debug key is used). Back the folder up, because an installed app can't be updated with a new key, and never commit it.
 
-Fertige Pakete für Testgeräte liegen in `dist/` (nicht im Repo), z. B. `dist/Bubble-1.1.0-release-arm64.apk`. Installieren per `adb install <apk>` oder die Datei aufs Gerät kopieren und öffnen („Unbekannte Apps installieren“ erlauben). Das Paket ist für 64-Bit-ARM-Geräte, also praktisch jedes aktuelle Handy.
+Finished packages for test devices go into `dist/` (not in the repo), e.g. `dist/Bubble-1.1.0-release-arm64.apk`. Install with `adb install <apk>`, or copy the file to the device and open it (allow "Install unknown apps"). The package is for 64-bit ARM devices, which means practically every current phone.
 
-Zertifikat-Fingerabdruck (SHA-256): `AA:A4:0F:25:48:41:80:66:88:83:51:55:DA:AB:DF:26:C5:71:19:E6:FD:56:FA:C6:B5:AE:9B:11:19:3A:FE:47`
+Certificate fingerprint (SHA-256): `AA:A4:0F:25:48:41:80:66:88:83:51:55:DA:AB:DF:26:C5:71:19:E6:FD:56:FA:C6:B5:AE:9B:11:19:3A:FE:47`
 
 ### Relay via Docker
 
@@ -60,18 +71,18 @@ docker compose up -d --build
 
 The image builds for amd64 and arm64, and the database lives in the volume `relay-data`. In the app, enter the address during onboarding (also on the "I already have an account" screen) or later under "Server", e.g. `192.168.1.20:5080`.
 
-### Relay auf einem Raspberry Pi
+### Relay on a Raspberry Pi
 
-Auf einem Pi mit 64-Bit-Betriebssystem richtet [scripts/setup-pi.sh](scripts/setup-pi.sh) alles ein: Es installiert bei Bedarf Git und Docker, holt den Code und startet den Relay per `docker compose`. Erneut ausführen aktualisiert.
+On a Pi with a 64-bit operating system, [scripts/setup-pi.sh](scripts/setup-pi.sh) sets everything up: it installs Git and Docker if needed, fetches the code and starts the relay with `docker compose`. Running it again updates it.
 
 ```bash
 scp scripts/setup-pi.sh pi@192.168.1.20:/tmp/bubble-setup.sh
 ssh -t pi@192.168.1.20 "bash /tmp/bubble-setup.sh"
 ```
 
-Der erste Build auf dem Pi dauert ein paar Minuten. Der Relay hört auf HTTP, Port 5080; für Zugriff von außen gehört ein HTTPS-Proxy davor.
+The first build on the Pi takes a few minutes. The relay listens on HTTP, port 5080; for access from outside, put an HTTPS proxy in front of it.
 
-Gegen einen laufenden Relay lassen sich die Live-Tests ausführen:
+The live tests run against a running relay:
 
 ```bash
 BUBBLE_RELAY_URL=http://<server>:5080/ dotnet test --filter LiveRelayTests
@@ -122,7 +133,7 @@ BUBBLE_RELAY_URL=http://<server>:5080/ dotnet test --filter LiveRelayTests
 
 - **Member management is basic:** removal needs the owner online and only reaches members the owner has seen in the bubble; there is no admin transfer and no way for others to veto. Ideally this moves to MLS later.
 - **No rate limiting** and no storage quotas on the relay.
-- **Data loading:** the feed is loaded completely every time it opens, there is no local cache.
+- **Data loading:** every bubble is loaded completely on each refresh; the app first shows what it loaded last time from a cache on the device.
 - **Short invitation codes are guessable:** 50 bits, but only valid for 24 h and slowed down by Argon2id. Prefer the QR code or link if in doubt.
 - **Push notifications** work on Android through FCM only if the build has Firebase settings and the relay has a push gateway, see [docs/push.md](docs/push.md). Not yet: UnifiedPush in the app, iOS.
 - **Not included yet:** passkey, emoji reactions.

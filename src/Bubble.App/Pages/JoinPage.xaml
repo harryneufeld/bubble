@@ -29,7 +29,7 @@
             <!-- Scannen -->
             <VerticalStackLayout x:Name="ScanPanel" Spacing="12">
                 <Border x:Name="CameraFrame" StrokeShape="RoundRectangle 28" BackgroundColor="{StaticResource Surface}"
-                        HeightRequest="340" Stroke="{StaticResource BubbleGradient}" StrokeThickness="3">
+                        HeightRequest="340" Stroke="{StaticResource AccentBrush}" StrokeThickness="3">
                     <Grid x:Name="CameraHost">
                         <Label x:Name="CameraMessage" Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" VerticalOptions="Center" Margin="24" />
                     </Grid>

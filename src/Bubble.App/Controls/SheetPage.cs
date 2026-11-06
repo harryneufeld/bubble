@@ -255,7 +255,7 @@ public sealed class SheetPage : ContentPage
         {
             grid.Add(new Border
             {
-                StrokeShape = new Ellipse(), WidthRequest = 26, HeightRequest = 26, Background = Res<Brush>("CtaGradient"),
+                StrokeShape = new Ellipse(), WidthRequest = 26, HeightRequest = 26, Background = Res<Brush>("PrimaryBrush"),
                 VerticalOptions = LayoutOptions.Center,
                 Content = new Label { Text = "✓", TextColor = Colors.White, FontSize = 14, FontFamily = "BodyBold", HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center },
             }, 2);
@@ -266,7 +266,7 @@ public sealed class SheetPage : ContentPage
             BackgroundColor = Res<Color>("SurfaceRaised"),
             StrokeShape = new RoundRectangle { CornerRadius = 20 },
             StrokeThickness = selected ? 2 : 0,
-            Stroke = selected ? Res<Brush>("BubbleGradient") : null,
+            Stroke = selected ? Res<Brush>("AccentBrush") : null,
             Padding = new Thickness(14, 12),
             Content = grid,
         };
