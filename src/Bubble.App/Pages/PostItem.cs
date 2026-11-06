@@ -58,6 +58,8 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, b
     }
 
     public string BubbleName => item.Bubble.Name;
+    public string AuthorAndBubble => $"{Author} · {item.Bubble.Name}";
+    public string Since => Labels.Since(_m.CreatedAt);
     public string ThumbLabel => $"{(item.Post.IsMine ? "You" : First(AuthorName))} · {_m.CreatedAt.ToLocalTime().Day}";
     public string ThumbDescription => $"Highlight from {Author}, {_m.CreatedAt.ToLocalTime():d MMMM}. {Text}";
     public string ImageDescription => $"Photo by {AuthorName}";

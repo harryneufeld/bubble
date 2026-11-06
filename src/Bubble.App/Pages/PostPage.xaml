@@ -1,52 +1,110 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Ein Highlight im Ganzen: Karte oben, Kommentare darunter, Eingabe unten -->
+<!-- A highlight full screen: the photo in its own proportions (4:5 or 9:16, never cut off), scroll down for caption, hearts and comments -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:Bubble.App.Controls"
              xmlns:pages="clr-namespace:Bubble.App.Pages"
              x:Class="Bubble.App.Pages.PostPage"
-             Shell.TabBarIsVisible="False"
-             Title="Highlight">
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False">
     <Grid RowDefinitions="*,Auto">
-        <RefreshView x:Name="Refresher" Refreshing="OnRefreshing">
-            <CollectionView x:Name="CommentList" SelectionMode="None" MaximumWidthRequest="600">
-                <CollectionView.Header>
-                    <VerticalStackLayout Spacing="4">
-                        <controls:PostCard x:Name="Card" DoubleTapToLike="True" Margin="12,0,12,0" />
-                        <Label Text="Comments" Style="{StaticResource HeadingText}" Margin="16,4,16,8" />
-                    </VerticalStackLayout>
-                </CollectionView.Header>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="pages:CommentItem">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="14,6">
-                            <controls:AvatarView Size="36" Image="{Binding Avatar}" Name="{Binding Name}" VerticalOptions="Start" />
-                            <Border Grid.Column="1" BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 18" Padding="14,10"
-                                    HorizontalOptions="Start">
-                                <VerticalStackLayout Spacing="2">
-                                    <HorizontalStackLayout Spacing="8">
-                                        <Label Text="{Binding Name}" FontFamily="BodySemibold" FontSize="14" />
-                                        <Label Text="{Binding When}" Style="{StaticResource CaptionText}" FontSize="12" VerticalOptions="Center" />
-                                    </HorizontalStackLayout>
-                                    <Label Text="{Binding Text}" FontSize="15" LineHeight="1.25" />
-                                </VerticalStackLayout>
-                            </Border>
+        <CollectionView x:Name="CommentList" SelectionMode="None">
+            <CollectionView.Header>
+                <VerticalStackLayout x:Name="Header" x:DataType="pages:PostItem">
+                    <!-- The photo, edge to edge -->
+                    <Grid x:Name="Media" BackgroundColor="Black">
+                        <controls:FadeImage x:Name="Photo" Source="{Binding Image}" Aspect="AspectFill" IsVisible="{Binding HasImage}"
+                                            SemanticProperties.Description="{Binding ImageDescription}" />
+                        <Grid IsVisible="{Binding IsTextOnly}" Background="{Binding TextBackground}">
+                            <Label Text="{Binding Text}" FontFamily="BodyBold" FontSize="28" LineHeight="1.15" TextColor="White"
+                                   HorizontalTextAlignment="Center" VerticalOptions="Center" Margin="28" />
                         </Grid>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-                <CollectionView.EmptyView>
-                    <VerticalStackLayout Padding="24,24" Spacing="6">
-                        <Label Text="No comments yet" Style="{StaticResource HeadingText}" HorizontalTextAlignment="Center" />
-                        <Label Text="Write the first one." Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
+                        <Image x:Name="BigHeart" Source="ic_heart_bubble_on.png" WidthRequest="120" HeightRequest="120" Opacity="0"
+                               HorizontalOptions="Center" VerticalOptions="Center" InputTransparent="True" />
+                    </Grid>
+
+                    <!-- Caption, feeling, hearts -->
+                    <VerticalStackLayout Padding="16,14,16,4" Spacing="12">
+                        <Label Text="{Binding Text}" IsVisible="{Binding HasCaption}" FontSize="17" LineHeight="1.3" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Border Style="{StaticResource SoftPill}" IsVisible="{Binding HasFeeling}"
+                                    SemanticProperties.Description="{Binding Feeling, StringFormat='Feeling: {0}'}">
+                                <Label Text="{Binding Feeling}" Style="{StaticResource FeelingText}" />
+                            </Border>
+                            <Border Style="{StaticResource SoftPill}">
+                                <Label Text="{Binding Remaining}" Style="{StaticResource FeelingText}" />
+                            </Border>
+                        </HorizontalStackLayout>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <ImageButton x:Name="LikeButton" Source="{Binding LikeIcon}" WidthRequest="48" HeightRequest="48" Padding="10"
+                                         CornerRadius="24" BackgroundColor="{StaticResource SurfaceRaised}" Clicked="OnLikeClicked"
+                                         SemanticProperties.Description="{Binding LikeDescription}" ToolTipProperties.Text="{Binding LikeDescription}" />
+                            <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center" IsVisible="{Binding HasLikers}">
+                                <HorizontalStackLayout Spacing="-8" BindableLayout.ItemsSource="{Binding Likers}" VerticalOptions="Center">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="pages:Face">
+                                            <Border StrokeShape="Ellipse" Stroke="{StaticResource Canvas}" StrokeThickness="2">
+                                                <controls:AvatarView Size="26" Image="{Binding Image}" Name="{Binding Name}" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </HorizontalStackLayout>
+                                <Label Text="{Binding LikersText}" Style="{StaticResource CaptionText}" TextColor="{StaticResource InkSoft}" VerticalOptions="Center" LineBreakMode="TailTruncation" />
+                            </HorizontalStackLayout>
+                        </Grid>
+                        <Label Text="Comments" Style="{StaticResource HeadingText}" Margin="0,6,0,4" />
                     </VerticalStackLayout>
-                </CollectionView.EmptyView>
-                <CollectionView.Footer>
-                    <BoxView HeightRequest="12" Color="Transparent" />
-                </CollectionView.Footer>
-            </CollectionView>
-        </RefreshView>
+                </VerticalStackLayout>
+            </CollectionView.Header>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="pages:CommentItem">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="14,6">
+                        <controls:AvatarView Size="36" Image="{Binding Avatar}" Name="{Binding Name}" VerticalOptions="Start" />
+                        <Border Grid.Column="1" BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 18" Padding="14,10"
+                                HorizontalOptions="Start">
+                            <VerticalStackLayout Spacing="2">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding Name}" FontFamily="BodySemibold" FontSize="14" />
+                                    <Label Text="{Binding When}" Style="{StaticResource CaptionText}" FontSize="12" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Label Text="{Binding Text}" FontSize="15" LineHeight="1.25" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="24,16,24,32" Spacing="6">
+                    <Label Text="No comments yet" Style="{StaticResource HeadingText}" HorizontalTextAlignment="Center" />
+                    <Label Text="Write the first one." Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+            <CollectionView.Footer>
+                <BoxView HeightRequest="12" Color="Transparent" />
+            </CollectionView.Footer>
+        </CollectionView>
+
+        <!-- Over the photo: who shared it, manage (own highlights), close -->
+        <Grid x:Name="TopBar" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" Padding="12,10,12,28" VerticalOptions="Start" x:DataType="pages:PostItem">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#B3000000" Offset="0" />
+                    <GradientStop Color="#00000000" Offset="1" />
+                </LinearGradientBrush>
+            </Grid.Background>
+            <controls:AvatarView Size="36" Image="{Binding AuthorAvatar}" Name="{Binding AuthorName}" VerticalOptions="Center" />
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" InputTransparent="True">
+                <Label Text="{Binding Author}" FontFamily="BodySemibold" FontSize="15" TextColor="White" />
+                <Label Text="{Binding Meta}" FontSize="12" TextColor="#D9FFFFFF" LineBreakMode="TailTruncation" />
+            </VerticalStackLayout>
+            <Button Grid.Column="2" x:Name="ManageButton" Text="Manage" Clicked="OnManage" IsVisible="False"
+                    Background="#33FFFFFF" TextColor="White" FontFamily="BodySemibold" FontSize="14" CornerRadius="22" HeightRequest="44" Padding="16,0" BorderWidth="0" />
+            <ImageButton Grid.Column="3" Source="ic_close.png" Style="{StaticResource IconButton}" BackgroundColor="#33FFFFFF"
+                         Clicked="OnClose" SemanticProperties.Description="Close" />
+        </Grid>
 
         <!-- Kommentar schreiben -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10" Padding="12,8,12,12" MaximumWidthRequest="600">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10" Padding="12,8,12,12" BackgroundColor="{StaticResource Canvas}">
             <Border Style="{StaticResource Field}" MinimumHeightRequest="50">
                 <Entry x:Name="CommentEntry" Placeholder="Write a comment …" MaxLength="500" ReturnType="Send" Completed="OnSend"
                        SemanticProperties.Description="Write a comment" />

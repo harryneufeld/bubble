@@ -117,12 +117,14 @@ Bubble feels like **the story bar of a social app, only for your closest people*
 **Today below the stories.** Cards that group what belongs together, each on `surface`:
 - **This week:** seven columns, Monday to Sunday, each with a small fanned stack of that day's photos (at most three, then "+n"); today's date on `primary`, days still to come faded. The selected day's highlights sit in a row inside the same card.
 - **On this day:** a small tilted polaroid of what was shared a year ago today (or more years, else a month ago). Only shown when there is one.
-- **The month:** a photo calendar, each day with highlights shows its first photo, a dot means more than one. Arrows switch between months that have highlights; the selected day's highlights sit below in the same card.
+- **Most loved:** large cards of what your people loved most, from months and years ago. Only highlights older than four weeks count; each scores hearts plus twice its comments; at most one per month, best six first. Hidden when nothing qualifies.
 - **Rewind:** a bar per month for the last twelve months, leading to Rewind.
 
-**Rewind.** Every highlight that still exists, month by month in a three-column grid. One filter card on top: a row of faces (everyone, you, then the others) and a row of feelings. A scrubber on the right jumps through the months and shows which month you are in while dragging. "Surprise me" opens a random highlight. Nothing is kept locally: when a post is gone, it is gone here too.
+**Rewind.** Every highlight that still exists, month by month in a three-column grid. One filter row on top: all, mine, then each bubble with its newest photo as the circle. A scrubber on the right jumps through the months and shows which month you are in while dragging. "Surprise me" opens a random highlight. Nothing is kept locally: when a post is gone, it is gone here too.
 
 **Story view.** Full screen on black: progress bars at the top (6 s per story), sender and close button, feeling pill and caption at the bottom on a shadow. Tap right = next, left = back. Starts at the first unseen story.
+
+**Highlight (opened).** Full screen on `canvas`: the photo edge to edge in its own proportions – 4:5 or 9:16 as the editor makes them – so nothing is cut off; only a photo taller than the screen is fitted in. Text highlights get 4:5 on their gradient. Who shared it, "Manage" (own highlights) and close float over the top on a shadow. Scrolling down: caption, feeling and lifetime pills, heart bubble with faces, comments. The comment field stays at the bottom. Double tap on the photo gives a heart.
 
 **Post card.**
 ```

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Every highlight that is still there, month by month: filter by person or feeling, scrub through time on the right -->
+<!-- Every highlight that is still there, month by month: all, mine or one bubble, scrub through time on the right -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:Bubble.App.Controls"
@@ -12,39 +12,22 @@
     </ContentPage.ToolbarItems>
 
     <Grid RowDefinitions="Auto,*" MaximumWidthRequest="600">
-        <!-- Filter: who and which feeling -->
-        <Border Style="{StaticResource Card}" Padding="0,8,0,4" Margin="12,4,12,8">
+        <!-- Filter: all, mine, or one bubble -->
+        <Border Style="{StaticResource Card}" Padding="0,10,0,8" Margin="12,4,12,8">
             <VerticalStackLayout Spacing="2">
                 <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                    <HorizontalStackLayout x:Name="People" Spacing="8" Padding="12,0">
+                    <HorizontalStackLayout x:Name="Scopes" Spacing="8" Padding="12,0">
                         <BindableLayout.ItemTemplate>
-                            <DataTemplate x:DataType="pages:PersonChip">
-                                <VerticalStackLayout Spacing="4" WidthRequest="58" SemanticProperties.Description="{Binding Description}">
+                            <DataTemplate x:DataType="pages:ScopeChip">
+                                <VerticalStackLayout Spacing="4" WidthRequest="64" SemanticProperties.Description="{Binding Description}">
                                     <VerticalStackLayout.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnPersonTapped" CommandParameter="{Binding .}" />
+                                        <TapGestureRecognizer Tapped="OnScopeTapped" CommandParameter="{Binding .}" />
                                     </VerticalStackLayout.GestureRecognizers>
                                     <Border StrokeShape="Ellipse" Stroke="{Binding Ring}" StrokeThickness="2" Padding="2" WidthRequest="48" HeightRequest="48" HorizontalOptions="Center">
                                         <controls:AvatarView Size="40" Image="{Binding Image}" Name="{Binding Name}" InputTransparent="True" />
                                     </Border>
                                     <Label Text="{Binding Name}" FontSize="11" FontFamily="BodyMedium" TextColor="{Binding TextColor}" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" />
                                 </VerticalStackLayout>
-                            </DataTemplate>
-                        </BindableLayout.ItemTemplate>
-                    </HorizontalStackLayout>
-                </ScrollView>
-                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                    <HorizontalStackLayout x:Name="Feelings" Spacing="6" Padding="12,0">
-                        <BindableLayout.ItemTemplate>
-                            <DataTemplate x:DataType="pages:FeelingChip">
-                                <Grid HeightRequest="44" SemanticProperties.Description="{Binding Description}">
-                                    <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnFeelingTapped" CommandParameter="{Binding .}" />
-                                    </Grid.GestureRecognizers>
-                                    <Border StrokeShape="RoundRectangle 16" StrokeThickness="1" Padding="12,6" VerticalOptions="Center"
-                                            Stroke="{Binding BorderColor}" BackgroundColor="{Binding Fill}">
-                                        <Label Text="{Binding Text}" FontSize="14" TextColor="{Binding TextColor}" />
-                                    </Border>
-                                </Grid>
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>
                     </HorizontalStackLayout>

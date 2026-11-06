@@ -53,6 +53,29 @@ public class TimelineTests
     }
 
     [Fact]
+    public void MostLoved_CountsCommentsDouble_KeepsOnePerMonth_AndSkipsRecentAndUnloved()
+    {
+        (string Id, DateTimeOffset At, int Hearts, int Comments)[] posts =
+        [
+            ("recent", Now.AddDays(-10), 50, 50),
+            ("hearts", Now.AddMonths(-3), 10, 0),
+            ("talked", Now.AddMonths(-3).AddDays(2), 2, 5),
+            ("old", Now.AddYears(-2), 6, 1),
+            ("unloved", Now.AddMonths(-5), 0, 0),
+        ];
+        var loved = Timeline.MostLoved(posts, p => p.At, p => (p.Hearts, p.Comments), Now).Select(p => p.Id);
+
+        Assert.Equal(["talked", "old"], loved);
+    }
+
+    [Fact]
+    public void MostLoved_StopsAtTheLimit()
+    {
+        var posts = Enumerable.Range(1, 10).Select(m => (At: Now.AddMonths(-m), Hearts: m)).ToList();
+        Assert.Equal([10, 9, 8], Timeline.MostLoved(posts, p => p.At, p => (p.Hearts, 0), Now, 3).Select(p => p.Hearts));
+    }
+
+    [Fact]
     public void LastMonths_EndWithThisOne()
     {
         Assert.Equal([(2025, 11), (2025, 12), (2026, 1)], Timeline.LastMonths(new DateTimeOffset(2026, 1, 31, 12, 0, 0, TimeSpan.Zero), 3));

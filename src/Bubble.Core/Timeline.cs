@@ -35,6 +35,22 @@ public static class Timeline
         return null;
     }
 
+    /// <summary>
+    /// The most loved highlights from the past: older than four weeks, scored by hearts plus twice the comments
+    /// (a comment takes more than a tap), at most one per month so they spread over time. Unloved ones never count.
+    /// </summary>
+    public static IReadOnlyList<T> MostLoved<T>(IEnumerable<T> items, Func<T, DateTimeOffset> createdAt, Func<T, (int Hearts, int Comments)> reactions, DateTimeOffset now, int count = 6) =>
+        items.Where(i => now - createdAt(i) >= TimeSpan.FromDays(28))
+            .Select(i => (Item: i, Score: reactions(i).Hearts + 2 * reactions(i).Comments, Date: LocalDate(createdAt(i), now)))
+            .Where(x => x.Score > 0)
+            .GroupBy(x => (x.Date.Year, x.Date.Month))
+            .Select(g => g.OrderByDescending(x => x.Score).ThenByDescending(x => x.Date).First())
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.Date)
+            .Take(count)
+            .Select(x => x.Item)
+            .ToList();
+
     /// <summary>The last <paramref name="count"/> months up to and including this one, oldest first.</summary>
     public static IReadOnlyList<(int Year, int Month)> LastMonths(DateTimeOffset now, int count) =>
         Enumerable.Range(0, count).Reverse().Select(i => now.Date.AddMonths(-i)).Select(d => (d.Year, d.Month)).ToList();

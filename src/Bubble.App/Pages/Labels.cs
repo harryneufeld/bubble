@@ -86,5 +86,17 @@ static class Labels
         var m => $"{m / 12} years ago today",
     };
 
+    /// <summary>"3 weeks ago", "A month ago", "5 months ago", "A year ago", "2 years ago".</summary>
+    public static string Since(DateTimeOffset createdAt)
+    {
+        var then = createdAt.ToLocalTime().Date;
+        var today = DateTime.Today;
+        var months = (today.Year - then.Year) * 12 + today.Month - then.Month - (today.Day < then.Day ? 1 : 0);
+        if (months >= 12) return months < 24 ? "A year ago" : $"{months / 12} years ago";
+        if (months >= 1) return months == 1 ? "A month ago" : $"{months} months ago";
+        var weeks = (int)((today - then).TotalDays / 7);
+        return weeks <= 1 ? "A week ago" : $"{weeks} weeks ago";
+    }
+
     public static string People(int count) => count == 1 ? "1 person" : $"{count} people";
 }

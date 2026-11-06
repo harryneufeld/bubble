@@ -27,9 +27,7 @@ public partial class HomePage : ContentPage
     IReadOnlyList<HomePost> _posts = [];
     DateTimeOffset _now = DateTimeOffset.Now;
     DateTime _weekDay = DateTime.Today;
-    DateTime? _monthDay = DateTime.Today;
-    (int Year, int Month) _month = (DateTime.Today.Year, DateTime.Today.Month);
-    readonly List<(DateTime Date, Border View)> _weekCells = [], _monthCells = [];
+    readonly List<(DateTime Date, Border View)> _weekCells = [];
     HomePost? _recall;
 
     public HomePage(AccountService account, FeedService feed)
@@ -119,7 +117,7 @@ public partial class HomePage : ContentPage
 
         var hasBubbles = bubbles.Count > 0;
         EmptyState.IsVisible = !hasBubbles;
-        WeekCard.IsVisible = MonthCard.IsVisible = RewindCard.IsVisible = hasBubbles;
+        WeekCard.IsVisible = RewindCard.IsVisible = hasBubbles;
 
         var posts = _feed.AllPosts();
         var postSig = string.Join('|', posts.Select(p => p.Post.Id)) + $"#{DateTime.Today:yyyyMMdd}";
@@ -130,10 +128,10 @@ public partial class HomePage : ContentPage
             _now = DateTimeOffset.Now;
             RenderWeek();
             RenderRecall();
-            RenderMonth();
+            RenderLoved();
             RenderRewind();
         }
-        if (!hasBubbles) RecallCard.IsVisible = false;
+        if (!hasBubbles) RecallCard.IsVisible = LovedCard.IsVisible = false;
 
         OfflineBar.IsVisible = _feed.Unreachable.Count > 0;
         OfflineLabel.Text = _feed.Unreachable.Count switch
@@ -245,7 +243,17 @@ public partial class HomePage : ContentPage
         if (_recall is { } post) await OpenPost(post.Bubble.MailboxId, post.Post.Id);
     }
 
-    // ── The month ─────────────────────────────────────────
+    // ── Most loved ────────────────────────────────────────
+
+    void RenderLoved()
+    {
+        var loved = Timeline.MostLoved(_posts, p => p.Post.Message.CreatedAt,
+            p => (p.Snapshot.LikersOf(p.Post.Id).Count, p.Snapshot.CommentsOf(p.Post.Id).Count), _now);
+        LovedCard.IsVisible = loved.Count > 0;
+        BindableLayout.SetItemsSource(LovedPosts, loved.Select(ToItem).ToList());
+    }
+
+    // ── Rewind ────────────────────────────────────────────
 
     (int Year, int Month) EarliestMonth()
     {
@@ -253,100 +261,6 @@ public partial class HomePage : ContentPage
         var first = _posts.Min(DateOf);
         return (first.Year, first.Month);
     }
-
-    void RenderMonth()
-    {
-        var today = DateTime.Today;
-        var earliest = EarliestMonth();
-        if (_month.CompareTo(earliest) < 0) _month = earliest;
-        if (_month.CompareTo((today.Year, today.Month)) > 0) _month = (today.Year, today.Month);
-
-        MonthTitle.Text = _month == (today.Year, today.Month) ? "This month" : Labels.Month(_month.Year, _month.Month);
-        PrevMonth.IsEnabled = _month.CompareTo(earliest) > 0;
-        NextMonth.IsEnabled = _month.CompareTo((today.Year, today.Month)) < 0;
-        PrevMonth.Opacity = PrevMonth.IsEnabled ? 1 : 0.3;
-        NextMonth.Opacity = NextMonth.IsEnabled ? 1 : 0.3;
-
-        Calendar.Children.Clear();
-        Calendar.RowDefinitions.Clear();
-        _monthCells.Clear();
-        var resources = Application.Current!.Resources;
-        string[] letters = ["M", "T", "W", "T", "F", "S", "S"];
-        Calendar.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-        for (var c = 0; c < 7; c++)
-            Calendar.Add(new Label { Text = letters[c], Style = (Style)resources["CaptionText"], FontSize = 11, HorizontalTextAlignment = TextAlignment.Center }, c, 0);
-
-        var first = new DateTime(_month.Year, _month.Month, 1);
-        var offset = ((int)first.DayOfWeek + 6) % 7;
-        var days = DateTime.DaysInMonth(_month.Year, _month.Month);
-        for (var r = 0; r < (offset + days + 6) / 7; r++) Calendar.RowDefinitions.Add(new RowDefinition(46));
-
-        for (var d = 1; d <= days; d++)
-        {
-            var date = first.AddDays(d - 1);
-            var posts = PostsOn(date);
-            var grid = new Grid();
-            if (posts.Count > 0)
-            {
-                var tile = Tile(ToItem(posts[0]), -1, -1, 0);
-                grid.Add(tile);
-                grid.Add(new BoxView { Color = Color.FromArgb("#4D0B0A10") });
-            }
-            grid.Add(new Label
-            {
-                Text = d.ToString(Invariant), FontSize = 11, Margin = new Thickness(5, 3),
-                FontFamily = posts.Count > 0 || date == today ? "BodyBold" : "Body",
-                TextColor = posts.Count > 0 ? Colors.White : date == today ? (Color)resources["Accent"] : (Color)resources["Muted"],
-            });
-            if (posts.Count > 1)
-                grid.Add(new Ellipse { Fill = Colors.White, WidthRequest = 6, HeightRequest = 6, HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End, Margin = 4 });
-
-            var cell = new Border
-            {
-                StrokeShape = new RoundRectangle { CornerRadius = 10 },
-                BackgroundColor = (Color)resources["SurfaceRaised"],
-                Content = grid,
-            };
-            SemanticProperties.SetDescription(cell, $"{date.ToString("d MMMM", Invariant)}, {Labels.Highlights(posts.Count)}");
-            if (posts.Count > 0) cell.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => SelectMonthDay(date)) });
-            var index = offset + d - 1;
-            Calendar.Add(cell, index % 7, 1 + index / 7);
-            _monthCells.Add((date, cell));
-        }
-
-        if (_monthDay is { } selected && (selected.Year != _month.Year || selected.Month != _month.Month || PostsOn(selected).Count == 0))
-            _monthDay = null;
-        SelectMonthDay(_monthDay);
-    }
-
-    void SelectMonthDay(DateTime? date)
-    {
-        _monthDay = date;
-        foreach (var (day, view) in _monthCells)
-        {
-            view.Stroke = day == date ? (Color)Application.Current!.Resources["Ink"] : Colors.Transparent;
-            view.StrokeThickness = day == date ? 2 : 0;
-        }
-        var posts = date is { } d ? PostsOn(d) : [];
-        MonthDayTitle.Text = date is { } day2 ? $"{day2.ToString("d MMMM", Invariant)} · {Labels.Highlights(posts.Count)}" : "Tap a day with photos";
-        BindableLayout.SetItemsSource(MonthDayPosts, posts.Select(ToItem).ToList());
-    }
-
-    void OnPrevMonth(object? sender, EventArgs e)
-    {
-        var d = new DateTime(_month.Year, _month.Month, 1).AddMonths(-1);
-        _month = (d.Year, d.Month);
-        RenderMonth();
-    }
-
-    void OnNextMonth(object? sender, EventArgs e)
-    {
-        var d = new DateTime(_month.Year, _month.Month, 1).AddMonths(1);
-        _month = (d.Year, d.Month);
-        RenderMonth();
-    }
-
-    // ── Rewind ────────────────────────────────────────────
 
     void RenderRewind()
     {

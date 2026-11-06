@@ -18,6 +18,15 @@ public static class Thumbnails
         return ImageSource.FromStream(() => new MemoryStream(small));
     }));
 
+    static readonly ConditionalWeakTable<byte[], object> Ratios = new();
+
+    /// <summary>Width by height, read from the file header without decoding the photo.</summary>
+    public static double RatioOf(byte[] photo) => (double)Ratios.GetValue(photo, b =>
+    {
+        using var codec = SKCodec.Create(new MemoryStream(b));
+        return codec is { Info.Height: > 0 } ? (double)codec.Info.Width / codec.Info.Height : 0.8;
+    });
+
     static byte[] Shrink(byte[] photo)
     {
         using var codec = SKCodec.Create(new MemoryStream(photo));

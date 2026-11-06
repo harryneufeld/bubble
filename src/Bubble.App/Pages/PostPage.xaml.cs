@@ -4,7 +4,7 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-/// <summary>A highlight with heart bubble and comments.</summary>
+/// <summary>A highlight full screen, in its own proportions, with heart bubble and comments below.</summary>
 [QueryProperty(nameof(MailboxId), "id")]
 [QueryProperty(nameof(PostId), "post")]
 [QueryProperty(nameof(ToComments), "comments")]
@@ -28,11 +28,11 @@ public partial class PostPage : ContentPage
         InitializeComponent();
         _account = account;
         _feed = feed;
-        _menu = new ToolbarItem { Text = "Manage" };
-        _menu.Clicked += OnManage;
+        var doubleTap = new TapGestureRecognizer { NumberOfTapsRequired = 2 };
+        doubleTap.Tapped += OnDoubleTapped;
+        Media.GestureRecognizers.Add(doubleTap);
+        SizeChanged += (_, _) => FitMedia();
     }
-
-    readonly ToolbarItem _menu;
 
     protected override async void OnAppearing()
     {
@@ -56,8 +56,6 @@ public partial class PostPage : ContentPage
         else Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(400), () => CommentEntry.Focus());
     }
 
-    async void OnRefreshing(object? sender, EventArgs e) => await LoadAsync();
-
     async Task LoadAsync()
     {
         try
@@ -68,10 +66,6 @@ public partial class PostPage : ContentPage
         catch (HttpRequestException)
         {
             // offline: wir zeigen, was wir haben
-        }
-        finally
-        {
-            Refresher.IsRefreshing = false;
         }
     }
 
@@ -85,12 +79,54 @@ public partial class PostPage : ContentPage
         _item = new PostItem(post, _feed, showBubble: true, showFaces: true);
         _sig = Sig(post);
         _item.PropertyChanged += (_, _) => _sig = Sig(_item.Source); // own heart or comment: the state is already shown
-        Card.BindingContext = _item;
+        Header.BindingContext = TopBar.BindingContext = _item;
         CommentList.ItemsSource = _item.Comments;
-        Title = _item.Author == "You" ? "Your highlight" : $"Highlight from {_item.AuthorName}";
-        ToolbarItems.Clear();
-        if (post.Post.IsMine) ToolbarItems.Add(_menu);
+        ManageButton.IsVisible = post.Post.IsMine;
+        FitMedia();
         return true;
+    }
+
+    /// <summary>
+    /// As wide as the screen and exactly as tall as the photo's proportions say, so a 4:5 or a 9:16 highlight is never cut off.
+    /// Only a photo even taller than the screen is fitted in. Text highlights get 4:5.
+    /// </summary>
+    void FitMedia()
+    {
+        if (_item is null || Width <= 0 || Height <= 0) return;
+        var ratio = _item.Source.Post.Message.Image is { Length: > 0 } photo ? Thumbnails.RatioOf(photo) : 0.8;
+        var height = Width / ratio;
+        var limit = Height - 72;
+        Media.HeightRequest = Math.Min(height, limit);
+        Photo.Aspect = height > limit ? Aspect.AspectFit : Aspect.AspectFill;
+    }
+
+    async void OnClose(object? sender, EventArgs e) => await Shell.Current.GoToAsync("..");
+
+    async void OnLikeClicked(object? sender, EventArgs e)
+    {
+        if (_item is null) return;
+        _ = Pop(LikeButton);
+        await _item.ToggleLikeAsync();
+    }
+
+    async void OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (_item is null) return;
+        if (!_item.IsLiked)
+        {
+            _ = Pop(LikeButton);
+            _ = _item.ToggleLikeAsync();
+        }
+        BigHeart.Scale = 0.4;
+        await Task.WhenAll(BigHeart.FadeToAsync(1, 120), BigHeart.ScaleToAsync(1.1, 220, Easing.SpringOut));
+        await Task.Delay(250);
+        await Task.WhenAll(BigHeart.FadeToAsync(0, 220), BigHeart.ScaleToAsync(1.4, 220, Easing.CubicIn));
+    }
+
+    static async Task Pop(VisualElement view)
+    {
+        await view.ScaleToAsync(1.3, 90, Easing.CubicOut);
+        await view.ScaleToAsync(1, 140, Easing.SpringOut);
     }
 
     static string Sig(HomePost p) =>

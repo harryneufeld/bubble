@@ -3,22 +3,12 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-/// <summary>A person to filter by. An empty key means everyone.</summary>
-public sealed record PersonChip(string Key, string Name, byte[]? Image, bool IsOn)
+/// <summary>Whose highlights Rewind shows: an empty key means all, "me" only mine, otherwise a bubble's mailbox.</summary>
+public sealed record ScopeChip(string Key, string Name, byte[]? Image, bool IsOn)
 {
     public Color Ring => IsOn ? Color.FromArgb("#B9A2FF") : Colors.Transparent;
     public Color TextColor => Color.FromArgb(IsOn ? "#F5F3FA" : "#C9C4D6");
-    public string Description => (Key.Length == 0 ? "Everyone" : Name == "You" ? "Only your own highlights" : $"Only highlights from {Name}") + (IsOn ? ", selected" : "");
-}
-
-/// <summary>A feeling to filter by. Without an emoji: any feeling.</summary>
-public sealed record FeelingChip(string? Emoji, bool IsOn)
-{
-    public string Text => Emoji ?? "Any feeling";
-    public Color BorderColor => Color.FromArgb(IsOn ? "#B9A2FF" : "#2E2A3A");
-    public Color Fill => IsOn ? Color.FromArgb("#2E2A3A") : Colors.Transparent;
-    public Color TextColor => Color.FromArgb(IsOn ? "#F5F3FA" : "#C9C4D6");
-    public string Description => (Emoji is null ? "Any feeling" : $"Only highlights feeling {Emoji}") + (IsOn ? ", selected" : "");
+    public string Description => (Key.Length == 0 ? "Highlights from all bubbles" : Key == "me" ? "Only your own highlights" : $"Only highlights in {Name}") + (IsOn ? ", selected" : "");
 }
 
 /// <summary>One month in Rewind.</summary>
@@ -34,8 +24,7 @@ public partial class RewindPage : ContentPage
     const double HeaderHeight = 44, RowHeight = 112 + 6, KnobHeight = 28, RailInset = 8;
 
     readonly FeedService _feed;
-    string _person = "";
-    string? _feeling;
+    string _scope = "";
     List<MonthItems> _months = [];
     List<double> _tops = [];
     double _total, _fraction, _dragStart;
@@ -63,31 +52,27 @@ public partial class RewindPage : ContentPage
         Render();
     }
 
-    static string PersonKey(HomePost post) => post.Post.IsMine ? "me" : post.Post.Message.AuthorKey;
-
-    static string? FeelingOf(HomePost post) => Labels.Feeling(post.Post.Message).Split(' ')[0] is { Length: > 0 } emoji ? emoji : null;
+    bool InScope(HomePost post) => _scope switch
+    {
+        "" => true,
+        "me" => post.Post.IsMine,
+        var mailbox => post.Bubble.MailboxId == mailbox,
+    };
 
     void Render()
     {
         var now = DateTimeOffset.Now;
         var all = _feed.AllPosts();
 
-        // Everyone, then you, then the others by how much they share
-        var people = new List<PersonChip> { new("", "Everyone", null, _person.Length == 0) };
-        if (all.Any(p => p.Post.IsMine)) people.Add(new("me", "You", all.First(p => p.Post.IsMine).Author?.Avatar, _person == "me"));
-        people.AddRange(all.Where(p => !p.Post.IsMine)
-            .GroupBy(PersonKey)
+        // All, mine, then the bubbles by how much they hold, each with its newest photo as the circle
+        var scopes = new List<ScopeChip> { new("", "All", null, _scope.Length == 0) };
+        if (all.FirstOrDefault(p => p.Post.IsMine) is { } mine) scopes.Add(new("me", "Mine", mine.Author?.Avatar, _scope == "me"));
+        scopes.AddRange(all.GroupBy(p => p.Bubble.MailboxId)
             .OrderByDescending(g => g.Count())
-            .Select(g => g.First())
-            .Select(p => new PersonChip(PersonKey(p), (p.Author?.Name ?? p.Post.Message.AuthorName).Split(' ')[0], p.Author?.Avatar, _person == PersonKey(p))));
-        BindableLayout.SetItemsSource(People, people);
+            .Select(g => new ScopeChip(g.Key, g.First().Bubble.Name, g.FirstOrDefault(p => p.Post.Message.Image is not null)?.Post.Message.Image, _scope == g.Key)));
+        BindableLayout.SetItemsSource(Scopes, scopes);
 
-        var feelings = new List<FeelingChip> { new(null, _feeling is null) };
-        feelings.AddRange(all.Select(FeelingOf).OfType<string>().Distinct().Select(f => new FeelingChip(f, _feeling == f)));
-        BindableLayout.SetItemsSource(Feelings, feelings);
-
-        var shown = all.Where(p => (_person.Length == 0 || PersonKey(p) == _person) && (_feeling is null || FeelingOf(p) == _feeling));
-        _months = Timeline.ByMonth(shown, p => p.Post.Message.CreatedAt, now)
+        _months = Timeline.ByMonth(all.Where(InScope), p => p.Post.Message.CreatedAt, now)
             .Select(m => new MonthItems(Labels.Month(m.Year, m.Month), m.Items.Select(p => new PostItem(p, _feed, showBubble: true)).ToList()))
             .ToList();
         _tops = [];
@@ -154,17 +139,10 @@ public partial class RewindPage : ContentPage
         Months.ScrollTo(0, month, ScrollToPosition.Start, animate: false);
     }
 
-    void OnPersonTapped(object? sender, TappedEventArgs e)
+    void OnScopeTapped(object? sender, TappedEventArgs e)
     {
-        if (e.Parameter is not PersonChip chip || chip.IsOn) return;
-        _person = chip.Key;
-        Render();
-    }
-
-    void OnFeelingTapped(object? sender, TappedEventArgs e)
-    {
-        if (e.Parameter is not FeelingChip chip || chip.IsOn) return;
-        _feeling = chip.Emoji;
+        if (e.Parameter is not ScopeChip chip || chip.IsOn) return;
+        _scope = chip.Key;
         Render();
     }
 
