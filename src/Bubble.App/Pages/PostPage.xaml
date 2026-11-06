@@ -59,7 +59,11 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="pages:CommentItem">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="14,6">
-                        <controls:AvatarView Size="36" Image="{Binding Avatar}" Name="{Binding Name}" VerticalOptions="Start" />
+                        <controls:AvatarView Size="36" Image="{Binding Avatar}" Name="{Binding Name}" VerticalOptions="Start">
+                            <controls:AvatarView.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnCommenterTapped" CommandParameter="{Binding .}" />
+                            </controls:AvatarView.GestureRecognizers>
+                        </controls:AvatarView>
                         <Border Grid.Column="1" BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 18" Padding="14,10"
                                 HorizontalOptions="Start">
                             <VerticalStackLayout Spacing="2">
@@ -92,8 +96,15 @@
                     <GradientStop Color="#00000000" Offset="1" />
                 </LinearGradientBrush>
             </Grid.Background>
-            <controls:AvatarView Size="36" Image="{Binding AuthorAvatar}" Name="{Binding AuthorName}" VerticalOptions="Center" />
-            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" InputTransparent="True">
+            <controls:AvatarView Size="36" Image="{Binding AuthorAvatar}" Name="{Binding AuthorName}" VerticalOptions="Center">
+                <controls:AvatarView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnAuthorTapped" />
+                </controls:AvatarView.GestureRecognizers>
+            </controls:AvatarView>
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" SemanticProperties.Hint="Opens their profile">
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnAuthorTapped" />
+                </VerticalStackLayout.GestureRecognizers>
                 <Label Text="{Binding Author}" FontFamily="BodySemibold" FontSize="15" TextColor="White" />
                 <Label Text="{Binding Meta}" FontSize="12" TextColor="#D9FFFFFF" LineBreakMode="TailTruncation" />
             </VerticalStackLayout>

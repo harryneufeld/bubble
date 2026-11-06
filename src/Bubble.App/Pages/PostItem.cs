@@ -5,7 +5,7 @@ using Bubble.Core;
 
 namespace Bubble.App.Pages;
 
-public sealed record CommentItem(string Name, byte[]? Avatar, string Text, string When, bool IsMine);
+public sealed record CommentItem(string Name, byte[]? Avatar, string Text, string When, bool IsMine, string AuthorKey = "");
 
 /// <summary>Display data of a post card (home, bubble page and post page). Hearts and comments change live.</summary>
 public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, bool showFaces = false) : INotifyPropertyChanged
@@ -15,6 +15,8 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, b
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public HomePost Source => item;
+    public string AuthorKey => _m.AuthorKey;
+    public bool IsMine => item.Post.IsMine;
     public string Id => item.Post.Id;
     public string MailboxId => item.Bubble.MailboxId;
     public string Author { get; } = item.Post.IsMine ? "You" : item.Author?.Name ?? item.Post.Message.AuthorName;
@@ -97,7 +99,7 @@ public sealed class PostItem(HomePost item, FeedService feed, bool showBubble, b
         {
             var member = item.Snapshot.MemberFor(c.AuthorKey);
             var mine = member?.IsMe == true;
-            return new CommentItem(mine ? "You" : member?.Name ?? c.AuthorName, member?.Avatar, c.Text, Labels.Ago(c.CreatedAt), mine);
+            return new CommentItem(mine ? "You" : member?.Name ?? c.AuthorName, member?.Avatar, c.Text, Labels.Ago(c.CreatedAt), mine, c.AuthorKey);
         })
         .ToList();
 

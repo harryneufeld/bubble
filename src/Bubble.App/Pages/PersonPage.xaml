@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Someone from your bubbles: picture, name, bio, the bubbles you share, and their highlights that are still there -->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Bubble.App.Controls"
+             xmlns:pages="clr-namespace:Bubble.App.Pages"
+             x:Class="Bubble.App.Pages.PersonPage"
+             Shell.TabBarIsVisible="False">
+    <CollectionView x:Name="Months" IsGrouped="True" SelectionMode="None" Margin="12,0" MaximumWidthRequest="600">
+        <CollectionView.ItemsLayout>
+            <GridItemsLayout Orientation="Vertical" Span="3" HorizontalItemSpacing="6" VerticalItemSpacing="6" />
+        </CollectionView.ItemsLayout>
+        <CollectionView.Header>
+            <VerticalStackLayout Padding="4,12,4,8" Spacing="10">
+                <controls:AvatarView x:Name="Avatar" Size="112" HorizontalOptions="Center" />
+                <Label x:Name="NameLabel" Style="{StaticResource TitleText}" HorizontalTextAlignment="Center" />
+                <Label x:Name="BioLabel" Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" />
+                <Button x:Name="StoriesButton" Text="View today's stories" Clicked="OnStories" Style="{StaticResource SecondaryButton}"
+                        HorizontalOptions="Center" IsVisible="False" />
+                <Label Text="Bubbles you share" Style="{StaticResource SectionText}" Margin="0,10,0,0" />
+                <FlexLayout x:Name="Bubbles" Wrap="Wrap" JustifyContent="Start">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="pages:SharedBubble">
+                            <Border Style="{StaticResource SoftPill}" Margin="0,0,8,8" Padding="14,8" SemanticProperties.Description="{Binding Description}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnBubbleTapped" CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="{Binding Name}" Style="{StaticResource FeelingText}" />
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </FlexLayout>
+            </VerticalStackLayout>
+        </CollectionView.Header>
+        <CollectionView.GroupHeaderTemplate>
+            <DataTemplate x:DataType="pages:MonthItems">
+                <Grid ColumnDefinitions="*,Auto" HeightRequest="44">
+                    <Label Text="{Binding Title}" Style="{StaticResource HeadingText}" FontFamily="BodyBold" VerticalOptions="Center" />
+                    <Label Grid.Column="1" Text="{Binding Summary}" Style="{StaticResource CaptionText}" FontSize="12" VerticalOptions="Center" />
+                </Grid>
+            </DataTemplate>
+        </CollectionView.GroupHeaderTemplate>
+        <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="pages:PostItem">
+                <controls:MemoryThumb>
+                    <controls:MemoryThumb.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnPostTapped" CommandParameter="{Binding .}" />
+                    </controls:MemoryThumb.GestureRecognizers>
+                </controls:MemoryThumb>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
+        <CollectionView.EmptyView>
+            <Label x:Name="EmptyLabel" Style="{StaticResource SoftText}" HorizontalTextAlignment="Center" Margin="24,24" />
+        </CollectionView.EmptyView>
+        <CollectionView.Footer>
+            <BoxView HeightRequest="24" Color="Transparent" />
+        </CollectionView.Footer>
+    </CollectionView>
+</ContentPage>

@@ -138,13 +138,24 @@ public partial class FeedPage : ContentPage
 
     async void OnMemberTapped(object? sender, TappedEventArgs e)
     {
-        if (_bubble is null || e.Parameter is not MemberItem member || member.IsMe) return;
-        if (!_account.Client.IsOwner(_bubble)) return; // only the creator can remove people
+        if (_bubble is null || e.Parameter is not MemberItem member) return;
+        // Only the creator can remove people; everyone else goes straight to the profile
+        if (member.IsMe || !_account.Client.IsOwner(_bubble))
+        {
+            await PersonPage.OpenAsync(member.Key, member.IsMe);
+            return;
+        }
 
         var choice = await SheetPage.ChooseAsync(this, member.FullName,
             "Removing someone moves the bubble to a new key that only the remaining members get. Earlier highlights stay behind under the old key.",
-            [new SheetOption("Remove from bubble", "They can no longer see or share anything new.", "🚪", Destructive: true)]);
+            [new SheetOption("View profile", "Their picture, bio and highlights.", "👤"),
+             new SheetOption("Remove from bubble", "They can no longer see or share anything new.", "🚪", Destructive: true)]);
         if (choice is null) return;
+        if (choice == 0)
+        {
+            await PersonPage.OpenAsync(member.Key, false);
+            return;
+        }
 
         try
         {

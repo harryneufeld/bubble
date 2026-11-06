@@ -124,6 +124,8 @@ Bubble feels like **the story bar of a social app, only for your closest people*
 
 **Story view.** Full screen on black: progress bars at the top (6 s per story), sender and close button, feeling pill and caption at the bottom on a shadow. Tap right = next, left = back. Starts at the first unseen story.
 
+**Profile of someone else.** Opened by tapping a face: the author over a highlight or story, a commenter, a member on the bubble page. Large avatar (with a ring and "View today's stories" when they shared something in the last 24 h), name, bio, the bubbles you share as pills, then their highlights that are still there, month by month. Only what your bubbles already hold; your own face leads to the Profile tab.
+
 **Highlight (opened).** Full screen on `canvas`: the photo edge to edge in its own proportions – 4:5 or 9:16 as the editor makes them – so nothing is cut off; only a photo taller than the screen is fitted in. Text highlights get 4:5 on their gradient. Who shared it, "Manage" (own highlights) and close float over the top on a shadow. Scrolling down: caption, feeling and lifetime pills, heart bubble with faces, comments. The comment field stays at the bottom. Double tap on the photo gives a heart.
 
 **Post card.**

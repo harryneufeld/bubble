@@ -141,6 +141,16 @@ public partial class StoryPage : ContentPage
         await Shell.Current.GoToAsync($"../{nameof(PostPage)}?id={Uri.EscapeDataString(item.MailboxId)}&post={Uri.EscapeDataString(item.Id)}&comments=1");
     }
 
+    /// <summary>Closes the story and opens the profile of who shared it.</summary>
+    async void OnAuthorTapped(object? sender, TappedEventArgs e)
+    {
+        if (_stories.Count == 0) return;
+        var story = _stories[_index];
+        _timer.Stop();
+        if (story.Post.IsMine) await Shell.Current.GoToAsync("//profile");
+        else await PersonPage.OpenAsync(story.Post.Message.AuthorKey, false, "../");
+    }
+
     void Tick()
     {
         if (_bars.Count == 0) return;

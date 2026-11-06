@@ -9,7 +9,7 @@ public partial class AppShell : Shell
 		InitializeComponent();
 		foreach (var page in new[] { typeof(OnboardingPage), typeof(FeedPage), typeof(ComposePage), typeof(BackupPage),
 		                             typeof(InvitePage), typeof(JoinPage), typeof(StoryPage), typeof(ProfileEditPage), typeof(PostPage),
-		                             typeof(RewindPage) })
+		                             typeof(RewindPage), typeof(PersonPage) })
 			Routing.RegisterRoute(page.Name, page);
 	}
 

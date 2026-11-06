@@ -45,8 +45,15 @@
         <VerticalStackLayout VerticalOptions="Start" Padding="12,12,12,0" Spacing="12">
             <Grid x:Name="Progress" ColumnSpacing="4" HeightRequest="3" InputTransparent="True" />
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <controls:AvatarView x:Name="AuthorAvatar" Size="38" />
-                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" InputTransparent="True">
+                <controls:AvatarView x:Name="AuthorAvatar" Size="38">
+                    <controls:AvatarView.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnAuthorTapped" />
+                    </controls:AvatarView.GestureRecognizers>
+                </controls:AvatarView>
+                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" SemanticProperties.Hint="Opens their profile">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnAuthorTapped" />
+                    </VerticalStackLayout.GestureRecognizers>
                     <Label x:Name="AuthorLabel" FontFamily="BodySemibold" FontSize="15" TextColor="White" />
                     <Label x:Name="MetaLabel" FontSize="12" TextColor="#D9FFFFFF" />
                 </VerticalStackLayout>

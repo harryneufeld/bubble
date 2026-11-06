@@ -102,6 +102,16 @@ public partial class PostPage : ContentPage
 
     async void OnClose(object? sender, EventArgs e) => await Shell.Current.GoToAsync("..");
 
+    async void OnAuthorTapped(object? sender, TappedEventArgs e)
+    {
+        if (_item is not null) await PersonPage.OpenAsync(_item.AuthorKey, _item.IsMine);
+    }
+
+    async void OnCommenterTapped(object? sender, TappedEventArgs e)
+    {
+        if (e.Parameter is CommentItem { AuthorKey.Length: > 0 } comment) await PersonPage.OpenAsync(comment.AuthorKey, comment.IsMine);
+    }
+
     async void OnLikeClicked(object? sender, EventArgs e)
     {
         if (_item is null) return;
